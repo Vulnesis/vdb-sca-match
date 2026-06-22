@@ -49,9 +49,10 @@ func matchCPE(ctx context.Context, q Querier, dep Dependency) ([]Match, error) {
 		}
 		seen[cveID] = struct{}{}
 		matches = append(matches, Match{
-			CveID:  cveID,
-			Source: "CVEAffected.cpes",
-			Method: "cpe",
+			CveID:    cveID,
+			Source:   "CVEAffected.cpes",
+			Method:   "cpe",
+			isCoarse: true,
 		})
 	}
 	rows.Close()
@@ -79,9 +80,10 @@ func matchCPE(ctx context.Context, q Querier, dep Dependency) ([]Match, error) {
 		}
 		seen[cveID] = struct{}{}
 		matches = append(matches, Match{
-			CveID:  cveID,
-			Source: "CVEMetadata.cpesJSON",
-			Method: "cpe",
+			CveID:    cveID,
+			Source:   "CVEMetadata.cpesJSON",
+			Method:   "cpe",
+			isCoarse: true,
 		})
 	}
 

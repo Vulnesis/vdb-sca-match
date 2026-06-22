@@ -31,6 +31,13 @@ func matchPurl(ctx context.Context, q Querier, dep Dependency) ([]Match, error) 
 	}
 	defer rows.Close()
 
+	// A versioned PURL match is registry-exact (specific, never suppressed); a
+	// version-less PURL matches every row for the package, so it is coarse.
+	method, coarse, specific := "purl", false, true
+	if version == "" {
+		method, coarse, specific = "purl:coarse", true, false
+	}
+
 	var matches []Match
 	for rows.Next() {
 		var cveID string
@@ -38,9 +45,11 @@ func matchPurl(ctx context.Context, q Querier, dep Dependency) ([]Match, error) 
 			continue
 		}
 		matches = append(matches, Match{
-			CveID:  cveID,
-			Source: "PackageVersionCVE",
-			Method: "purl",
+			CveID:      cveID,
+			Source:     "PackageVersionCVE",
+			Method:     method,
+			isCoarse:   coarse,
+			isSpecific: specific,
 		})
 	}
 	return matches, nil

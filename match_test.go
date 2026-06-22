@@ -79,6 +79,7 @@ type fakeQuerier struct {
 	cpeAffected  [][]any
 	cpeMetadata  [][]any
 	crit         [][]any
+	alias        [][]any
 }
 
 func (f *fakeQuerier) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
@@ -89,6 +90,8 @@ func (f *fakeQuerier) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, 
 		return &fakeRows{rows: f.purl}, nil
 	case strings.Contains(sql, "CritRecord"):
 		return &fakeRows{rows: f.crit}, nil
+	case strings.Contains(sql, "CVEAlias"):
+		return &fakeRows{rows: f.alias}, nil
 	case strings.Contains(sql, "CVEMetadata"):
 		return &fakeRows{rows: f.cpeMetadata}, nil
 	case strings.Contains(sql, "CVEAffected"):
@@ -117,9 +120,9 @@ func methodsByCve(ms []Match) map[string]Match {
 // Match, keeping the version-range's VulnerableRange.
 func TestMatchDependency_MergesMethods(t *testing.T) {
 	q := &fakeQuerier{
-		// ca.cveId, ca.source, cav.status, cav.versionType, cav.version, lessThan, lessThanOrEqual, isValidVersion
+		// cveId, affectedId, source, status, versionType, version, lessThan, lessThanOrEqual, isValidVersion, changes
 		versionRange: [][]any{
-			{"CVE-1", "nvd", "affected", "semver", nil, "2.0.0", nil, nil},
+			{"CVE-1", "p1", "nvd", "affected", "semver", nil, "2.0.0", nil, nil, nil},
 		},
 		purl: [][]any{
 			{"CVE-1"}, {"CVE-2"},
@@ -192,6 +195,133 @@ func TestMatchDependency_CritTagsOnly(t *testing.T) {
 	if got := byCve["CVE-A"].Method; got != "purl,crit" {
 		t.Fatalf("CVE-A method = %q, want purl,crit", got)
 	}
+}
+
+// ── wildcard suppression / alias collation ───────────────────────────────────
+
+func cveSet(ms []Match) map[string]Match { return methodsByCve(ms) }
+
+// vr is a version-range fake row: cveId, affectedId, source, status, versionType,
+// version, lessThan, lessThanOrEqual, isValidVersion, changes.
+func vr(cve, prod, status, version string, lessThan any) []any {
+	var v any
+	if version != "" {
+		v = version
+	}
+	return []any{cve, prod, "osv", status, "semver", v, lessThan, nil, nil, nil}
+}
+
+// Rule 1 (single CVE): a "*" row coexisting with a specific range; installed
+// above the range ⇒ the wildcard is discarded and nothing matches.
+func TestSuppress_WildcardDroppedWhenSpecific(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vr("CVE-1", "p1", "affected", "*", nil),
+		vr("CVE-1", "p1", "affected", "", "2.0.0"),
+	}}
+	dep := Dependency{Name: "x", Version: "5.0.0", Ecosystem: "npm"}
+	matches, _ := MatchDependency(context.Background(), q, dep)
+	if _, ok := cveSet(matches)["CVE-1"]; ok {
+		t.Fatalf("CVE-1 wildcard should be suppressed (installed above specific range): %+v", matches)
+	}
+}
+
+// Rule 2: a "*" that is the ONLY evidence stays a valid all-versions match.
+func TestKeep_WildcardOnlyIsValid(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{vr("CVE-2", "p1", "affected", "*", nil)}}
+	dep := Dependency{Name: "x", Version: "5.0.0", Ecosystem: "npm"}
+	m := cveSet(MatchDependencyMust(t, q, dep))["CVE-2"]
+	if m.CveID != "CVE-2" || m.VulnerableRange != "*" || !strings.Contains(m.Method, "version-range:wildcard") {
+		t.Fatalf("CVE-2 should be kept as all-versions wildcard: %+v", m)
+	}
+}
+
+// A coarse CPE hit is dropped from the method list when version-range supplies
+// specific evidence for the same CVE.
+func TestSuppress_CoarseCPEWhenSpecific(t *testing.T) {
+	q := &fakeQuerier{
+		versionRange: [][]any{vr("CVE-3", "p1", "affected", "", "6.0.0")},
+		cpeAffected:  [][]any{{"CVE-3"}},
+	}
+	dep := Dependency{Name: "x", Version: "5.0.0", Ecosystem: "npm", Cpe: "cpe:2.3:a:v:p:5.0:*:*:*:*:*:*:*"}
+	m := cveSet(MatchDependencyMust(t, q, dep))["CVE-3"]
+	if m.CveID != "CVE-3" || strings.Contains(m.Method, "cpe") || m.Method != "version-range:lessThan" {
+		t.Fatalf("CVE-3 should keep version-range and drop cpe: %+v", m)
+	}
+}
+
+// Alias collation: "*" on CVE-X + "<2.3.1" on alias GHSA-Y. Installed above the
+// range ⇒ both gone (the alias's specific fact suppresses CVE-X's wildcard).
+func TestSuppress_AliasGroupAboveRange(t *testing.T) {
+	q := &fakeQuerier{
+		versionRange: [][]any{
+			vr("CVE-X", "px", "affected", "*", nil),
+			vr("GHSA-Y", "py", "affected", "", "2.3.1"),
+		},
+		alias: [][]any{{"CVE-X", "GHSA-Y"}},
+	}
+	dep := Dependency{Name: "x", Version: "5.0.0", Ecosystem: "npm"}
+	matches := MatchDependencyMust(t, q, dep)
+	if len(matches) != 0 {
+		t.Fatalf("alias group above range should yield no matches, got %+v", matches)
+	}
+}
+
+// Same alias group, installed inside the range ⇒ GHSA-Y matches (specific),
+// CVE-X's wildcard is still suppressed.
+func TestSuppress_AliasGroupInRange(t *testing.T) {
+	q := &fakeQuerier{
+		versionRange: [][]any{
+			vr("CVE-X", "px", "affected", "*", nil),
+			vr("GHSA-Y", "py", "affected", "", "2.3.1"),
+		},
+		alias: [][]any{{"CVE-X", "GHSA-Y"}},
+	}
+	dep := Dependency{Name: "x", Version: "2.0.0", Ecosystem: "npm"}
+	byCve := cveSet(MatchDependencyMust(t, q, dep))
+	if _, ok := byCve["CVE-X"]; ok {
+		t.Fatalf("CVE-X wildcard should be suppressed by alias's specific range: %+v", byCve)
+	}
+	m, ok := byCve["GHSA-Y"]
+	if !ok || m.VulnerableRange != "<2.3.1" {
+		t.Fatalf("GHSA-Y should match in range with <2.3.1: %+v", byCve)
+	}
+}
+
+// A version-less PURL is coarse and is suppressed when the CVE has specific
+// version evidence the installed version sits outside of.
+func TestSuppress_VersionlessPurl(t *testing.T) {
+	q := &fakeQuerier{
+		versionRange: [][]any{vr("CVE-5", "p1", "affected", "", "3.0.0")},
+		purl:         [][]any{{"CVE-5"}},
+	}
+	dep := Dependency{Name: "x", Version: "5.0.0", Ecosystem: "npm", Purl: "pkg:npm/x"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, dep))["CVE-5"]; ok {
+		t.Fatalf("CVE-5 version-less purl should be suppressed by out-of-range specific data")
+	}
+}
+
+// CRIT runs after suppression and must not resurrect a dropped CVE.
+func TestCrit_AfterSuppression(t *testing.T) {
+	q := &fakeQuerier{
+		versionRange: [][]any{
+			vr("CVE-6", "p1", "affected", "*", nil),
+			vr("CVE-6", "p1", "affected", "", "2.0.0"),
+		},
+		crit: [][]any{{"CVE-6"}},
+	}
+	dep := Dependency{Name: "x", Version: "5.0.0", Ecosystem: "npm"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, dep))["CVE-6"]; ok {
+		t.Fatalf("crit must not resurrect a suppressed CVE-6")
+	}
+}
+
+func MatchDependencyMust(t *testing.T, q Querier, dep Dependency) []Match {
+	t.Helper()
+	m, err := MatchDependency(context.Background(), q, dep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return m
 }
 
 func TestCPEPrefix(t *testing.T) {

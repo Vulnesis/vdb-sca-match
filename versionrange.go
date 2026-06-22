@@ -2,122 +2,363 @@ package match
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	ver "github.com/Vulnetix/vdb-sca-match/version"
 )
 
-// matchVersionRange queries CVEAffected + CVEAffectedVersion for candidates
-// keyed by package name and ecosystem, then decides affected status via
-// version range comparison.
-func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match, error) {
+// affectedFacts summarises, per cveId, what affected-version evidence was seen
+// for the package — independent of whether the installed version matched. It
+// drives wildcard suppression: a specific affected range ANYWHERE in a CVE's
+// alias group discards an over-broad "*".
+type affectedFacts struct {
+	hasWildcard bool
+	hasSpecific bool
+}
+
+// verChange is a CVE 5.1 in-range status step ({at, status}).
+type verChange struct {
+	at     string
+	status string
+}
+
+// affRow is one CVEAffectedVersion row, normalised.
+type affRow struct {
+	status          string // lowercased: "affected" | "unaffected" | …
+	versionType     string
+	version         string
+	lessThan        string
+	lessThanOrEqual string
+	changes         []verChange
+}
+
+// cveData groups the affected rows of one cveId by product (affectedId).
+type cveData struct {
+	source       string
+	products     map[string][]affRow
+	productOrder []string
+}
+
+const versionRangeCVELimit = 200
+
+// matchVersionRange queries CVEAffected + CVEAffectedVersion for candidates keyed
+// by package name and ecosystem, then decides affected status per CVE using the
+// CVE 5.1 precedence (exact > range > wildcard), per-product unaffected
+// suppression, and lower-bound/segment-wildcard/changes[] handling. It also
+// returns per-cveId affectedFacts for the alias-collated wildcard suppression in
+// MatchDependency. The inner subquery bounds the result to 200 distinct CVEs so
+// a CVE's version rows are never truncated mid-product.
+func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match, map[string]affectedFacts, error) {
 	if dep.Name == "" {
-		return nil, nil
+		return nil, nil, nil
 	}
 
-	// cveId/source live on CVEAffected (ca); the version bounds live on
-	// CVEAffectedVersion (cav). The version column is named "version" (not
-	// "versionValue"), and CVEAffectedVersion has no cveId of its own.
 	rows, err := q.Query(ctx, `
-		SELECT ca."cveId", ca.source, cav.status, cav."versionType",
-		       cav.version, cav."lessThan", cav."lessThanOrEqual",
-		       cav."isValidVersion"
-		FROM "CVEAffected" ca
-		JOIN "CVEAffectedVersion" cav ON ca.uuid = cav."affectedId"
-		WHERE LOWER(COALESCE(ca."packageName", ca.product)) = LOWER($1)
-		  AND ($2 = '' OR LOWER(ca."collectionURL") LIKE '%' || LOWER($2) || '%')
-		LIMIT 500`,
+		SELECT a."cveId", a.uuid, a.source, v.status, v."versionType",
+		       v.version, v."lessThan", v."lessThanOrEqual", v."isValidVersion", v.changes
+		FROM "CVEAffected" a
+		JOIN "CVEAffectedVersion" v ON v."affectedId" = a.uuid
+		WHERE LOWER(COALESCE(a."packageName", a.product)) = LOWER($1)
+		  AND ($2 = '' OR LOWER(a."collectionURL") LIKE '%' || LOWER($2) || '%')
+		  AND a."cveId" IN (
+		    SELECT DISTINCT "cveId" FROM "CVEAffected"
+		    WHERE LOWER(COALESCE("packageName", product)) = LOWER($1)
+		      AND ($2 = '' OR LOWER("collectionURL") LIKE '%' || LOWER($2) || '%')
+		    ORDER BY "cveId"
+		    LIMIT 200
+		  )
+		ORDER BY a."cveId", a.uuid`,
 		dep.Name, dep.Ecosystem,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer rows.Close()
 
-	var matches []Match
+	perCve := map[string]*cveData{}
+	var cveOrder []string
+	facts := map[string]affectedFacts{}
+
 	for rows.Next() {
-		var cveID, source, status string
-		var versionType, versionValue, lessThan, lessThanOrEqual *string
+		var cveID, affectedID, source, status string
+		var versionType, versionValue, lessThan, lessThanOrEqual, changesRaw *string
 		var isValidVersion *bool
-		if err := rows.Scan(&cveID, &source, &status, &versionType, &versionValue, &lessThan, &lessThanOrEqual, &isValidVersion); err != nil {
+		if err := rows.Scan(&cveID, &affectedID, &source, &status, &versionType,
+			&versionValue, &lessThan, &lessThanOrEqual, &isValidVersion, &changesRaw); err != nil {
 			continue
 		}
-
-		// Skip if version is marked invalid
+		// Skip rows the normaliser marked invalid (before recording any fact).
 		if isValidVersion != nil && !*isValidVersion {
 			continue
 		}
 
-		vt := ""
-		if versionType != nil {
-			vt = *versionType
+		cd := perCve[cveID]
+		if cd == nil {
+			cd = &cveData{source: source, products: map[string][]affRow{}}
+			perCve[cveID] = cd
+			cveOrder = append(cveOrder, cveID)
 		}
+		vt := derefStr(versionType)
 		if vt == "" {
 			vt = dep.Ecosystem
 		}
+		row := affRow{
+			status:          strings.ToLower(strings.TrimSpace(status)),
+			versionType:     vt,
+			version:         derefStr(versionValue),
+			lessThan:        derefStr(lessThan),
+			lessThanOrEqual: derefStr(lessThanOrEqual),
+			changes:         parseChanges(changesRaw),
+		}
+		if _, ok := cd.products[affectedID]; !ok {
+			cd.productOrder = append(cd.productOrder, affectedID)
+		}
+		cd.products[affectedID] = append(cd.products[affectedID], row)
 
-		matched, method := decideVersionRange(dep.Version, status, vt, versionValue, lessThan, lessThanOrEqual)
-		if matched {
-			src := source
-			if src == "" {
-				src = "CVEAffected"
+		// Record facts from every AFFECTED row (matched or not) for suppression.
+		if row.status == "affected" {
+			f := facts[cveID]
+			if rowIsWildcard(row) {
+				f.hasWildcard = true
+			} else if row.version != "" || row.lessThan != "" || row.lessThanOrEqual != "" {
+				f.hasSpecific = true
 			}
-			matches = append(matches, Match{
-				CveID:           cveID,
-				Source:          src,
-				Method:          method,
-				VulnerableRange: buildRangeString(versionValue, lessThan, lessThanOrEqual),
-			})
+			facts[cveID] = f
 		}
 	}
-	return matches, nil
+
+	var matches []Match
+	for _, cveID := range cveOrder {
+		cd := perCve[cveID]
+		verdict, method, rangeStr := evaluateCVE(dep.Version, dep.Ecosystem, cd)
+		if verdict == cveDrop {
+			continue
+		}
+		src := cd.source
+		if src == "" {
+			src = "CVEAffected"
+		}
+		m := Match{CveID: cveID, Source: src, Method: method, VulnerableRange: rangeStr}
+		switch verdict {
+		case cveSpecific:
+			m.isSpecific = true
+		case cveWildcard:
+			m.isWildcard = true
+		case cveUnknown:
+			m.isCoarse = true
+		}
+		matches = append(matches, m)
+	}
+	return matches, facts, nil
 }
 
-func decideVersionRange(version, status, versionType string, versionValue, lessThan, lessThanOrEqual *string) (bool, string) {
-	if version == "" {
-		return false, ""
+// cveVerdict is the combined per-CVE outcome across its products.
+type cveVerdict int
+
+const (
+	cveDrop     cveVerdict = iota // every product with data agrees: unaffected
+	cveUnknown                    // inconclusive — kept conservatively (coarse)
+	cveWildcard                   // affected via "*" (all versions)
+	cveSpecific                   // affected via an exact/range/segment match
+)
+
+// evaluateCVE folds the per-product verdicts into one CVE verdict, mirroring
+// vdb-api's discoverCvesForPurl rule: any affected product wins; a CVE is
+// dropped only when every product with version data decisively agrees the
+// installed version is unaffected; inconclusive data is kept (as coarse).
+func evaluateCVE(installed, eco string, cd *cveData) (cveVerdict, string, string) {
+	var specificMethod, specificRange string
+	haveSpecific, haveWildcard, sawUnaffected, sawNone := false, false, false, false
+
+	for _, pid := range cd.productOrder {
+		pv, method, rng := evaluateProduct(installed, eco, cd.products[pid])
+		switch pv {
+		case prodSpecific:
+			if !haveSpecific {
+				haveSpecific, specificMethod, specificRange = true, method, rng
+			}
+		case prodWildcard:
+			haveWildcard = true
+		case prodUnaffected:
+			sawUnaffected = true
+		case prodNone:
+			sawNone = true
+		}
 	}
 
-	switch strings.ToLower(status) {
-	case "affected":
-		// Exact version match
-		if versionValue != nil && *versionValue != "" {
-			cmp, ok := ver.Compare("", versionType, version, *versionValue)
-			if ok && cmp == 0 {
-				return true, "version-range:exact"
+	switch {
+	case haveSpecific:
+		return cveSpecific, specificMethod, specificRange
+	case haveWildcard:
+		return cveWildcard, "version-range:wildcard", "*"
+	case sawUnaffected && !sawNone:
+		return cveDrop, "", ""
+	default:
+		return cveUnknown, "version-range:unknown", ""
+	}
+}
+
+// prodVerdict is the outcome for one CVEAffected product (affectedId).
+type prodVerdict int
+
+const (
+	prodNone       prodVerdict = iota // had data, installed matched nothing
+	prodUnaffected                    // installed decisively unaffected
+	prodWildcard                      // affected via "*"
+	prodSpecific                      // affected via exact/range/segment
+)
+
+// evaluateProduct applies the CVE 5.1 precedence to one product's rows:
+// exact-unaffected > exact-affected > range-unaffected > range-affected >
+// wildcard-affected > none.
+func evaluateProduct(installed, eco string, rows []affRow) (prodVerdict, string, string) {
+	var exactAffMethod, exactAffRange string
+	var rangeAffMethod, rangeAffRange string
+	haveExactUnaff, haveExactAff := false, false
+	haveRangeUnaff, haveRangeAff := false, false
+	haveWildcardAff := false
+
+	for _, r := range rows {
+		if rowIsWildcard(r) {
+			if r.status == "affected" {
+				haveWildcardAff = true
 			}
-			// If unparseable, fall back to string equality
-			if !ok && version == *versionValue {
-				return true, "version-range:exact"
-			}
+			continue
 		}
-		// Range check: version < lessThan
-		if lessThan != nil && *lessThan != "" {
-			cmp, ok := ver.Compare("", versionType, version, *lessThan)
-			if ok && cmp < 0 {
-				return true, "version-range:lessThan"
+		isRange := r.lessThan != "" || r.lessThanOrEqual != ""
+
+		if !isRange {
+			// Exact entry (version only).
+			if r.version == "" || !exactMatches(installed, r.versionType, r.version) {
+				continue
 			}
-			if !ok && version < *lessThan {
-				return true, "version-range:lessThan"
+			switch r.status {
+			case "unaffected":
+				haveExactUnaff = true
+			case "affected":
+				if !haveExactAff {
+					haveExactAff = true
+					exactAffMethod = exactMethod(r.version)
+					exactAffRange = "=" + r.version
+				}
 			}
+			continue
 		}
-		// Range check: version <= lessThanOrEqual
-		if lessThanOrEqual != nil && *lessThanOrEqual != "" {
-			cmp, ok := ver.Compare("", versionType, version, *lessThanOrEqual)
-			if ok && cmp <= 0 {
-				return true, "version-range:lessThanOrEqual"
-			}
-			if !ok && version <= *lessThanOrEqual {
-				return true, "version-range:lessThanOrEqual"
+
+		// Range entry: lower bound = version (zero ⇒ unbounded), gated.
+		lower := r.version
+		if isZeroVer(lower) {
+			lower = ""
+		}
+		inRange, _ := ver.Within(eco, r.versionType, installed, lower, r.lessThan, r.lessThanOrEqual)
+		if !inRange {
+			continue
+		}
+		switch effectiveRowStatus(installed, eco, r) {
+		case "unaffected":
+			haveRangeUnaff = true
+		case "affected":
+			if !haveRangeAff {
+				haveRangeAff = true
+				if r.lessThan != "" {
+					rangeAffMethod = "version-range:lessThan"
+				} else {
+					rangeAffMethod = "version-range:lessThanOrEqual"
+				}
+				rangeAffRange = buildRangeString(ptrOrNil(r.version), ptrOrNil(r.lessThan), ptrOrNil(r.lessThanOrEqual))
 			}
 		}
 	}
-	return false, ""
+
+	switch {
+	case haveExactUnaff:
+		return prodUnaffected, "", ""
+	case haveExactAff:
+		return prodSpecific, exactAffMethod, exactAffRange
+	case haveRangeUnaff:
+		return prodUnaffected, "", ""
+	case haveRangeAff:
+		return prodSpecific, rangeAffMethod, rangeAffRange
+	case haveWildcardAff:
+		return prodWildcard, "version-range:wildcard", "*"
+	default:
+		return prodNone, "", ""
+	}
+}
+
+// rowIsWildcard reports whether a row encodes an "all versions" signal.
+func rowIsWildcard(r affRow) bool {
+	return ver.IsFullWildcard(r.version) ||
+		ver.IsFullWildcard(r.lessThan) ||
+		ver.IsFullWildcard(r.lessThanOrEqual)
+}
+
+// exactMatches reports whether installed satisfies an exact / segment-wildcard
+// affected version, falling back to string equality when unparseable.
+func exactMatches(installed, versionType, version string) bool {
+	if m, isSeg := ver.MatchSegmentWildcard(installed, version); isSeg {
+		return m
+	}
+	if cmp, ok := ver.Compare("", versionType, installed, version); ok {
+		return cmp == 0
+	}
+	return installed == version
+}
+
+func exactMethod(version string) string {
+	if ver.IsSegmentWildcard(version) {
+		return "version-range:segwild"
+	}
+	return "version-range:exact"
+}
+
+// effectiveRowStatus applies CVE 5.1 changes[]: the status of the latest change
+// whose At is <= installed wins; otherwise the row's own status.
+func effectiveRowStatus(installed, eco string, r affRow) string {
+	result := r.status
+	bestAt := ""
+	for _, ch := range r.changes {
+		cmp, ok := ver.Compare(eco, r.versionType, installed, ch.at)
+		if !ok || cmp < 0 {
+			continue
+		}
+		st := strings.ToLower(strings.TrimSpace(ch.status))
+		if st != "affected" && st != "unaffected" {
+			continue
+		}
+		if bestAt == "" {
+			bestAt, result = ch.at, st
+			continue
+		}
+		if c2, ok2 := ver.Compare(eco, r.versionType, ch.at, bestAt); ok2 && c2 > 0 {
+			bestAt, result = ch.at, st
+		}
+	}
+	return result
+}
+
+// isZeroVer reports whether s is an all-zero version ("0", "0.0.0") — treated as
+// an unbounded lower bound so prereleases of 0 are included.
+func isZeroVer(s string) bool {
+	s = strings.TrimSpace(s)
+	s = strings.TrimPrefix(strings.TrimPrefix(s, "v"), "V")
+	if s == "" {
+		return false
+	}
+	for _, p := range strings.FieldsFunc(s, func(r rune) bool { return r == '.' || r == '-' || r == '+' }) {
+		for _, c := range p {
+			if c != '0' {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func buildRangeString(versionValue, lessThan, lessThanOrEqual *string) string {
 	parts := []string{}
-	if versionValue != nil && *versionValue != "" {
+	if versionValue != nil && *versionValue != "" && !ver.IsFullWildcard(*versionValue) && !isZeroVer(*versionValue) {
 		parts = append(parts, ">="+*versionValue)
 	}
 	if lessThan != nil && *lessThan != "" {
@@ -127,4 +368,40 @@ func buildRangeString(versionValue, lessThan, lessThanOrEqual *string) string {
 		parts = append(parts, "<="+*lessThanOrEqual)
 	}
 	return strings.Join(parts, ", ")
+}
+
+func ptrOrNil(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// parseChanges decodes the CVEAffectedVersion.changes JSON text column
+// (CVE 5.1 [{at, status}] steps). Junk yields nil.
+func parseChanges(raw *string) []verChange {
+	if raw == nil || strings.TrimSpace(*raw) == "" {
+		return nil
+	}
+	var arr []map[string]any
+	if json.Unmarshal([]byte(*raw), &arr) != nil {
+		return nil
+	}
+	var out []verChange
+	for _, m := range arr {
+		at, _ := m["at"].(string)
+		status, _ := m["status"].(string)
+		if at == "" || status == "" {
+			continue
+		}
+		out = append(out, verChange{at: at, status: status})
+	}
+	return out
 }

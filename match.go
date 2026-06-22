@@ -12,6 +12,12 @@ type Match struct {
 	Source          string
 	Method          string // e.g. "version-range:lessThan", "purl", "cpe", "crit"
 	VulnerableRange string // the range expression that matched
+
+	// Internal annotations used only by the wildcard-suppression pass; they are
+	// zeroed before MatchDependency returns and never serialised.
+	isWildcard bool // evidence is an "all versions" ("*") signal
+	isCoarse   bool // evidence has no version math (cpe / version-less purl / inconclusive range)
+	isSpecific bool // matched an exact version or a bounded range
 }
 
 // MatchDependency runs all match methods for a single dependency and returns
@@ -33,16 +39,24 @@ func MatchDependency(ctx context.Context, q Querier, dep Dependency) ([]Match, e
 			if ex.Source == "" {
 				ex.Source = mm.Source
 			}
+			// Fold specificity so a CVE reached by several methods carries every
+			// kind of evidence (e.g. version-range:specific + cpe:coarse).
+			ex.isWildcard = ex.isWildcard || mm.isWildcard
+			ex.isCoarse = ex.isCoarse || mm.isCoarse
+			ex.isSpecific = ex.isSpecific || mm.isSpecific
 			seen[mm.CveID] = ex
 			return
 		}
 		seen[mm.CveID] = mm
 	}
 
-	// 1. version-range matching (primary)
-	if m, err := matchVersionRange(ctx, q, dep); err != nil {
+	// 1. version-range matching (primary). Returns per-cveId affectedFacts used
+	// by the wildcard-suppression pass below.
+	var facts map[string]affectedFacts
+	if m, f, err := matchVersionRange(ctx, q, dep); err != nil {
 		log.Printf("[match] version-range error for %s: %v", dep.Key, err)
 	} else {
+		facts = f
 		for _, mm := range m {
 			add(mm)
 		}
@@ -68,7 +82,21 @@ func MatchDependency(ctx context.Context, q Querier, dep Dependency) ([]Match, e
 		}
 	}
 
-	// 4. CRIT tagging (only over already-matched cveIds)
+	// 3.5 Wildcard suppression: collate affected versions across each CVE's
+	// alias group and discard over-broad "*"/coarse matches when the group has
+	// specific version evidence. Fail-soft — on alias-query error each cveId is
+	// its own singleton group (single-record Rule 1 still applies).
+	if len(seen) > 0 {
+		groupOf, err := resolveAliasGroups(ctx, q, unionKeys(seen, facts))
+		if err != nil {
+			log.Printf("[match] alias-group error for %s: %v", dep.Key, err)
+			groupOf = nil
+		}
+		applyWildcardSuppression(seen, facts, groupOf)
+	}
+
+	// 4. CRIT tagging — runs AFTER suppression so it never resurrects or tags a
+	// dropped CVE (only over the surviving matched cveIds).
 	if len(seen) > 0 {
 		cveIds := make([]string, 0, len(seen))
 		for id := range seen {
@@ -88,6 +116,8 @@ func MatchDependency(ctx context.Context, q Querier, dep Dependency) ([]Match, e
 
 	out := make([]Match, 0, len(seen))
 	for _, m := range seen {
+		// Strip internal annotations — they must never escape the package.
+		m.isWildcard, m.isCoarse, m.isSpecific = false, false, false
 		out = append(out, m)
 	}
 	return out, nil

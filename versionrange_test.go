@@ -4,36 +4,117 @@ import "testing"
 
 func sp(s string) *string { return &s }
 
-func TestDecideVersionRange(t *testing.T) {
+// ar builds an affected/unaffected row for evaluateProduct tests.
+func ar(status, versionType, version, lessThan, lessThanOrEqual string) affRow {
+	return affRow{
+		status:          status,
+		versionType:     versionType,
+		version:         version,
+		lessThan:        lessThan,
+		lessThanOrEqual: lessThanOrEqual,
+	}
+}
+
+func TestEvaluateProduct(t *testing.T) {
 	cases := []struct {
-		name            string
-		version, status string
-		versionType     string
-		versionValue    *string
-		lessThan        *string
-		lessThanOrEqual *string
-		wantMatch       bool
-		wantMethod      string
+		name        string
+		installed   string
+		eco         string
+		rows        []affRow
+		wantVerdict prodVerdict
+		wantMethod  string
 	}{
-		{"below lessThan", "1.5.0", "affected", "semver", nil, sp("2.0.0"), nil, true, "version-range:lessThan"},
-		{"at lessThan (exclusive)", "2.0.0", "affected", "semver", nil, sp("2.0.0"), nil, false, ""},
-		{"above lessThan", "3.0.0", "affected", "semver", nil, sp("2.0.0"), nil, false, ""},
-		{"at lessThanOrEqual (inclusive)", "2.0.0", "affected", "semver", nil, nil, sp("2.0.0"), true, "version-range:lessThanOrEqual"},
-		{"exact versionValue", "1.0.0", "affected", "semver", sp("1.0.0"), nil, nil, true, "version-range:exact"},
-		{"unaffected status never matches", "1.0.0", "unaffected", "semver", sp("1.0.0"), sp("9.9.9"), nil, false, ""},
-		{"empty version never matches", "", "affected", "semver", sp("1.0.0"), nil, nil, false, ""},
-		{"unparseable falls back to string-equality exact", "not-semver", "affected", "semver", sp("not-semver"), nil, nil, true, "version-range:exact"},
-		{"generic numeric ordering", "1.2.9", "affected", "generic", nil, sp("1.2.10"), nil, true, "version-range:lessThan"},
+		// ── exact / range / unaffected (parity with the old per-row tests) ──
+		{"below lessThan", "1.5.0", "npm", []affRow{ar("affected", "semver", "", "2.0.0", "")}, prodSpecific, "version-range:lessThan"},
+		{"at lessThan exclusive", "2.0.0", "npm", []affRow{ar("affected", "semver", "", "2.0.0", "")}, prodNone, ""},
+		{"above lessThan", "3.0.0", "npm", []affRow{ar("affected", "semver", "", "2.0.0", "")}, prodNone, ""},
+		{"at lessThanOrEqual inclusive", "2.0.0", "npm", []affRow{ar("affected", "semver", "", "", "2.0.0")}, prodSpecific, "version-range:lessThanOrEqual"},
+		{"exact version", "1.0.0", "npm", []affRow{ar("affected", "semver", "1.0.0", "", "")}, prodSpecific, "version-range:exact"},
+		{"unaffected range covers installed", "1.0.0", "npm", []affRow{ar("unaffected", "semver", "1.0.0", "9.9.9", "")}, prodUnaffected, ""},
+		{"empty installed matches nothing", "", "npm", []affRow{ar("affected", "semver", "1.0.0", "", "")}, prodNone, ""},
+		{"unparseable falls back to string exact", "not-semver", "npm", []affRow{ar("affected", "semver", "not-semver", "", "")}, prodSpecific, "version-range:exact"},
+		{"generic numeric ordering", "1.2.9", "deb", []affRow{ar("affected", "generic", "", "1.2.10", "")}, prodSpecific, "version-range:lessThan"},
+
+		// ── Rule 2: wildcard is a valid all-versions match ──
+		{"wildcard affected matches all", "5.0.0", "npm", []affRow{ar("affected", "semver", "*", "", "")}, prodWildcard, "version-range:wildcard"},
+
+		// ── lower-bound (introduced) gating ──
+		{"below introduced lower bound", "1.0.0", "npm", []affRow{ar("affected", "semver", "2.0.0", "3.0.0", "")}, prodNone, ""},
+		{"within introduced..lessThan", "2.5.0", "npm", []affRow{ar("affected", "semver", "2.0.0", "3.0.0", "")}, prodSpecific, "version-range:lessThan"},
+		{"zero lower bound is unbounded", "0.5.0", "npm", []affRow{ar("affected", "semver", "0", "1.0.0", "")}, prodSpecific, "version-range:lessThan"},
+
+		// ── segment wildcards ──
+		{"segment wildcard 8.x matches 8.3.1", "8.3.1", "npm", []affRow{ar("affected", "semver", "8.x", "", "")}, prodSpecific, "version-range:segwild"},
+		{"segment wildcard 8.x rejects 9.0.0", "9.0.0", "npm", []affRow{ar("affected", "semver", "8.x", "", "")}, prodNone, ""},
+
+		// ── CVE 5.1 precedence: exact-unaffected beats range-affected ──
+		{"exact unaffected overrides affected range", "2.5.0", "npm",
+			[]affRow{ar("affected", "semver", "", "3.0.0", ""), ar("unaffected", "semver", "2.5.0", "", "")}, prodUnaffected, ""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			gotMatch, gotMethod := decideVersionRange(c.version, c.status, c.versionType, c.versionValue, c.lessThan, c.lessThanOrEqual)
-			if gotMatch != c.wantMatch || gotMethod != c.wantMethod {
-				t.Fatalf("decideVersionRange(%q,%q,…) = (%v,%q), want (%v,%q)",
-					c.version, c.status, gotMatch, gotMethod, c.wantMatch, c.wantMethod)
+			gotV, gotM, _ := evaluateProduct(c.installed, c.eco, c.rows)
+			if gotV != c.wantVerdict || gotM != c.wantMethod {
+				t.Fatalf("evaluateProduct(%q) = (%v,%q), want (%v,%q)", c.installed, gotV, gotM, c.wantVerdict, c.wantMethod)
 			}
 		})
 	}
+}
+
+// CVE 5.1 changes[]: a version past an in-range fix step is no longer affected.
+func TestEffectiveRowStatusChanges(t *testing.T) {
+	row := affRow{
+		status: "affected", versionType: "semver", version: "1.0.0", lessThan: "3.0.0",
+		changes: []verChange{{at: "2.0.0", status: "unaffected"}},
+	}
+	if got := effectiveRowStatus("2.5.0", "npm", row); got != "unaffected" {
+		t.Fatalf("post-fix 2.5.0 effective status = %q, want unaffected", got)
+	}
+	if got := effectiveRowStatus("1.5.0", "npm", row); got != "affected" {
+		t.Fatalf("pre-fix 1.5.0 effective status = %q, want affected", got)
+	}
+}
+
+// evaluateCVE folds products: any affected wins; drop only when every product
+// with data agrees unaffected; inconclusive stays as a coarse "unknown".
+func TestEvaluateCVE(t *testing.T) {
+	cd := func(products ...[]affRow) *cveData {
+		c := &cveData{products: map[string][]affRow{}}
+		for i, p := range products {
+			id := string(rune('a' + i))
+			c.productOrder = append(c.productOrder, id)
+			c.products[id] = p
+		}
+		return c
+	}
+
+	t.Run("any affected product wins", func(t *testing.T) {
+		v, _, _ := evaluateCVE("2.5.0", "npm", cd(
+			[]affRow{ar("unaffected", "semver", "2.5.0", "", "")},
+			[]affRow{ar("affected", "semver", "", "3.0.0", "")},
+		))
+		if v != cveSpecific {
+			t.Fatalf("verdict = %v, want cveSpecific", v)
+		}
+	})
+
+	t.Run("all-unaffected drops", func(t *testing.T) {
+		v, _, _ := evaluateCVE("2.5.0", "npm", cd(
+			[]affRow{ar("unaffected", "semver", "2.5.0", "", "")},
+		))
+		if v != cveDrop {
+			t.Fatalf("verdict = %v, want cveDrop", v)
+		}
+	})
+
+	t.Run("inconclusive stays as unknown", func(t *testing.T) {
+		v, _, _ := evaluateCVE("5.0.0", "npm", cd(
+			[]affRow{ar("affected", "semver", "", "2.0.0", "")}, // installed above range
+		))
+		if v != cveUnknown {
+			t.Fatalf("verdict = %v, want cveUnknown", v)
+		}
+	})
 }
 
 func TestBuildRangeString(t *testing.T) {
@@ -45,6 +126,8 @@ func TestBuildRangeString(t *testing.T) {
 		{nil, nil, sp("3.0.0"), "<=3.0.0"},
 		{sp("1.0.0"), nil, nil, ">=1.0.0"},
 		{nil, nil, nil, ""},
+		{sp("*"), sp("2.0.0"), nil, "<2.0.0"}, // wildcard lower dropped
+		{sp("0"), sp("2.0.0"), nil, "<2.0.0"}, // zero lower dropped
 	}
 	for _, c := range cases {
 		if got := buildRangeString(c.versionValue, c.lessThan, c.lessThanOrEqual); got != c.want {
