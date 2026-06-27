@@ -3,6 +3,7 @@ package match
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	ver "github.com/Vulnetix/vdb-sca-match/version"
@@ -49,27 +50,60 @@ const versionRangeCVELimit = 200
 // returns per-cveId affectedFacts for the alias-collated wildcard suppression in
 // MatchDependency. The inner subquery bounds the result to 200 distinct CVEs so
 // a CVE's version rows are never truncated mid-product.
+// versionRangeEcoClauses builds the ecosystem-scoping predicate for the
+// CVEAffected name match in two forms — aliased (`a.`-qualified, for the outer
+// query) and bare (for the inner cveId subquery) — plus the positional args to
+// append after $1 (dep.Name). Three regimes:
+//
+//	empty ecosystem      → "TRUE": name-only (unchanged behavior for callers that
+//	                       don't carry an ecosystem, e.g. CPE-only lookups).
+//	known ecosystem      → collectionURL = ANY(registry urls) OR vendor = ANY(vendors).
+//	unmapped, non-empty  → legacy `collectionURL LIKE '%eco%'` so an exotic
+//	                       ecosystem still matches rather than silently dropping.
+func versionRangeEcoClauses(eco string) (outer, inner string, args []any) {
+	if strings.TrimSpace(eco) == "" {
+		return "TRUE", "TRUE", nil
+	}
+	if _, urls, vendors, ok := EcosystemEvidence(eco); ok {
+		outer = `(a."collectionURL" = ANY($2::text[]) OR LOWER(a."vendor") = ANY($3::text[]))`
+		inner = `("collectionURL" = ANY($2::text[]) OR LOWER("vendor") = ANY($3::text[]))`
+		return outer, inner, []any{urls, vendors}
+	}
+	outer = `LOWER(a."collectionURL") LIKE '%' || LOWER($2) || '%'`
+	inner = `LOWER("collectionURL") LIKE '%' || LOWER($2) || '%'`
+	return outer, inner, []any{eco}
+}
+
 func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match, map[string]affectedFacts, error) {
 	if dep.Name == "" {
 		return nil, nil, nil
 	}
 
-	rows, err := q.Query(ctx, `
+	// Ecosystem scoping. CVEAffected has no ecosystem column, so a name-only
+	// match leaks across ecosystems (a pypi "foo" matching an npm "foo" advisory).
+	// For a known ecosystem we constrain on the authoritative registry
+	// collectionURL values + vendor names (EcosystemEvidence); empty ecosystem
+	// stays name-only (unchanged contract for non-SCA callers); a non-empty but
+	// unmapped ecosystem keeps the legacy substring gate so exotic ecosystems are
+	// not silently dropped.
+	outerEco, innerEco, ecoArgs := versionRangeEcoClauses(dep.Ecosystem)
+	args := append([]any{dep.Name}, ecoArgs...)
+	rows, err := q.Query(ctx, fmt.Sprintf(`
 		SELECT a."cveId", a.uuid, a.source, v.status, v."versionType",
 		       v.version, v."lessThan", v."lessThanOrEqual", v."isValidVersion", v.changes
 		FROM "CVEAffected" a
 		JOIN "CVEAffectedVersion" v ON v."affectedId" = a.uuid
 		WHERE LOWER(COALESCE(a."packageName", a.product)) = LOWER($1)
-		  AND ($2 = '' OR LOWER(a."collectionURL") LIKE '%' || LOWER($2) || '%')
+		  AND (%s)
 		  AND a."cveId" IN (
 		    SELECT DISTINCT "cveId" FROM "CVEAffected"
 		    WHERE LOWER(COALESCE("packageName", product)) = LOWER($1)
-		      AND ($2 = '' OR LOWER("collectionURL") LIKE '%' || LOWER($2) || '%')
+		      AND (%s)
 		    ORDER BY "cveId"
 		    LIMIT 200
 		  )
-		ORDER BY a."cveId", a.uuid`,
-		dep.Name, dep.Ecosystem,
+		ORDER BY a."cveId", a.uuid`, outerEco, innerEco),
+		args...,
 	)
 	if err != nil {
 		return nil, nil, err
