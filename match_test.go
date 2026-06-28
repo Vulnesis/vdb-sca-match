@@ -80,9 +80,11 @@ type fakeQuerier struct {
 	cpeMetadata  [][]any
 	crit         [][]any
 	alias        [][]any
+	queries      []string
 }
 
 func (f *fakeQuerier) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+	f.queries = append(f.queries, sql)
 	switch {
 	case strings.Contains(sql, "CVEAffectedVersion"):
 		return &fakeRows{rows: f.versionRange}, nil
@@ -92,10 +94,10 @@ func (f *fakeQuerier) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, 
 		return &fakeRows{rows: f.crit}, nil
 	case strings.Contains(sql, "CVEAlias"):
 		return &fakeRows{rows: f.alias}, nil
-	case strings.Contains(sql, "CVEMetadata"):
-		return &fakeRows{rows: f.cpeMetadata}, nil
 	case strings.Contains(sql, "CVEAffected"):
 		return &fakeRows{rows: f.cpeAffected}, nil
+	case strings.Contains(sql, "CVEMetadata"):
+		return &fakeRows{rows: f.cpeMetadata}, nil
 	}
 	return &fakeRows{}, nil
 }
@@ -194,6 +196,34 @@ func TestMatchDependency_CritTagsOnly(t *testing.T) {
 	}
 	if got := byCve["CVE-A"].Method; got != "purl,crit" {
 		t.Fatalf("CVE-A method = %q, want purl,crit", got)
+	}
+}
+
+func TestMatchQueriesFilterInactiveMetadata(t *testing.T) {
+	dep := Dependency{
+		Name:      "lodash",
+		Version:   "1.5.0",
+		Ecosystem: "npm",
+		Purl:      "pkg:npm/lodash@1.5.0",
+		Cpe:       "cpe:2.3:a:vendor:product:1.5.0:*:*:*:*:*:*:*",
+		Key:       "k",
+	}
+	q := &fakeQuerier{}
+	_, err := MatchDependency(context.Background(), q, dep)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	joined := strings.Join(q.queries, "\n")
+	for _, want := range []string{
+		`JOIN "CVEMetadata"`,
+		`NOT IN ('REJECTED', 'WITHDRAWN')`,
+		`EXISTS (
+		    SELECT 1 FROM "CVEMetadata" cm`,
+	} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("expected matcher SQL to contain %q; queries:\n%s", want, joined)
+		}
 	}
 }
 

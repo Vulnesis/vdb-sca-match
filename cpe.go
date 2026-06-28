@@ -27,9 +27,11 @@ func matchCPE(ctx context.Context, q Querier, dep Dependency) ([]Match, error) {
 
 	// Query CVEAffected.cpes
 	rows, err := q.Query(ctx, `
-		SELECT DISTINCT "cveId"
-		FROM "CVEAffected"
-		WHERE cpes ILIKE $1
+		SELECT DISTINCT a."cveId"
+		FROM "CVEAffected" a
+		JOIN "CVEMetadata" cm ON cm."cveId" = a."cveId" AND cm.source = a.source
+		WHERE a.cpes ILIKE $1
+		  AND UPPER(COALESCE(cm.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
 		LIMIT 200`,
 		pattern,
 	)
@@ -62,6 +64,7 @@ func matchCPE(ctx context.Context, q Querier, dep Dependency) ([]Match, error) {
 		SELECT DISTINCT "cveId"
 		FROM "CVEMetadata"
 		WHERE "cpesJSON" ILIKE $1
+		  AND UPPER(COALESCE(state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
 		LIMIT 200`,
 		pattern,
 	)

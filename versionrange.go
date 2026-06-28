@@ -66,11 +66,11 @@ func versionRangeEcoClauses(eco string) (outer, inner string, args []any) {
 	}
 	if _, urls, vendors, ok := EcosystemEvidence(eco); ok {
 		outer = `(a."collectionURL" = ANY($2::text[]) OR LOWER(a."vendor") = ANY($3::text[]))`
-		inner = `("collectionURL" = ANY($2::text[]) OR LOWER("vendor") = ANY($3::text[]))`
+		inner = `(ai."collectionURL" = ANY($2::text[]) OR LOWER(ai."vendor") = ANY($3::text[]))`
 		return outer, inner, []any{urls, vendors}
 	}
 	outer = `LOWER(a."collectionURL") LIKE '%' || LOWER($2) || '%'`
-	inner = `LOWER("collectionURL") LIKE '%' || LOWER($2) || '%'`
+	inner = `LOWER(ai."collectionURL") LIKE '%' || LOWER($2) || '%'`
 	return outer, inner, []any{eco}
 }
 
@@ -92,14 +92,18 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 		SELECT a."cveId", a.uuid, a.source, v.status, v."versionType",
 		       v.version, v."lessThan", v."lessThanOrEqual", v."isValidVersion", v.changes
 		FROM "CVEAffected" a
+		JOIN "CVEMetadata" cm ON cm."cveId" = a."cveId" AND cm.source = a.source
 		JOIN "CVEAffectedVersion" v ON v."affectedId" = a.uuid
 		WHERE LOWER(COALESCE(a."packageName", a.product)) = LOWER($1)
 		  AND (%s)
+		  AND UPPER(COALESCE(cm.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
 		  AND a."cveId" IN (
-		    SELECT DISTINCT "cveId" FROM "CVEAffected"
-		    WHERE LOWER(COALESCE("packageName", product)) = LOWER($1)
+		    SELECT DISTINCT ai."cveId" FROM "CVEAffected" ai
+		    JOIN "CVEMetadata" cmi ON cmi."cveId" = ai."cveId" AND cmi.source = ai.source
+		    WHERE LOWER(COALESCE(ai."packageName", ai.product)) = LOWER($1)
 		      AND (%s)
-		    ORDER BY "cveId"
+		      AND UPPER(COALESCE(cmi.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
+		    ORDER BY ai."cveId"
 		    LIMIT 200
 		  )
 		ORDER BY a."cveId", a.uuid`, outerEco, innerEco),

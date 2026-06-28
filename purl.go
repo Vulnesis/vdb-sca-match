@@ -23,6 +23,11 @@ func matchPurl(ctx context.Context, q Querier, dep Dependency) ([]Match, error) 
 		  AND LOWER(pv."packageName") = LOWER($2)
 		  AND ($3 = '' OR pv.version = $3)
 		  AND pvc."relationshipType" IN ('affects','vulnerable')
+		  AND EXISTS (
+		    SELECT 1 FROM "CVEMetadata" cm
+		    WHERE cm."cveId" = pvc."cveId"
+		      AND UPPER(COALESCE(cm.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
+		  )
 		LIMIT 200`,
 		eco, fullName, version,
 	)
