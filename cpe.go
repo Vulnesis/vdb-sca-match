@@ -32,7 +32,7 @@ func matchCPE(ctx context.Context, q Querier, dep Dependency) ([]Match, error) {
 		JOIN "CVEMetadata" cm ON cm."cveId" = a."cveId" AND cm.source = a.source
 		WHERE a.cpes ILIKE $1
 		  AND UPPER(COALESCE(cm.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
-		LIMIT 200`,
+		LIMIT 2000`,
 		pattern,
 	)
 	if err != nil {
@@ -65,7 +65,7 @@ func matchCPE(ctx context.Context, q Querier, dep Dependency) ([]Match, error) {
 		FROM "CVEMetadata"
 		WHERE "cpesJSON" ILIKE $1
 		  AND UPPER(COALESCE(state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
-		LIMIT 200`,
+		LIMIT 2000`,
 		pattern,
 	)
 	if err != nil {

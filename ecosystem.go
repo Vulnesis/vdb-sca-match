@@ -15,6 +15,8 @@ func CanonicalEcosystem(purlType string) string {
 		return "rubygems"
 	case "composer":
 		return "packagist"
+	case "python", "pip":
+		return "pypi"
 	default:
 		return strings.ToLower(strings.TrimSpace(purlType))
 	}

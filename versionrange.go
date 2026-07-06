@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	ver "github.com/Vulnetix/vdb-sca-match/version"
@@ -41,15 +42,22 @@ type cveData struct {
 	productOrder []string
 }
 
-const versionRangeCVELimit = 200
+// versionRangeCVELimit bounds the candidate CVE set per package. It is high
+// enough that real packages (django carries a few hundred CVE/GHSA/PYSEC rows)
+// are never truncated; the ordering below (most-recently-published first) means
+// that if a pathological package ever exceeds it, the CVEs kept are the recent
+// ones relevant to current versions rather than ancient advisories.
+const versionRangeCVELimit = 2000
 
 // matchVersionRange queries CVEAffected + CVEAffectedVersion for candidates keyed
 // by package name and ecosystem, then decides affected status per CVE using the
 // CVE 5.1 precedence (exact > range > wildcard), per-product unaffected
 // suppression, and lower-bound/segment-wildcard/changes[] handling. It also
 // returns per-cveId affectedFacts for the alias-collated wildcard suppression in
-// MatchDependency. The inner subquery bounds the result to 200 distinct CVEs so
-// a CVE's version rows are never truncated mid-product.
+// MatchDependency. The inner subquery bounds the candidate set to
+// versionRangeCVELimit distinct CVEs (most-recently-published first); a CVE's
+// version rows are never truncated mid-product because the outer query
+// re-selects every row for the surviving cveIds.
 // versionRangeEcoClauses builds the ecosystem-scoping predicate for the
 // CVEAffected name match in two forms — aliased (`a.`-qualified, for the outer
 // query) and bare (for the inner cveId subquery) — plus the positional args to
@@ -65,13 +73,40 @@ func versionRangeEcoClauses(eco string) (outer, inner string, args []any) {
 		return "TRUE", "TRUE", nil
 	}
 	if _, urls, vendors, ok := EcosystemEvidence(eco); ok {
-		outer = `(a."collectionURL" = ANY($2::text[]) OR LOWER(a."vendor") = ANY($3::text[]))`
-		inner = `(ai."collectionURL" = ANY($2::text[]) OR LOWER(ai."vendor") = ANY($3::text[]))`
-		return outer, inner, []any{urls, vendors}
+		// Match the registry host case-insensitively and tolerate a trailing
+		// slash or path suffix (e.g. "https://pypi.org/project/Django") — an
+		// exact "= ANY(urls)" drops those otherwise-valid advisories.
+		patterns := make([]string, len(urls))
+		for i, u := range urls {
+			patterns[i] = strings.ToLower(u) + "%"
+		}
+		outer = `(LOWER(a."collectionURL") LIKE ANY($2::text[]) OR LOWER(a."vendor") = ANY($3::text[]))`
+		inner = `(LOWER(ai."collectionURL") LIKE ANY($2::text[]) OR LOWER(ai."vendor") = ANY($3::text[]))`
+		return outer, inner, []any{patterns, vendors}
 	}
 	outer = `LOWER(a."collectionURL") LIKE '%' || LOWER($2) || '%'`
 	inner = `LOWER(ai."collectionURL") LIKE '%' || LOWER($2) || '%'`
 	return outer, inner, []any{eco}
+}
+
+// pep503Runs collapses runs of separators per PEP 503 name normalisation.
+var pep503Runs = regexp.MustCompile(`[-_.]+`)
+
+// normalizePypiName applies PEP 503: lowercase and collapse any run of
+// `.`/`_`/`-` to a single `-`, so "zope.interface" and "zope-interface" match.
+func normalizePypiName(name string) string {
+	return pep503Runs.ReplaceAllString(strings.ToLower(strings.TrimSpace(name)), "-")
+}
+
+// nameMatchExpr builds the package-name predicate for CVEAffected under the
+// given table alias. For pypi it PEP 503-normalises both sides ($1 must be the
+// pre-normalised name); for every other ecosystem it keeps a plain case-fold.
+func nameMatchExpr(alias string, pypi bool) string {
+	col := fmt.Sprintf(`COALESCE(%s."packageName", %s.product)`, alias, alias)
+	if pypi {
+		return fmt.Sprintf(`REGEXP_REPLACE(LOWER(%s), '[-_.]+', '-', 'g') = $1`, col)
+	}
+	return fmt.Sprintf(`LOWER(%s) = LOWER($1)`, col)
 }
 
 func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match, map[string]affectedFacts, error) {
@@ -87,26 +122,39 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 	// unmapped ecosystem keeps the legacy substring gate so exotic ecosystems are
 	// not silently dropped.
 	outerEco, innerEco, ecoArgs := versionRangeEcoClauses(dep.Ecosystem)
-	args := append([]any{dep.Name}, ecoArgs...)
+	pypi := CanonicalEcosystem(dep.Ecosystem) == "pypi"
+	name := dep.Name
+	if pypi {
+		name = normalizePypiName(dep.Name)
+	}
+	args := append([]any{name}, ecoArgs...)
+	// The inner subquery bounds the candidate set to versionRangeCVELimit
+	// distinct CVEs, ordered by most-recent publish date so a package with more
+	// advisories than the cap keeps the CVEs relevant to current versions rather
+	// than the lexicographically-first (oldest) ones. GROUP BY (not DISTINCT)
+	// lets us ORDER BY MAX(datePublished); a CVE's version rows are still whole
+	// because the outer query re-selects all rows for the surviving cveIds.
 	rows, err := q.Query(ctx, fmt.Sprintf(`
 		SELECT a."cveId", a.uuid, a.source, v.status, v."versionType",
 		       v.version, v."lessThan", v."lessThanOrEqual", v."isValidVersion", v.changes
 		FROM "CVEAffected" a
 		JOIN "CVEMetadata" cm ON cm."cveId" = a."cveId" AND cm.source = a.source
 		JOIN "CVEAffectedVersion" v ON v."affectedId" = a.uuid
-		WHERE LOWER(COALESCE(a."packageName", a.product)) = LOWER($1)
+		WHERE %s
 		  AND (%s)
 		  AND UPPER(COALESCE(cm.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
 		  AND a."cveId" IN (
-		    SELECT DISTINCT ai."cveId" FROM "CVEAffected" ai
+		    SELECT ai."cveId" FROM "CVEAffected" ai
 		    JOIN "CVEMetadata" cmi ON cmi."cveId" = ai."cveId" AND cmi.source = ai.source
-		    WHERE LOWER(COALESCE(ai."packageName", ai.product)) = LOWER($1)
+		    WHERE %s
 		      AND (%s)
 		      AND UPPER(COALESCE(cmi.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
-		    ORDER BY ai."cveId"
-		    LIMIT 200
+		    GROUP BY ai."cveId"
+		    ORDER BY MAX(cmi."datePublished") DESC NULLS LAST
+		    LIMIT %d
 		  )
-		ORDER BY a."cveId", a.uuid`, outerEco, innerEco),
+		ORDER BY a."cveId", a.uuid`,
+		nameMatchExpr("a", pypi), outerEco, nameMatchExpr("ai", pypi), innerEco, versionRangeCVELimit),
 		args...,
 	)
 	if err != nil {
@@ -127,6 +175,11 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 			continue
 		}
 		// Skip rows the normaliser marked invalid (before recording any fact).
+		// Defensive only in practice: the go-processor importer
+		// (vdb-manager/.../internal/version/parser.go) always writes Valid=true
+		// (unrecoverable inputs collapse to the "*" sentinel, not an invalid
+		// flag), so this guards against legacy/other importers rather than the
+		// main pipeline. It does NOT drop django versions.
 		if isValidVersion != nil && !*isValidVersion {
 			continue
 		}

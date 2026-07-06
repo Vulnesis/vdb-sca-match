@@ -121,3 +121,35 @@ func TestWithin(t *testing.T) {
 		}
 	}
 }
+
+// TestWithinPEP440 covers the pypi/django-shaped ranges that had zero coverage:
+// real django advisory bounds, patch-in-line, prerelease ordering, and the
+// OSV introduced="" (unbounded lower) convention.
+func TestWithinPEP440(t *testing.T) {
+	cases := []struct {
+		name                    string
+		version, lower, lt, lte string
+		want                    bool
+	}{
+		{"4.2.16 in [4.2,4.2.17)", "4.2.16", "4.2", "4.2.17", "", true},
+		{"4.2.17 fixed, excluded", "4.2.17", "4.2", "4.2.17", "", false},
+		{"4.2.1 in [4.2.0,4.2.17)", "4.2.1", "4.2.0", "4.2.17", "", true},
+		{"5.0.9 in [5.0,5.0.10)", "5.0.9", "5.0", "5.0.10", "", true},
+		{"5.0.10 fixed, excluded", "5.0.10", "5.0", "5.0.10", "", false},
+		{"5.1.3 in [5.1,5.1.4)", "5.1.3", "5.1", "5.1.4", "", true},
+		{"3.2.25 below 4.2 line", "3.2.25", "4.2", "4.2.17", "", false},
+		{"unbounded lower <4.2.20", "4.2.19", "", "4.2.20", "", true},
+		{"prerelease 6.0rc1 < 6.0 lower", "6.0rc1", "6.0", "6.0.5", "", false},
+		{"prerelease 6.1b1 in [6.0,6.2)", "6.1b1", "6.0", "6.2", "", true},
+	}
+	for _, c := range cases {
+		got, ok := Within("pypi", "pep440", c.version, c.lower, c.lt, c.lte)
+		if !ok {
+			t.Errorf("%s: Within returned ok=false (unparsed PEP 440)", c.name)
+			continue
+		}
+		if got != c.want {
+			t.Errorf("%s: Within(pypi,%q,%q,%q,%q)=%v want %v", c.name, c.version, c.lower, c.lt, c.lte, got, c.want)
+		}
+	}
+}

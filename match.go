@@ -2,6 +2,7 @@ package match
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 )
@@ -51,15 +52,15 @@ func MatchDependency(ctx context.Context, q Querier, dep Dependency) ([]Match, e
 	}
 
 	// 1. version-range matching (primary). Returns per-cveId affectedFacts used
-	// by the wildcard-suppression pass below.
-	var facts map[string]affectedFacts
-	if m, f, err := matchVersionRange(ctx, q, dep); err != nil {
-		log.Printf("[match] version-range error for %s: %v", dep.Key, err)
-	} else {
-		facts = f
-		for _, mm := range m {
-			add(mm)
-		}
+	// by the wildcard-suppression pass below. This is the authoritative path, so
+	// its error is hard: returning it lets callers distinguish "query failed"
+	// from "no vulnerabilities" instead of silently reporting a clean bill.
+	m, facts, err := matchVersionRange(ctx, q, dep)
+	if err != nil {
+		return nil, fmt.Errorf("version-range match for %s: %w", dep.Key, err)
+	}
+	for _, mm := range m {
+		add(mm)
 	}
 
 	// 2. PURL-based registry lookup (precise)
