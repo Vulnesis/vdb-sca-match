@@ -14,7 +14,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -473,21 +472,39 @@ func appendContainerImagePackage(pkgs *[]ScopedPackage, seen map[string]bool, re
 	if ref == "" || ref == "scratch" || strings.HasPrefix(ref, "$") {
 		return
 	}
-	name, ver := splitDockerRef(ref)
-	if name == "" {
+	img := SplitImageRef(ref)
+	if img.Name == "" {
 		return
 	}
 	// Skip references still carrying a template placeholder (Helm/k8s values).
-	if strings.Contains(name, "{{") || strings.Contains(name, "}}") {
+	if strings.Contains(img.Name, "{{") || strings.Contains(img.Name, "}}") {
 		return
 	}
-	registry := registryHostOfImage(name)
-	appendScopedPackage(pkgs, seen, ScopedPackage{
-		Name: name, Version: ver,
+	// Tag and digest are kept apart: the tag is the version, a well-formed
+	// digest becomes an integrity checksum, and a malformed digest is
+	// recorded as neither — never fabricated into a version.
+	pkg := ScopedPackage{
+		Name: img.Name, Version: img.Tag,
 		Ecosystem: "oci", Scope: ScopeProduction, SourceFile: source, IsDirect: true,
-		RegistryType:      detectRegistryType(registry),
-		IsPrivateRegistry: isPrivateRegistry(registry),
-	})
+	}
+	if img.Digest != "" {
+		if img.DigestValid() {
+			pkg.Checksums = append(pkg.Checksums, PackageChecksum{
+				Alg: "SHA-256", Value: strings.TrimPrefix(img.Digest, "sha256:"),
+			})
+			if pkg.Version == "" {
+				// Digest-pinned image with no tag: keep the digest as the
+				// version so the reference stays identifiable downstream.
+				pkg.Version = img.Digest
+			}
+		}
+		// Malformed digest: dropped. The reference is still reported by
+		// name/tag; the unverifiable digest never leaves the parser.
+	}
+	registry := registryHostOfImage(img.Name)
+	pkg.RegistryType = detectRegistryType(registry)
+	pkg.IsPrivateRegistry = isPrivateRegistry(registry)
+	appendScopedPackage(pkgs, seen, pkg)
 }
 
 // registryHostOfImage extracts the registry host from a normalized image name
@@ -639,66 +656,15 @@ func isPrivateRegistryURL(url string) bool {
 // Kubernetes — image extraction from Pod / workload / CronJob manifests
 // ---------------------------------------------------------------------------
 
-type k8sContainer struct {
-	Image string `yaml:"image"`
-}
-
-type k8sPodSpec struct {
-	Containers          []k8sContainer `yaml:"containers"`
-	InitContainers      []k8sContainer `yaml:"initContainers"`
-	EphemeralContainers []k8sContainer `yaml:"ephemeralContainers"`
-}
-
-type k8sManifest struct {
-	Kind string `yaml:"kind"`
-	Spec struct {
-		// Pod
-		k8sPodSpec `yaml:",inline"`
-		// Deployment / ReplicaSet / StatefulSet / DaemonSet / Job
-		Template struct {
-			Spec k8sPodSpec `yaml:"spec"`
-		} `yaml:"template"`
-		// CronJob
-		JobTemplate struct {
-			Spec struct {
-				Template struct {
-					Spec k8sPodSpec `yaml:"spec"`
-				} `yaml:"template"`
-			} `yaml:"spec"`
-		} `yaml:"jobTemplate"`
-	} `yaml:"spec"`
-}
-
-func (s k8sPodSpec) images() []string {
-	var out []string
-	for _, group := range [][]k8sContainer{s.Containers, s.InitContainers, s.EphemeralContainers} {
-		for _, c := range group {
-			if c.Image != "" {
-				out = append(out, c.Image)
-			}
-		}
-	}
-	return out
-}
-
 func parseKubernetesScoped(data []byte, filePath string) ([]ScopedPackage, error) {
 	var pkgs []ScopedPackage
 	seen := map[string]bool{}
-	dec := yaml.NewDecoder(bytes.NewReader(data))
-	for {
-		var m k8sManifest
-		if err := dec.Decode(&m); err != nil {
-			if err == io.EOF {
-				break
-			}
-			// Skip a malformed document but keep scanning the rest of the stream.
-			continue
-		}
-		imgs := m.Spec.k8sPodSpec.images()
-		imgs = append(imgs, m.Spec.Template.Spec.images()...)
-		imgs = append(imgs, m.Spec.JobTemplate.Spec.Template.Spec.images()...)
-		for _, img := range imgs {
-			appendContainerImagePackage(&pkgs, seen, img, filePath)
+	// Workload extraction covers core kinds AND custom resources that embed
+	// pod templates (KServe InferenceService, PyTorchJob, RayJob, Argo
+	// Workflows, ...), so operator-managed images are not invisible.
+	for _, w := range ParseKubernetesWorkloads(data, filePath) {
+		for _, c := range w.Containers {
+			appendContainerImagePackage(&pkgs, seen, c.Image, filePath)
 		}
 	}
 	return pkgs, nil
@@ -1028,19 +994,6 @@ func clojureCoord(coord string) string {
 		return coord[:i] + ":" + coord[i+1:]
 	}
 	return coord
-}
-
-func splitDockerRef(ref string) (name, ver string) {
-	ref = strings.TrimSpace(ref)
-	if idx := strings.Index(ref, "@"); idx > 0 {
-		return ref[:idx], ref[idx+1:]
-	}
-	lastSlash := strings.LastIndex(ref, "/")
-	lastColon := strings.LastIndex(ref, ":")
-	if lastColon > lastSlash {
-		return ref[:lastColon], ref[lastColon+1:]
-	}
-	return ref, ""
 }
 
 type containerInstallSpec struct {
