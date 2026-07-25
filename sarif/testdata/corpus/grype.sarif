@@ -1,0 +1,525 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "grype",
+          "version": "0.110.0",
+          "informationUri": "https://github.com/anchore/grype",
+          "rules": [
+            {
+              "id": "GO-2026-4918-golang.org/x/net",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GO-2026-4918 high vulnerability for golang.org/x/net package"
+              },
+              "fullDescription": {
+                "text": "When processing HTTP/2 SETTINGS frames, transport will enter an infinite loop of writing CONTINUATION frames if it receives a SETTINGS_MAX_FRAME_SIZE with a value of 0."
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GO-2026-4918\nSeverity: high\nPackage: golang.org/x/net\nVersion: v0.52.0\nFix Version: 0.53.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: govulndb:language:go\nLink: [GO-2026-4918](https://go.dev/cl/761581)",
+                "markdown": "**Vulnerability GO-2026-4918**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| high  | golang.org/x/net  | v0.52.0  | 0.53.0  | go-module  | /api/go.mod  | govulndb:language:go  | [GO-2026-4918](https://go.dev/cl/761581)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/net@v0.52.0"
+                ],
+                "security-severity": "7.5"
+              }
+            },
+            {
+              "id": "GO-2026-5026-golang.org/x/net",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GO-2026-5026 high vulnerability for golang.org/x/net package"
+              },
+              "fullDescription": {
+                "text": "The ToASCII and ToUnicode functions incorrectly accept Punycode-encoded labels that decode to an ASCII-only label. For example, ToUnicode(\"xn--example-.com\") incorrectly returns the name \"example.com\" rather than an error.\n\nThis behavior can lead to privilege escalation in programs using the idna package. For example, a program which performs privilege checks on the ASCII hostname may reject \"example.com\" but permit \"xn--example-.com\". If that program subsequently converts the ASCII hostname to Unicode, it will inadvertently permits access to the Unicode name \"example.com\"."
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GO-2026-5026\nSeverity: high\nPackage: golang.org/x/net\nVersion: v0.52.0\nFix Version: 0.55.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: govulndb:language:go\nLink: [GO-2026-5026](https://go.dev/cl/767220)",
+                "markdown": "**Vulnerability GO-2026-5026**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| high  | golang.org/x/net  | v0.52.0  | 0.55.0  | go-module  | /api/go.mod  | govulndb:language:go  | [GO-2026-5026](https://go.dev/cl/767220)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/net@v0.52.0"
+                ],
+                "security-severity": "8.2"
+              }
+            },
+            {
+              "id": "GO-2026-5970-golang.org/x/text",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GO-2026-5970 high vulnerability for golang.org/x/text package"
+              },
+              "fullDescription": {
+                "text": "A norm.Iter can enter an infinite loop when handling input containing invalid UTF-8 bytes."
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GO-2026-5970\nSeverity: high\nPackage: golang.org/x/text\nVersion: v0.38.0\nFix Version: 0.39.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: govulndb:language:go\nLink: [GO-2026-5970](https://go.dev/issue/80142)",
+                "markdown": "**Vulnerability GO-2026-5970**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| high  | golang.org/x/text  | v0.38.0  | 0.39.0  | go-module  | /api/go.mod  | govulndb:language:go  | [GO-2026-5970](https://go.dev/issue/80142)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/text@v0.38.0"
+                ],
+                "security-severity": "7.5"
+              }
+            },
+            {
+              "id": "GO-2026-5942-golang.org/x/net",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GO-2026-5942 high vulnerability for golang.org/x/net package"
+              },
+              "fullDescription": {
+                "text": "Parsing an invalid SVCB or HTTPS RR can panic when the size of a parameter value overflows the message buffer."
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GO-2026-5942\nSeverity: high\nPackage: golang.org/x/net\nVersion: v0.52.0\nFix Version: 0.56.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: govulndb:language:go\nLink: [GO-2026-5942](https://go.dev/cl/786345)",
+                "markdown": "**Vulnerability GO-2026-5942**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| high  | golang.org/x/net  | v0.52.0  | 0.56.0  | go-module  | /api/go.mod  | govulndb:language:go  | [GO-2026-5942](https://go.dev/cl/786345)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/net@v0.52.0"
+                ],
+                "security-severity": "7.5"
+              }
+            },
+            {
+              "id": "GHSA-5cv4-jp36-h3mw-golang.org/x/net",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GHSA-5cv4-jp36-h3mw medium vulnerability for golang.org/x/net package"
+              },
+              "fullDescription": {
+                "text": "Go Net HTML parser is vulnerable to denial of service"
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GHSA-5cv4-jp36-h3mw\nSeverity: medium\nPackage: golang.org/x/net\nVersion: v0.52.0\nFix Version: 0.55.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: github:language:go\nLink: [GHSA-5cv4-jp36-h3mw](https://github.com/advisories/GHSA-5cv4-jp36-h3mw)",
+                "markdown": "**Vulnerability GHSA-5cv4-jp36-h3mw**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| medium  | golang.org/x/net  | v0.52.0  | 0.55.0  | go-module  | /api/go.mod  | github:language:go  | [GHSA-5cv4-jp36-h3mw](https://github.com/advisories/GHSA-5cv4-jp36-h3mw)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/net@v0.52.0"
+                ],
+                "security-severity": "6.5"
+              }
+            },
+            {
+              "id": "GO-2026-5028-golang.org/x/net",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GO-2026-5028 medium vulnerability for golang.org/x/net package"
+              },
+              "fullDescription": {
+                "text": "Parsing arbitrary HTML can consume excessive CPU time, possibly leading to denial of service."
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GO-2026-5028\nSeverity: medium\nPackage: golang.org/x/net\nVersion: v0.52.0\nFix Version: 0.55.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: govulndb:language:go\nLink: [GO-2026-5028](https://go.dev/cl/781702)",
+                "markdown": "**Vulnerability GO-2026-5028**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| medium  | golang.org/x/net  | v0.52.0  | 0.55.0  | go-module  | /api/go.mod  | govulndb:language:go  | [GO-2026-5028](https://go.dev/cl/781702)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/net@v0.52.0"
+                ],
+                "security-severity": "6.5"
+              }
+            },
+            {
+              "id": "GO-2026-5025-golang.org/x/net",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GO-2026-5025 medium vulnerability for golang.org/x/net package"
+              },
+              "fullDescription": {
+                "text": "Parsing arbitrary HTML which is then rendered using Render can result in an unexpected HTML tree. This can be leveraged to execute XSS attacks in applications that attempt to sanitize input HTML before rendering."
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GO-2026-5025\nSeverity: medium\nPackage: golang.org/x/net\nVersion: v0.52.0\nFix Version: 0.55.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: govulndb:language:go\nLink: [GO-2026-5025](https://go.dev/issue/79571)",
+                "markdown": "**Vulnerability GO-2026-5025**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| medium  | golang.org/x/net  | v0.52.0  | 0.55.0  | go-module  | /api/go.mod  | govulndb:language:go  | [GO-2026-5025](https://go.dev/issue/79571)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/net@v0.52.0"
+                ],
+                "security-severity": "6.1"
+              }
+            },
+            {
+              "id": "GO-2026-5030-golang.org/x/net",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GO-2026-5030 medium vulnerability for golang.org/x/net package"
+              },
+              "fullDescription": {
+                "text": "Parsing arbitrary HTML which is then rendered using Render can result in an unexpected HTML tree. This can be leveraged to execute XSS attacks in applications that attempt to sanitize input HTML before rendering."
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GO-2026-5030\nSeverity: medium\nPackage: golang.org/x/net\nVersion: v0.52.0\nFix Version: 0.55.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: govulndb:language:go\nLink: [GO-2026-5030](https://go.dev/issue/79575)",
+                "markdown": "**Vulnerability GO-2026-5030**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| medium  | golang.org/x/net  | v0.52.0  | 0.55.0  | go-module  | /api/go.mod  | govulndb:language:go  | [GO-2026-5030](https://go.dev/issue/79575)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/net@v0.52.0"
+                ],
+                "security-severity": "6.1"
+              }
+            },
+            {
+              "id": "GO-2026-5027-golang.org/x/net",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GO-2026-5027 medium vulnerability for golang.org/x/net package"
+              },
+              "fullDescription": {
+                "text": "Parsing arbitrary HTML which is then rendered using Render can result in an unexpected HTML tree. This can be leveraged to execute XSS attacks in applications that attempt to sanitize input HTML before rendering."
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GO-2026-5027\nSeverity: medium\nPackage: golang.org/x/net\nVersion: v0.52.0\nFix Version: 0.55.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: govulndb:language:go\nLink: [GO-2026-5027](https://go.dev/issue/79572)",
+                "markdown": "**Vulnerability GO-2026-5027**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| medium  | golang.org/x/net  | v0.52.0  | 0.55.0  | go-module  | /api/go.mod  | govulndb:language:go  | [GO-2026-5027](https://go.dev/issue/79572)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/net@v0.52.0"
+                ],
+                "security-severity": "6.1"
+              }
+            },
+            {
+              "id": "GO-2026-5029-golang.org/x/net",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GO-2026-5029 medium vulnerability for golang.org/x/net package"
+              },
+              "fullDescription": {
+                "text": "Parsing arbitrary HTML which is then rendered using Render can result in an unexpected HTML tree. This can be leveraged to execute XSS attacks in applications that attempt to sanitize input HTML before rendering."
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GO-2026-5029\nSeverity: medium\nPackage: golang.org/x/net\nVersion: v0.52.0\nFix Version: 0.55.0\nType: go-module\nLocation: /api/go.mod\nData Namespace: govulndb:language:go\nLink: [GO-2026-5029](https://go.dev/issue/79574)",
+                "markdown": "**Vulnerability GO-2026-5029**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| medium  | golang.org/x/net  | v0.52.0  | 0.55.0  | go-module  | /api/go.mod  | govulndb:language:go  | [GO-2026-5029](https://go.dev/issue/79574)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/golang.org/x/net@v0.52.0"
+                ],
+                "security-severity": "6.1"
+              }
+            },
+            {
+              "id": "GHSA-j88v-2chj-qfwx-github.com/jackc/pgx/v5",
+              "name": "GoModuleMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "GHSA-j88v-2chj-qfwx low vulnerability for github.com/jackc/pgx/v5 package"
+              },
+              "fullDescription": {
+                "text": "pgx: SQL Injection via placeholder confusion with dollar quoted string literals"
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability GHSA-j88v-2chj-qfwx\nSeverity: low\nPackage: github.com/jackc/pgx/v5\nVersion: v5.9.1\nFix Version: 5.9.2\nType: go-module\nLocation: /api/go.mod\nData Namespace: github:language:go\nLink: [GHSA-j88v-2chj-qfwx](https://github.com/advisories/GHSA-j88v-2chj-qfwx)",
+                "markdown": "**Vulnerability GHSA-j88v-2chj-qfwx**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| low  | github.com/jackc/pgx/v5  | v5.9.1  | 5.9.2  | go-module  | /api/go.mod  | github:language:go  | [GHSA-j88v-2chj-qfwx](https://github.com/advisories/GHSA-j88v-2chj-qfwx)  |\n"
+              },
+              "properties": {
+                "purls": [
+                  "pkg:golang/github.com/jackc/pgx/v5@v5.9.1"
+                ],
+                "security-severity": "2.3"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "GO-2026-4918-golang.org/x/net",
+          "level": "error",
+          "message": {
+            "text": "A high vulnerability in go-module package: golang.org/x/net, version v0.52.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "19071761b58593487f848002708d893e248114741d2bfce179f4939d236ca0ef:1"
+          }
+        },
+        {
+          "ruleId": "GO-2026-5026-golang.org/x/net",
+          "level": "error",
+          "message": {
+            "text": "A high vulnerability in go-module package: golang.org/x/net, version v0.52.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "19071761b58593487f848002708d893e248114741d2bfce179f4939d236ca0ef:1"
+          }
+        },
+        {
+          "ruleId": "GO-2026-5970-golang.org/x/text",
+          "level": "error",
+          "message": {
+            "text": "A high vulnerability in go-module package: golang.org/x/text, version v0.38.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "2eaa530f4783b68333d9237b9e6b7b03813c4f269e85be4711a93a2659eac80e:1"
+          }
+        },
+        {
+          "ruleId": "GO-2026-5942-golang.org/x/net",
+          "level": "error",
+          "message": {
+            "text": "A high vulnerability in go-module package: golang.org/x/net, version v0.52.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "19071761b58593487f848002708d893e248114741d2bfce179f4939d236ca0ef:1"
+          }
+        },
+        {
+          "ruleId": "GHSA-5cv4-jp36-h3mw-golang.org/x/net",
+          "level": "warning",
+          "message": {
+            "text": "A medium vulnerability in go-module package: golang.org/x/net, version v0.52.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "19071761b58593487f848002708d893e248114741d2bfce179f4939d236ca0ef:1"
+          }
+        },
+        {
+          "ruleId": "GO-2026-5028-golang.org/x/net",
+          "level": "warning",
+          "message": {
+            "text": "A medium vulnerability in go-module package: golang.org/x/net, version v0.52.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "19071761b58593487f848002708d893e248114741d2bfce179f4939d236ca0ef:1"
+          }
+        },
+        {
+          "ruleId": "GO-2026-5025-golang.org/x/net",
+          "level": "warning",
+          "message": {
+            "text": "A medium vulnerability in go-module package: golang.org/x/net, version v0.52.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "19071761b58593487f848002708d893e248114741d2bfce179f4939d236ca0ef:1"
+          }
+        },
+        {
+          "ruleId": "GO-2026-5030-golang.org/x/net",
+          "level": "warning",
+          "message": {
+            "text": "A medium vulnerability in go-module package: golang.org/x/net, version v0.52.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "19071761b58593487f848002708d893e248114741d2bfce179f4939d236ca0ef:1"
+          }
+        },
+        {
+          "ruleId": "GO-2026-5027-golang.org/x/net",
+          "level": "warning",
+          "message": {
+            "text": "A medium vulnerability in go-module package: golang.org/x/net, version v0.52.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "19071761b58593487f848002708d893e248114741d2bfce179f4939d236ca0ef:1"
+          }
+        },
+        {
+          "ruleId": "GO-2026-5029-golang.org/x/net",
+          "level": "warning",
+          "message": {
+            "text": "A medium vulnerability in go-module package: golang.org/x/net, version v0.52.0 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "19071761b58593487f848002708d893e248114741d2bfce179f4939d236ca0ef:1"
+          }
+        },
+        {
+          "ruleId": "GHSA-j88v-2chj-qfwx-github.com/jackc/pgx/v5",
+          "level": "note",
+          "message": {
+            "text": "A low vulnerability in go-module package: github.com/jackc/pgx/v5, version v5.9.1 was found at: /api/go.mod"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/api/go.mod"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "eed2517da2f24ba58ae8bf8cfa01d576064a8c1c7df74bba2fb02210983246cd:1"
+          }
+        }
+      ]
+    }
+  ]
+}

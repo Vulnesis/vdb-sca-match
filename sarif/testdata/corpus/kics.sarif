@@ -1,0 +1,1141 @@
+{
+	"$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+	"version": "2.1.0",
+	"runs": [
+		{
+			"tool": {
+				"driver": {
+					"name": "KICS",
+					"version": "v2.1.20",
+					"fullName": "Keeping Infrastructure as Code Secure",
+					"informationUri": "https://www.kics.io/",
+					"rules": [
+						{
+							"id": "fd54f200-402c-4333-a5a4-36ef6709af2f",
+							"name": "Missing User Instruction",
+							"shortDescription": {
+								"text": "Missing User Instruction"
+							},
+							"fullDescription": {
+								"text": "Always set a user in the runtime stage of your Dockerfile. Without it, the container defaults to root, even if earlier build stages define a user."
+							},
+							"defaultConfiguration": {
+								"level": "error"
+							},
+							"helpUri": "https://docs.docker.com/engine/reference/builder/#user",
+							"relationships": [
+								{
+									"target": {
+										"id": "CAT005",
+										"index": 4,
+										"toolComponent": {
+											"name": "Categories",
+											"guid": "58cdcc6f-fe41-4724-bfb3-131a93df4c3f"
+										}
+									}
+								},
+								{
+									"target": {
+										"id": "250",
+										"guid": "e1f85ae8-b0aa-492b-a250-8bcbdbc9fa04",
+										"toolComponent": {
+											"name": "CWE",
+											"guid": "1489b0c4-d7ce-4d31-af66-6382a01202e3"
+										}
+									}
+								}
+							],
+							"properties": {
+								"riskScore": "7.7"
+							}
+						},
+						{
+							"id": "baee238e-1921-4801-9c3f-79ae1d7b2cbc",
+							"name": "Passwords And Secrets - Generic Token",
+							"shortDescription": {
+								"text": "Passwords And Secrets - Generic Token"
+							},
+							"fullDescription": {
+								"text": "Query to find passwords and secrets in infrastructure code."
+							},
+							"defaultConfiguration": {
+								"level": "error"
+							},
+							"helpUri": "https://docs.kics.io/latest/secrets/",
+							"relationships": [
+								{
+									"target": {
+										"id": "CAT012",
+										"index": 10,
+										"toolComponent": {
+											"name": "Categories",
+											"guid": "58cdcc6f-fe41-4724-bfb3-131a93df4c3f"
+										}
+									}
+								},
+								{
+									"target": {
+										"id": "798",
+										"guid": "504c45f7-c1a2-40cd-afa0-ec991060b74e",
+										"toolComponent": {
+											"name": "CWE",
+											"guid": "1489b0c4-d7ce-4d31-af66-6382a01202e3"
+										}
+									}
+								}
+							],
+							"properties": {
+								"riskScore": "7.8"
+							}
+						},
+						{
+							"id": "d3499f6d-1651-41bb-a9a7-de925fea487b",
+							"name": "Unpinned Package Version in Apk Add",
+							"shortDescription": {
+								"text": "Unpinned Package Version in Apk Add"
+							},
+							"fullDescription": {
+								"text": "Package version pinning reduces the range of versions that can be installed, reducing the chances of failure due to unanticipated changes"
+							},
+							"defaultConfiguration": {
+								"level": "warning"
+							},
+							"helpUri": "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/",
+							"relationships": [
+								{
+									"target": {
+										"id": "CAT013",
+										"index": 13,
+										"toolComponent": {
+											"name": "Categories",
+											"guid": "58cdcc6f-fe41-4724-bfb3-131a93df4c3f"
+										}
+									}
+								},
+								{
+									"target": {
+										"id": "1357",
+										"guid": "99620154-bf3c-4849-97d2-32ae15d7bd69",
+										"toolComponent": {
+											"name": "CWE",
+											"guid": "1489b0c4-d7ce-4d31-af66-6382a01202e3"
+										}
+									}
+								}
+							],
+							"properties": {
+								"riskScore": "5.7"
+							}
+						},
+						{
+							"id": "b03a748a-542d-44f4-bb86-9199ab4fd2d5",
+							"name": "Healthcheck Instruction Missing",
+							"shortDescription": {
+								"text": "Healthcheck Instruction Missing"
+							},
+							"fullDescription": {
+								"text": "Ensure that HEALTHCHECK is being used. The HEALTHCHECK instruction tells Docker how to test a container to check that it is still working"
+							},
+							"defaultConfiguration": {
+								"level": "note"
+							},
+							"helpUri": "https://docs.docker.com/engine/reference/builder/#healthcheck",
+							"relationships": [
+								{
+									"target": {
+										"id": "CAT007",
+										"index": 6,
+										"toolComponent": {
+											"name": "Categories",
+											"guid": "58cdcc6f-fe41-4724-bfb3-131a93df4c3f"
+										}
+									}
+								},
+								{
+									"target": {
+										"id": "710",
+										"guid": "4026929b-4f77-4718-863c-4420a6951ef1",
+										"toolComponent": {
+											"name": "CWE",
+											"guid": "1489b0c4-d7ce-4d31-af66-6382a01202e3"
+										}
+									}
+								}
+							],
+							"properties": {
+								"riskScore": "3.6"
+							}
+						},
+						{
+							"id": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+							"name": "Unpinned Actions Full Length Commit SHA",
+							"shortDescription": {
+								"text": "Unpinned Actions Full Length Commit SHA"
+							},
+							"fullDescription": {
+								"text": "Pinning an action to a full length commit SHA is currently the only way to use an action as an immutable release. Pinning to a particular SHA helps mitigate the risk of a bad actor adding a backdoor to the action's repository, as they would need to generate a SHA-1 collision for a valid Git object payload. When selecting a SHA, you should verify it is from the action's repository and not a repository fork."
+							},
+							"defaultConfiguration": {
+								"level": "note"
+							},
+							"helpUri": "https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions",
+							"relationships": [
+								{
+									"target": {
+										"id": "CAT013",
+										"index": 13,
+										"toolComponent": {
+											"name": "Categories",
+											"guid": "58cdcc6f-fe41-4724-bfb3-131a93df4c3f"
+										}
+									}
+								},
+								{
+									"target": {
+										"id": "829",
+										"guid": "65a2ea07-855f-4ac2-83f5-a7de47b080e2",
+										"toolComponent": {
+											"name": "CWE",
+											"guid": "1489b0c4-d7ce-4d31-af66-6382a01202e3"
+										}
+									}
+								}
+							],
+							"properties": {
+								"riskScore": "4.1"
+							}
+						},
+						{
+							"id": "59312e8a-a64e-41e7-a252-618533dd1ea8",
+							"name": "Output Without Description",
+							"shortDescription": {
+								"text": "Output Without Description"
+							},
+							"fullDescription": {
+								"text": "All outputs should contain a valid description."
+							},
+							"defaultConfiguration": {
+								"level": "none"
+							},
+							"helpUri": "https://www.terraform.io/docs/language/values/outputs.html#description-output-value-documentation",
+							"relationships": [
+								{
+									"target": {
+										"id": "CAT004",
+										"index": 9,
+										"toolComponent": {
+											"name": "Categories",
+											"guid": "58cdcc6f-fe41-4724-bfb3-131a93df4c3f"
+										}
+									}
+								},
+								{
+									"target": {
+										"id": "710",
+										"guid": "2de3f95d-6e79-4eb1-b51f-95e98c92f7a5",
+										"toolComponent": {
+											"name": "CWE",
+											"guid": "1489b0c4-d7ce-4d31-af66-6382a01202e3"
+										}
+									}
+								}
+							],
+							"properties": {
+								"riskScore": "0.0"
+							}
+						},
+						{
+							"id": "b16e8501-ef3c-44e1-a543-a093238099c9",
+							"name": "Using Platform Flag with FROM Command",
+							"shortDescription": {
+								"text": "Using Platform Flag with FROM Command"
+							},
+							"fullDescription": {
+								"text": "'FROM' instruction should not use the flag '--platform'"
+							},
+							"defaultConfiguration": {
+								"level": "none"
+							},
+							"helpUri": "https://docs.docker.com/engine/reference/builder/#from",
+							"relationships": [
+								{
+									"target": {
+										"id": "CAT004",
+										"index": 9,
+										"toolComponent": {
+											"name": "Categories",
+											"guid": "58cdcc6f-fe41-4724-bfb3-131a93df4c3f"
+										}
+									}
+								},
+								{
+									"target": {
+										"id": "695",
+										"guid": "a3c847ac-e73d-4e9d-9d22-5aa55f66f930",
+										"toolComponent": {
+											"name": "CWE",
+											"guid": "1489b0c4-d7ce-4d31-af66-6382a01202e3"
+										}
+									}
+								}
+							],
+							"properties": {
+								"riskScore": "0.0"
+							}
+						},
+						{
+							"id": "2a153952-2544-4687-bcc9-cc8fea814a9b",
+							"name": "Variable Without Description",
+							"shortDescription": {
+								"text": "Variable Without Description"
+							},
+							"fullDescription": {
+								"text": "All variables should contain a valid description."
+							},
+							"defaultConfiguration": {
+								"level": "none"
+							},
+							"helpUri": "https://www.terraform.io/docs/language/values/variables.html#input-variable-documentation",
+							"relationships": [
+								{
+									"target": {
+										"id": "CAT004",
+										"index": 9,
+										"toolComponent": {
+											"name": "Categories",
+											"guid": "58cdcc6f-fe41-4724-bfb3-131a93df4c3f"
+										}
+									}
+								},
+								{
+									"target": {
+										"id": "710",
+										"guid": "5e1e6c6c-8324-4bf2-8b7a-317d16dbc417",
+										"toolComponent": {
+											"name": "CWE",
+											"guid": "1489b0c4-d7ce-4d31-af66-6382a01202e3"
+										}
+									}
+								}
+							],
+							"properties": {
+								"riskScore": "0.0"
+							}
+						}
+					]
+				}
+			},
+			"results": [
+				{
+					"ruleId": "fd54f200-402c-4333-a5a4-36ef6709af2f",
+					"ruleIndex": 0,
+					"kind": "fail",
+					"message": {
+						"text": "The 'Dockerfile' does not contain any 'USER' instruction",
+						"properties": {
+							"platform": "Dockerfile",
+							"riskScore": "7.7"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/api/Containerfile"
+								},
+								"region": {
+									"startLine": 34
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "baee238e-1921-4801-9c3f-79ae1d7b2cbc",
+					"ruleIndex": 1,
+					"kind": "fail",
+					"message": {
+						"text": "Hardcoded secret key appears in source",
+						"properties": {
+							"platform": "Common",
+							"riskScore": "7.8"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/api-deploy.yml"
+								},
+								"region": {
+									"startLine": 37
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "d3499f6d-1651-41bb-a9a7-de925fea487b",
+					"ruleIndex": 2,
+					"kind": "fail",
+					"message": {
+						"text": "RUN instruction apk --no-cache add ca-certificates curl unzip     \u0026\u0026 curl -sS \"https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem\"        -o /tmp/rds-bundle.pem     \u0026\u0026 cat /etc/ssl/certs/ca-certificates.crt /tmp/rds-bundle.pem \u003e /etc/ssl/certs/combined-bundle.pem     \u0026\u0026 rm /tmp/rds-bundle.pem     \u0026\u0026 mkdir -p /var/lib/vulnetix     \u0026\u0026 curl -sS -L -o /tmp/sha256_full.txt.zip        \"https://mb-api.abuse.ch/v2/files/exports/3a16bf5b8b1bfb83f8cd9286b7e2b4f18257cd23f3d475bf/sha256_full.txt.zip\"     \u0026\u0026 (unzip -p /tmp/sha256_full.txt.zip \u003e /var/lib/vulnetix/sha256_full.txt 2\u003e/dev/null || true)     \u0026\u0026 rm -f /tmp/sha256_full.txt.zip     \u0026\u0026 echo \"MalwareBazaar corpus: $(wc -l \u003c /var/lib/vulnetix/sha256_full.txt) hashes\" does not use package pinning form",
+						"properties": {
+							"platform": "Dockerfile",
+							"riskScore": "5.7"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/api/Containerfile"
+								},
+								"region": {
+									"startLine": 36
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "d3499f6d-1651-41bb-a9a7-de925fea487b",
+					"ruleIndex": 2,
+					"kind": "fail",
+					"message": {
+						"text": "RUN instruction apk add --no-cache git ca-certificates does not use package pinning form",
+						"properties": {
+							"platform": "Dockerfile",
+							"riskScore": "5.7"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/api/Containerfile"
+								},
+								"region": {
+									"startLine": 7
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "b03a748a-542d-44f4-bb86-9199ab4fd2d5",
+					"ruleIndex": 3,
+					"kind": "fail",
+					"message": {
+						"text": "Dockerfile doesn't contain instruction 'HEALTHCHECK'",
+						"properties": {
+							"platform": "Dockerfile",
+							"riskScore": "3.6"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/api/Containerfile"
+								},
+								"region": {
+									"startLine": 34
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/pages.yml"
+								},
+								"region": {
+									"startLine": 29
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/scanners.yml"
+								},
+								"region": {
+									"startLine": 241
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/scanners.yml"
+								},
+								"region": {
+									"startLine": 35
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/scanners.yml"
+								},
+								"region": {
+									"startLine": 113
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/scanners.yml"
+								},
+								"region": {
+									"startLine": 53
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/scanners.yml"
+								},
+								"region": {
+									"startLine": 205
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/scanners.yml"
+								},
+								"region": {
+									"startLine": 121
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/scanners.yml"
+								},
+								"region": {
+									"startLine": 92
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/scanners.yml"
+								},
+								"region": {
+									"startLine": 145
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "555ab8f9-2001-455e-a077-f2d0f41e2fb9",
+					"ruleIndex": 4,
+					"kind": "fail",
+					"message": {
+						"text": "Action is not pinned to a full length commit SHA.",
+						"properties": {
+							"platform": "CICD",
+							"riskScore": "4.1"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/.github/workflows/api-deploy.yml"
+								},
+								"region": {
+									"startLine": 85
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "59312e8a-a64e-41e7-a252-618533dd1ea8",
+					"ruleIndex": 5,
+					"kind": "informational",
+					"message": {
+						"text": "'description' is undefined or null",
+						"properties": {
+							"platform": "Terraform",
+							"riskScore": "0.0"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/terraform/outputs.tf"
+								},
+								"region": {
+									"startLine": 1
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "59312e8a-a64e-41e7-a252-618533dd1ea8",
+					"ruleIndex": 5,
+					"kind": "informational",
+					"message": {
+						"text": "'description' is undefined or null",
+						"properties": {
+							"platform": "Terraform",
+							"riskScore": "0.0"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/terraform/outputs.tf"
+								},
+								"region": {
+									"startLine": 5
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "59312e8a-a64e-41e7-a252-618533dd1ea8",
+					"ruleIndex": 5,
+					"kind": "informational",
+					"message": {
+						"text": "'description' is undefined or null",
+						"properties": {
+							"platform": "Terraform",
+							"riskScore": "0.0"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/terraform/outputs.tf"
+								},
+								"region": {
+									"startLine": 9
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "b16e8501-ef3c-44e1-a543-a093238099c9",
+					"ruleIndex": 6,
+					"kind": "informational",
+					"message": {
+						"text": "FROM={{--platform=$BUILDPLATFORM alpine:3.21 AS runtime-assets}}.{{FROM --platform=$BUILDPLATFORM alpine:3.21 AS runtime-assets}} is using the '--platform' flag",
+						"properties": {
+							"platform": "Dockerfile",
+							"riskScore": "0.0"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/api/Containerfile"
+								},
+								"region": {
+									"startLine": 34
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "b16e8501-ef3c-44e1-a543-a093238099c9",
+					"ruleIndex": 6,
+					"kind": "informational",
+					"message": {
+						"text": "FROM={{--platform=$BUILDPLATFORM golang:1.25-alpine AS builder}}.{{FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder}} is using the '--platform' flag",
+						"properties": {
+							"platform": "Dockerfile",
+							"riskScore": "0.0"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/api/Containerfile"
+								},
+								"region": {
+									"startLine": 5
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "2a153952-2544-4687-bcc9-cc8fea814a9b",
+					"ruleIndex": 7,
+					"kind": "informational",
+					"message": {
+						"text": "'description' is undefined or null",
+						"properties": {
+							"platform": "Terraform",
+							"riskScore": "0.0"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/terraform/variables.tf"
+								},
+								"region": {
+									"startLine": 1
+								}
+							}
+						}
+					]
+				},
+				{
+					"ruleId": "2a153952-2544-4687-bcc9-cc8fea814a9b",
+					"ruleIndex": 7,
+					"kind": "informational",
+					"message": {
+						"text": "'description' is undefined or null",
+						"properties": {
+							"platform": "Terraform",
+							"riskScore": "0.0"
+						}
+					},
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "../../path/terraform/variables.tf"
+								},
+								"region": {
+									"startLine": 6
+								}
+							}
+						}
+					]
+				}
+			],
+			"taxonomies": [
+				{
+					"guid": "58cdcc6f-fe41-4724-bfb3-131a93df4c3f",
+					"name": "Categories",
+					"fullDescription": {
+						"text": "This taxonomy contains the types an issue can assume"
+					},
+					"shortDescription": {
+						"text": "Vulnerabilities categories"
+					},
+					"taxa": [
+						{
+							"name": "Undefined Category",
+							"id": "CAT000",
+							"shortDescription": {
+								"text": "Category is not defined"
+							},
+							"fullDescription": {
+								"text": "Category is not defined"
+							}
+						},
+						{
+							"name": "Access Control",
+							"id": "CAT001",
+							"shortDescription": {
+								"text": "Service permission and identity management"
+							},
+							"fullDescription": {
+								"text": "Service permission and identity management"
+							}
+						},
+						{
+							"name": "Availability",
+							"id": "CAT002",
+							"shortDescription": {
+								"text": "Reliability and Scalability"
+							},
+							"fullDescription": {
+								"text": "Reliability and Scalability"
+							}
+						},
+						{
+							"name": "Backup",
+							"id": "CAT003",
+							"shortDescription": {
+								"text": "Survivability and Recovery"
+							},
+							"fullDescription": {
+								"text": "Survivability and Recovery"
+							}
+						},
+						{
+							"name": "Build Process",
+							"id": "CAT005",
+							"shortDescription": {
+								"text": "Insecure configurations when building/deploying"
+							},
+							"fullDescription": {
+								"text": "Insecure configurations when building/deploying"
+							}
+						},
+						{
+							"name": "Networking and Firewall",
+							"id": "CAT009",
+							"shortDescription": {
+								"text": "Network port exposure and firewall configuration"
+							},
+							"fullDescription": {
+								"text": "Network port exposure and firewall configuration"
+							}
+						},
+						{
+							"name": "Insecure Configurations",
+							"id": "CAT007",
+							"shortDescription": {
+								"text": "Configurations which expose the application unnecessarily"
+							},
+							"fullDescription": {
+								"text": "Configurations which expose the application unnecessarily"
+							}
+						},
+						{
+							"name": "Insecure Defaults",
+							"id": "CAT008",
+							"shortDescription": {
+								"text": "Configurations that are insecure by default"
+							},
+							"fullDescription": {
+								"text": "Configurations that are insecure by default"
+							}
+						},
+						{
+							"name": "Observability",
+							"id": "CAT010",
+							"shortDescription": {
+								"text": "Logging and Monitoring"
+							},
+							"fullDescription": {
+								"text": "Logging and Monitoring"
+							}
+						},
+						{
+							"name": "Best Practices",
+							"id": "CAT004",
+							"shortDescription": {
+								"text": "Metadata management"
+							},
+							"fullDescription": {
+								"text": "Metadata management"
+							}
+						},
+						{
+							"name": "Secret Management",
+							"id": "CAT012",
+							"shortDescription": {
+								"text": "Secret and Key management"
+							},
+							"fullDescription": {
+								"text": "Secret and Key management"
+							}
+						},
+						{
+							"name": "Encryption",
+							"id": "CAT006",
+							"shortDescription": {
+								"text": "Data Security and Encryption configuration"
+							},
+							"fullDescription": {
+								"text": "Data Security and Encryption configuration"
+							}
+						},
+						{
+							"name": "Resource Management",
+							"id": "CAT011",
+							"shortDescription": {
+								"text": "Resource and privilege limit configuration"
+							},
+							"fullDescription": {
+								"text": "Resource and privilege limit configuration"
+							}
+						},
+						{
+							"name": "Supply-Chain",
+							"id": "CAT013",
+							"shortDescription": {
+								"text": "Dependency version management"
+							},
+							"fullDescription": {
+								"text": "Dependency version management"
+							}
+						},
+						{
+							"name": "Structure and Semantics",
+							"id": "CAT014",
+							"shortDescription": {
+								"text": "Malformed document structure or inadequate semantics"
+							},
+							"fullDescription": {
+								"text": "Malformed document structure or inadequate semantics"
+							}
+						},
+						{
+							"name": "Bill Of Materials",
+							"id": "CAT015",
+							"shortDescription": {
+								"text": "List of resources provisioned"
+							},
+							"fullDescription": {
+								"text": "List of resources provisioned"
+							}
+						}
+					]
+				},
+				{
+					"guid": "1489b0c4-d7ce-4d31-af66-6382a01202e3",
+					"name": "CWE",
+					"fullDescription": {
+						"text": "The MITRE Common Weakness Enumeration"
+					},
+					"shortDescription": {
+						"text": "The MITRE Common Weakness Enumeration"
+					},
+					"downloadUri": "https://cwe.mitre.org/data/xml/cwec_v4.13.xml.zip",
+					"informationUri": "https://cwe.mitre.org/data/published/cwe_v4.13.pdf",
+					"isComprehensive": true,
+					"language": "en",
+					"minimumRequiredLocalizedDataSemanticVersion": "4.13",
+					"organization": "MITRE",
+					"releaseDateUtc": "2023-10-26",
+					"taxa": [
+						{
+							"guid": "e1f85ae8-b0aa-492b-a250-8bcbdbc9fa04",
+							"id": "250",
+							"shortDescription": {
+								"text": "The product performs an operation at a privilege level that is higher than the minimum level required, which creates new weaknesses or amplifies the consequences of other weaknesses."
+							},
+							"fullDescription": {
+								"text": "New weaknesses can be exposed because running with extra privileges, such as root or Administrator, can disable the normal security checks being performed by the operating system or surrounding environment. Other pre-existing weaknesses can turn into security vulnerabilities if they occur while operating at raised privileges. Privilege management functions can behave in some less-than-obvious ways, and they have different quirks on different platforms. These inconsistencies are particularly pronounced if you are transitioning from one non-root user to another. Signal handlers and spawned processes run at the privilege of the owning process, so if a process is running as root when a signal fires or a sub-process is executed, the signal handler or sub-process will operate with root privileges."
+							},
+							"helpUri": "https://cwe.mitre.org/data/definitions/250.html"
+						},
+						{
+							"guid": "504c45f7-c1a2-40cd-afa0-ec991060b74e",
+							"id": "798",
+							"shortDescription": {
+								"text": "The product contains hard-coded credentials, such as a password or cryptographic key, which it uses for its own inbound authentication, outbound communication to external components, or encryption of internal data."
+							},
+							"fullDescription": {
+								"text": "Hard-coded credentials typically create a significant hole that allows an attacker to bypass the authentication that has been configured by the product administrator. This hole might be difficult for the system administrator to detect. Even if detected, it can be difficult to fix, so the administrator may be forced into disabling the product entirely. There are two main variations: Inbound: the product contains an authentication mechanism that checks the input credentials against a hard-coded set of credentials. Outbound: the product connects to another system or component, and it contains hard-coded credentials for connecting to that component. In the Inbound variant, a default administration account is created, and a simple password is hard-coded into the product and associated with that account. This hard-coded password is the same for each installation of the product, and it usually cannot be changed or disabled by system administrators without manually modifying the program, or otherwise patching the product. If the password is ever discovered or published (a common occurrence on the Internet), then anybody with knowledge of this password can access the product. Finally, since all installations of the product will have the same password, even across different organizations, this enables massive attacks such as worms to take place. The Outbound variant applies to front-end systems that authenticate with a back-end service. The back-end service may require a fixed password which can be easily discovered. The programmer may simply hard-code those back-end credentials into the front-end product. Any user of that program may be able to extract the password. Client-side systems with hard-coded passwords pose even more of a threat, since the extraction of a password from a binary is usually very simple."
+							},
+							"helpUri": "https://cwe.mitre.org/data/definitions/798.html"
+						},
+						{
+							"guid": "99620154-bf3c-4849-97d2-32ae15d7bd69",
+							"id": "1357",
+							"shortDescription": {
+								"text": "The product is built from multiple separate components, but it uses a component that is not sufficiently trusted to meet expectations for security, reliability, updateability, and maintainability."
+							},
+							"fullDescription": {
+								"text": "Many modern hardware and software products are built by combining multiple smaller components together into one larger entity, often during the design or architecture phase. For example, a hardware component might be built by a separate supplier, or the product might use an open-source software library from a third party. Regardless of the source, each component should be sufficiently trusted to ensure correct, secure operation of the product. If a component is not trustworthy, it can produce significant risks for the overall product, such as vulnerabilities that cannot be patched fast enough (if at all); hidden functionality such as malware; inability to update or replace the component if needed for security purposes; hardware components built from parts that do not meet specifications in ways that can lead to weaknesses; etc. Note that a component might not be trustworthy even if it is owned by the product vendor, such as a software component whose source code is lost and was built by developers who left the company, or a component that was developed by a separate company that was acquired and brought into the product's own company. Note that there can be disagreement as to whether a component is sufficiently trustworthy, since trust is ultimately subjective. Different stakeholders (e.g., customers, vendors, governments) have various threat models and ways to assess trust, and design/architecture choices might make tradeoffs between security, reliability, safety, privacy, cost, and other characteristics."
+							},
+							"helpUri": "https://cwe.mitre.org/data/definitions/1357.html"
+						},
+						{
+							"guid": "5e1e6c6c-8324-4bf2-8b7a-317d16dbc417",
+							"id": "710",
+							"shortDescription": {
+								"text": "The product does not follow certain coding rules for development, which can lead to resultant weaknesses or increase the severity of the associated vulnerabilities."
+							},
+							"fullDescription": {
+								"text": "The product does not follow certain coding rules for development, which can lead to resultant weaknesses or increase the severity of the associated vulnerabilities."
+							},
+							"helpUri": "https://cwe.mitre.org/data/definitions/710.html"
+						},
+						{
+							"guid": "65a2ea07-855f-4ac2-83f5-a7de47b080e2",
+							"id": "829",
+							"shortDescription": {
+								"text": "The product imports, requires, or includes executable functionality (such as a library) from a source that is outside of the intended control sphere."
+							},
+							"fullDescription": {
+								"text": "When including third-party functionality, such as a web widget, library, or other source of functionality, the product must effectively trust that functionality. Without sufficient protection mechanisms, the functionality could be malicious in nature (either by coming from an untrusted source, being spoofed, or being modified in transit from a trusted source). The functionality might also contain its own weaknesses, or grant access to additional functionality and state information that should be kept private to the base system, such as system state information, sensitive application data, or the DOM of a web application. This might lead to many different consequences depending on the included functionality, but some examples include injection of malware, information exposure by granting excessive privileges or permissions to the untrusted functionality, DOM-based XSS vulnerabilities, stealing user's cookies, or open redirect to malware (CWE-601)."
+							},
+							"helpUri": "https://cwe.mitre.org/data/definitions/829.html"
+						},
+						{
+							"guid": "5e1e6c6c-8324-4bf2-8b7a-317d16dbc417",
+							"id": "710",
+							"shortDescription": {
+								"text": "The product does not follow certain coding rules for development, which can lead to resultant weaknesses or increase the severity of the associated vulnerabilities."
+							},
+							"fullDescription": {
+								"text": "The product does not follow certain coding rules for development, which can lead to resultant weaknesses or increase the severity of the associated vulnerabilities."
+							},
+							"helpUri": "https://cwe.mitre.org/data/definitions/710.html"
+						},
+						{
+							"guid": "a3c847ac-e73d-4e9d-9d22-5aa55f66f930",
+							"id": "695",
+							"shortDescription": {
+								"text": "The product uses low-level functionality that is explicitly prohibited by the framework or specification under which the product is supposed to operate."
+							},
+							"fullDescription": {
+								"text": "The use of low-level functionality can violate the specification in unexpected ways that effectively disable built-in protection mechanisms, introduce exploitable inconsistencies, or otherwise expose the functionality to attack."
+							},
+							"helpUri": "https://cwe.mitre.org/data/definitions/695.html"
+						},
+						{
+							"guid": "5e1e6c6c-8324-4bf2-8b7a-317d16dbc417",
+							"id": "710",
+							"shortDescription": {
+								"text": "The product does not follow certain coding rules for development, which can lead to resultant weaknesses or increase the severity of the associated vulnerabilities."
+							},
+							"fullDescription": {
+								"text": "The product does not follow certain coding rules for development, which can lead to resultant weaknesses or increase the severity of the associated vulnerabilities."
+							},
+							"helpUri": "https://cwe.mitre.org/data/definitions/710.html"
+						}
+					]
+				}
+			]
+		}
+	]
+}
