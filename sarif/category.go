@@ -172,22 +172,41 @@ func normalizeName(s string) string {
 //
 // Precedence, strongest evidence first:
 //
-//  1. hint — the GitHub artifact name or file basename. Workflows already name
-//     these "trivy-fs" and "trivy-config", which is the only place that
+//  1. the scanned file paths, when the hint or automation stamp names a
+//     misconfiguration *mode* rather than a target. "trivy config" over a
+//     repository whose only misconfigurable file is a Containerfile is a
+//     container scan, and filing it under IaC is wrong.
+//  2. hint — the GitHub artifact name or file basename. Workflows already name
+//     these "trivy-fs" and "trivy-image", which is the only place that
 //     distinction is recorded.
-//  2. run.automationDetails.id / run.properties["scan_type"] — Trivy's mode stamp.
-//  3. rule-id prefixes — AVD-/DS-/KSV-/CKV are IaC checks; CVE-/GHSA-/RUSTSEC-/
-//     GO-/PYSEC- are package advisories.
-//  4. the driver-name catalog.
+//  3. run.automationDetails.id / run.properties["scan_type"] — Trivy's mode stamp.
+//  4. the scanned file paths, for everything else.
+//  5. rule-id prefixes — CKV/AVD-/KSV are IaC checks, DS- is Dockerfile
+//     security, CVE-/GHSA-/RUSTSEC-/GO-/PYSEC- are package advisories.
+//  6. the driver-name catalog.
 //
 // The second return value is a short token naming the winning evidence, e.g.
 // "hint:trivy-config" or "driver-name:gosec", so a misclassification is
 // diagnosable from a workflow log alone.
 func InferCategory(run Run, hint string) (Category, string) {
-	if c, why := categoryFromHint(hint); c != "" {
-		return c, why
+	hintCat, hintWhy := categoryFromHint(hint)
+	autoCat, autoWhy := categoryFromAutomation(run)
+
+	// A misconfiguration-mode run says how the tool was invoked, not what it
+	// scanned. Let the files decide, and fall back to the mode's own guess.
+	if isMisconfigMode(hint) || isMisconfigMode(automationToken(run)) {
+		if c, why := categoryFromLocations(run); c != "" {
+			return c, why
+		}
 	}
-	if c, why := categoryFromAutomation(run); c != "" {
+
+	if hintCat != "" {
+		return hintCat, hintWhy
+	}
+	if autoCat != "" {
+		return autoCat, autoWhy
+	}
+	if c, why := categoryFromLocations(run); c != "" {
 		return c, why
 	}
 	if c, why := categoryFromRuleIDs(run); c != "" {
@@ -249,7 +268,9 @@ var ruleIDPrefixCategories = []struct {
 	prefix string
 	cat    Category
 }{
-	{"CKV", CategoryIAC}, {"AVD-", CategoryIAC}, {"DS-", CategoryIAC},
+	{"CKV", CategoryIAC}, {"AVD-", CategoryIAC},
+	// DS- is Trivy's Dockerfile-security namespace, not an IaC namespace.
+	{"DS-", CategoryOCI}, {"DS0", CategoryOCI},
 	{"KSV", CategoryIAC}, {"AC_", CategoryIAC}, {"AWS.", CategoryIAC},
 	{"CVE-", CategorySCA}, {"GHSA-", CategorySCA}, {"RUSTSEC-", CategorySCA},
 	{"GO-", CategorySCA}, {"PYSEC-", CategorySCA}, {"OSV-", CategorySCA},
@@ -293,4 +314,127 @@ func categoryFromRuleIDs(run Run) (Category, string) {
 		return "", ""
 	}
 	return best, "rule-id:" + winner
+}
+
+// misconfigModes are the hint and automation tokens that name a *scanning mode*
+// rather than a target: "trivy config", "misconfig", "iac". They were treated
+// as proof of IaC, which is wrong often enough to matter — `trivy config` over a
+// repository whose only misconfigurable file is a Containerfile is a container
+// scan, and was being filed under IaC.
+//
+// A run matching one of these defers to what it actually scanned.
+var misconfigModes = map[string]struct{}{
+	"trivyconfig": {}, "trivyiac": {}, "trivymisconfig": {},
+	"config": {}, "misconfig": {}, "misconfiguration": {}, "iac": {},
+	"defsec": {},
+}
+
+// pathCategory classifies one scanned file by what kind of thing it is.
+//
+// This is the most direct evidence available: a rule id or an artifact name
+// describes how the tool was invoked, whereas the path describes what it
+// found something in.
+func pathCategory(uri string) Category {
+	if uri == "" {
+		return ""
+	}
+	p := strings.ToLower(uri)
+	if i := strings.LastIndexAny(p, "/\\"); i >= 0 {
+		p = p[i+1:]
+	}
+	switch {
+	// Container image definitions. Note "docker-compose" is deliberately not
+	// here: it describes a deployment, which is infrastructure.
+	case p == "dockerfile" || p == "containerfile",
+		strings.HasPrefix(p, "dockerfile."), strings.HasPrefix(p, "containerfile."),
+		strings.HasSuffix(p, ".dockerfile"), strings.HasSuffix(p, ".containerfile"):
+		return CategoryOCI
+
+	// Infrastructure definitions.
+	case strings.HasSuffix(p, ".tf"), strings.HasSuffix(p, ".tf.json"),
+		strings.HasSuffix(p, ".tfvars"), strings.HasSuffix(p, ".hcl"),
+		strings.HasPrefix(p, "docker-compose"), strings.HasPrefix(p, "compose."),
+		strings.HasSuffix(p, ".bicep"), p == "serverless.yml", p == "serverless.yaml",
+		strings.Contains(p, "cloudformation"), strings.HasSuffix(p, ".cfn.yaml"),
+		strings.HasSuffix(p, ".cfn.yml"):
+		return CategoryIAC
+
+	// Dependency manifests and lockfiles.
+	case p == "go.mod" || p == "go.sum" || p == "package.json" ||
+		p == "package-lock.json" || p == "yarn.lock" || p == "pnpm-lock.yaml" ||
+		p == "requirements.txt" || p == "poetry.lock" || p == "pipfile.lock" ||
+		p == "cargo.toml" || p == "cargo.lock" || p == "gemfile" ||
+		p == "gemfile.lock" || p == "pom.xml" || p == "composer.json" ||
+		p == "composer.lock" || p == "build.gradle" || p == "build.gradle.kts" ||
+		p == "packages.lock.json" || p == "pubspec.lock" || p == "mix.lock":
+		return CategorySCA
+	}
+	return ""
+}
+
+// categoryFromLocations takes the majority verdict over the files a run's
+// results point at.
+func categoryFromLocations(run Run) (Category, string) {
+	counts := map[Category]int{}
+	examples := map[Category]string{}
+	total := 0
+	for _, res := range run.Results {
+		if len(res.Locations) == 0 || res.Locations[0].PhysicalLocation == nil {
+			continue
+		}
+		al := res.Locations[0].PhysicalLocation.ArtifactLocation
+		if al == nil || al.URI == "" {
+			continue
+		}
+		total++
+		if c := pathCategory(al.URI); c != "" {
+			counts[c]++
+			if _, seen := examples[c]; !seen {
+				examples[c] = al.URI
+			}
+		}
+	}
+	if total == 0 {
+		return "", ""
+	}
+	best, bestN := Category(""), 0
+	for c, n := range counts {
+		if n > bestN {
+			best, bestN = c, n
+		}
+	}
+	// An outright majority, same bar as the rule-id vote: a repository with one
+	// Containerfile among fifty Terraform files is an IaC scan.
+	if best == "" || bestN*2 <= total {
+		return "", ""
+	}
+	return best, "path:" + examples[best]
+}
+
+// isMisconfigMode reports whether a hint or automation token names a
+// misconfiguration scanning mode rather than a target.
+func isMisconfigMode(token string) bool {
+	if token == "" {
+		return false
+	}
+	base := token
+	if i := strings.IndexByte(base, '.'); i > 0 {
+		base = base[:i]
+	}
+	_, ok := misconfigModes[normalizeName(base)]
+	return ok
+}
+
+// automationToken returns the run's scan-mode stamp, if it carries one.
+func automationToken(run Run) string {
+	if run.AutomationDetails != nil && run.AutomationDetails.ID != "" {
+		parts := strings.Split(run.AutomationDetails.ID, "/")
+		return parts[len(parts)-1]
+	}
+	for _, key := range []string{"scan_type", "scanType", "type", "kind"} {
+		if v := propString(run.Properties, key); v != "" {
+			return v
+		}
+	}
+	return ""
 }

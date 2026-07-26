@@ -53,8 +53,12 @@ func TestDecomposeCorpus(t *testing.T) {
 			wantTool: "Trivy", wantVersion: "0.70.0", minFindings: 10,
 		},
 		{
+			// `trivy config` names a scanning mode, not a target. This run
+			// found DS- (Dockerfile security) rules in a Containerfile, which
+			// is a container scan. It was filed under IaC in production
+			// because the artifact name won over what was actually scanned.
 			file: "trivy-config.sarif", hint: "trivy-config",
-			wantCat: CategoryIAC, wantWhy: "hint:trivy-config",
+			wantCat: CategoryOCI, wantWhy: "path:api/Containerfile",
 			wantTool: "Trivy", wantVersion: "0.70.0", minFindings: 2,
 		},
 		{
@@ -316,5 +320,83 @@ func TestSuppressionHandling(t *testing.T) {
 	all, _ := Decompose(log, DecomposeOptions{IncludeSuppressed: true})
 	if len(all) != 3 {
 		t.Errorf("with IncludeSuppressed findings = %d, want 3", len(all))
+	}
+}
+
+// A misconfiguration-mode run is categorised by what it scanned, not by how the
+// tool was invoked. Both directions matter: `trivy config` over Terraform is
+// still IaC, and the majority rule keeps one stray file from flipping a run.
+func TestMisconfigModeFollowsTheScannedFiles(t *testing.T) {
+	mk := func(uris ...string) Run {
+		run := Run{}
+		run.Tool.Driver.Name = "Trivy"
+		for i, u := range uris {
+			run.Results = append(run.Results, Result{
+				RuleID: "AVD-TEST-000" + string(rune('0'+i%10)),
+				Locations: []Location{{
+					PhysicalLocation: &PhysicalLocation{
+						ArtifactLocation: &ArtifactLocation{URI: u},
+					},
+				}},
+			})
+		}
+		return run
+	}
+
+	cases := []struct {
+		name string
+		run  Run
+		want Category
+	}{
+		{"containerfile", mk("api/Containerfile", "web/Containerfile"), CategoryOCI},
+		{"dockerfile", mk("Dockerfile"), CategoryOCI},
+		{"dockerfile suffixed", mk("build/api.dockerfile"), CategoryOCI},
+		{"terraform", mk("main.tf", "vpc.tf", "outputs.tf"), CategoryIAC},
+		{"compose is infrastructure", mk("docker-compose.yml"), CategoryIAC},
+		// One Containerfile among four Terraform files is an IaC scan: no
+		// outright majority, so the mode's own guess stands.
+		{"terraform majority", mk("a.tf", "b.tf", "c.tf", "d.tf", "Containerfile"), CategoryIAC},
+		// Nothing recognisable falls back to the mode's guess rather than
+		// inventing a category.
+		{"unrecognised paths", mk("config/settings.json", "other.txt"), CategoryIAC},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, why := InferCategory(tc.run, "trivy-config")
+			if got != tc.want {
+				t.Errorf("got %s (%s), want %s", got, why, tc.want)
+			}
+		})
+	}
+}
+
+// The hint still wins when it names a target rather than a mode: `trivy image`
+// on an image whose findings land in go.mod is a container scan, not SCA.
+func TestTargetHintsStillWin(t *testing.T) {
+	run := Run{}
+	run.Tool.Driver.Name = "Trivy"
+	run.Results = []Result{{
+		RuleID: "CVE-2026-1",
+		Locations: []Location{{
+			PhysicalLocation: &PhysicalLocation{
+				ArtifactLocation: &ArtifactLocation{URI: "go.mod"},
+			},
+		}},
+	}}
+	if got, why := InferCategory(run, "trivy-image"); got != CategoryOCI {
+		t.Errorf("got %s (%s), want OCI", got, why)
+	}
+}
+
+// DS- is Trivy's Dockerfile-security namespace. It used to imply IaC, which put
+// every Containerfile finding in the wrong category.
+func TestDockerfileSecurityRulesAreContainerFindings(t *testing.T) {
+	run := Run{}
+	run.Tool.Driver.Name = "Trivy"
+	run.Results = []Result{{RuleID: "DS-0002"}, {RuleID: "DS-0026"}}
+	got, why := InferCategory(run, "")
+	if got != CategoryOCI {
+		t.Errorf("got %s (%s), want OCI", got, why)
 	}
 }

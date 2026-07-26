@@ -1,0 +1,662 @@
+version: "1"
+last_scan:
+    timestamp: "2026-06-23T03:58:40Z"
+    path: /home/chris/GitHub/Vulnetix/vdb-sca-match
+    git_branch: main
+    git_commit: ba82a6b130d417f27d75c7596b47daf378b16d9a
+    git_remote: git@github.com:Vulnetix/vdb-sca-match.git
+    files_scanned: 2
+    packages: 17
+    vulns: 2
+    critical: 2
+    high: 0
+    medium: 0
+    low: 0
+    sbom_path: .vulnetix/sbom.cdx.json
+    scope_breakdown:
+        production:
+            packages: 17
+            vulns: 2
+history:
+    - timestamp: "2026-06-23T03:58:40Z"
+      path: /home/chris/GitHub/Vulnetix/vdb-sca-match
+      git_branch: main
+      git_commit: ba82a6b130d417f27d75c7596b47daf378b16d9a
+      git_remote: git@github.com:Vulnetix/vdb-sca-match.git
+      files_scanned: 2
+      packages: 17
+      vulns: 2
+      critical: 2
+      high: 0
+      medium: 0
+      low: 0
+      sbom_path: .vulnetix/sbom.cdx.json
+      scope_breakdown:
+        production:
+            packages: 17
+            vulns: 2
+    - timestamp: "2026-06-13T13:50:49Z"
+      path: /home/chris/GitHub/Vulnetix/vdb-sca-match
+      git_branch: main
+      git_commit: 85cad27859b1e7a16240f973ab4f97a8ff8b1563
+      git_remote: git@github.com:Vulnetix/vdb-sca-match.git
+      files_scanned: 0
+      packages: 0
+      vulns: 0
+      critical: 0
+      high: 0
+      medium: 0
+      low: 0
+      sast_rules_loaded: 82
+    - timestamp: "2026-06-09T12:21:05Z"
+      path: /home/chris/GitHub/Vulnetix/vdb-sca-match
+      git_branch: main
+      git_commit: 44704bb9250d2d79dc39a033f7125de7a245f74a
+      git_remote: git@github.com:Vulnetix/vdb-sca-match.git
+      files_scanned: 2
+      packages: 17
+      vulns: 17
+      critical: 10
+      high: 5
+      medium: 2
+      low: 0
+      sbom_path: .vulnetix/sbom.cdx.json
+      scope_breakdown:
+        production:
+            packages: 17
+            vulns: 17
+    - timestamp: "2026-06-08T05:52:45Z"
+      path: /home/chris/GitHub/Vulnetix/vdb-sca-match
+      git_branch: main
+      git_commit: 44704bb9250d2d79dc39a033f7125de7a245f74a
+      git_remote: git@github.com:Vulnetix/vdb-sca-match.git
+      files_scanned: 2
+      packages: 17
+      vulns: 17
+      critical: 10
+      high: 5
+      medium: 2
+      low: 0
+      sbom_path: .vulnetix/sbom.cdx.json
+      scope_breakdown:
+        production:
+            packages: 17
+            vulns: 17
+    - timestamp: "2026-06-08T00:28:14Z"
+      path: /home/chris/GitHub/Vulnetix/vdb-sca-match
+      git_branch: main
+      git_commit: 44704bb9250d2d79dc39a033f7125de7a245f74a
+      git_remote: git@github.com:Vulnetix/vdb-sca-match.git
+      files_scanned: 2
+      packages: 17
+      vulns: 17
+      critical: 10
+      high: 5
+      medium: 2
+      low: 0
+      sbom_path: .vulnetix/sbom.cdx.json
+      scope_breakdown:
+        production:
+            packages: 17
+            vulns: 17
+    - timestamp: "2026-05-31T14:46:19Z"
+      path: /home/chris/GitHub/Vulnetix/vdb-sca-match
+      git_branch: main
+      git_commit: 44704bb9250d2d79dc39a033f7125de7a245f74a
+      git_remote: git@github.com:Vulnetix/vdb-sca-match.git
+      files_scanned: 2
+      packages: 23
+      vulns: 4
+      critical: 2
+      high: 0
+      medium: 2
+      low: 0
+      sbom_path: .vulnetix/sbom.cdx.json
+      scope_breakdown:
+        production:
+            packages: 23
+            vulns: 4
+findings:
+    CVE-2020-14040:
+        package: golang.org/x/text
+        ecosystem: golang
+        discovery:
+            date: "2026-06-08T00:28:14Z"
+            source: scan
+            file: ./go.mod
+        versions:
+            current: 0.29.0
+        severity: high
+        status: fixed
+        history:
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: auto-resolved
+              detail: Package still present but no longer flagged — patched upstream
+        source: vulnetix-sca
+        tool: sca
+        locations:
+            - file: ./go.mod
+            - file: ./go.sum
+        last_seen_branch: main
+        last_seen_at: "2026-06-09T12:21:05Z"
+        scores:
+            cvss_score: 8.699999809265137
+            cvss_severity: high
+            epss_score: 7.999999797903001e-05
+            epss_percentile: 0.006949999835342169
+            epss_severity: low
+            ssvc_decision: Track
+            ssvc_severity: low
+            max_severity: high
+        remediation:
+            fix_availability: no_fix
+            actions:
+                - Apply distribution patch (2 advisories)
+        source_files:
+            - ./go.mod
+            - ./go.sum
+    CVE-2021-38561:
+        package: golang.org/x/text
+        ecosystem: golang
+        discovery:
+            date: "2026-06-08T00:28:14Z"
+            source: scan
+            file: ./go.mod
+        versions:
+            current: 0.29.0
+        severity: high
+        status: fixed
+        history:
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: auto-resolved
+              detail: Package still present but no longer flagged — patched upstream
+        source: vulnetix-sca
+        tool: sca
+        locations:
+            - file: ./go.mod
+            - file: ./go.sum
+        last_seen_branch: main
+        last_seen_at: "2026-06-09T12:21:05Z"
+        scores:
+            cvss_score: 8.699999809265137
+            cvss_severity: high
+            epss_score: 0.0005300000193528831
+            epss_percentile: 0.16857999563217163
+            epss_severity: low
+            ssvc_decision: Attend
+            ssvc_severity: high
+            max_severity: high
+        exploits:
+            exploit_count: 8
+            sources:
+                - certbund
+                - cert-fr
+                - circl
+                - cve.org
+                - gitlab
+                - go
+                - nist-nvd
+                - vulncheck-nvd
+            highest_maturity: poc
+        remediation:
+            fix_availability: no_fix
+        source_files:
+            - ./go.mod
+            - ./go.sum
+    CVE-2022-28948:
+        package: gopkg.in/yaml.v3
+        ecosystem: golang
+        discovery:
+            date: "2026-06-08T00:28:14Z"
+            source: scan
+            file: ./go.sum
+        versions:
+            current: 3.0.1
+        severity: high
+        status: fixed
+        history:
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: auto-resolved
+              detail: Package still present but no longer flagged — patched upstream
+        source: vulnetix-sca
+        tool: sca
+        locations:
+            - file: ./go.sum
+        last_seen_branch: main
+        last_seen_at: "2026-06-09T12:21:05Z"
+        scores:
+            cvss_score: 8.699999809265137
+            cvss_severity: high
+            epss_score: 0.015239999629557133
+            epss_percentile: 0.815750002861023
+            epss_severity: low
+            ssvc_decision: Track
+            ssvc_severity: low
+            max_severity: high
+        remediation:
+            fix_availability: no_fix
+            actions:
+                - Apply distribution patch (1 advisory)
+        source_files:
+            - ./go.sum
+        introduced_paths:
+            - - github.com/aquasecurity/go-pep440-version
+              - gopkg.in/yaml.v3
+    CVE-2022-32149:
+        package: golang.org/x/text
+        ecosystem: golang
+        discovery:
+            date: "2026-06-08T00:28:14Z"
+            source: scan
+            file: ./go.mod
+        versions:
+            current: 0.29.0
+        severity: critical
+        status: fixed
+        history:
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: auto-resolved
+              detail: Package still present but no longer flagged — patched upstream
+        source: vulnetix-sca
+        tool: sca
+        locations:
+            - file: ./go.mod
+            - file: ./go.sum
+        last_seen_branch: main
+        last_seen_at: "2026-06-09T12:21:05Z"
+        scores:
+            cvss_score: 9.300000190734863
+            cvss_severity: critical
+            epss_score: 0.0005600000149570405
+            epss_percentile: 0.17630000412464142
+            epss_severity: low
+            ssvc_decision: Attend
+            ssvc_severity: high
+            max_severity: critical
+        exploits:
+            exploit_count: 10
+            sources:
+                - certbund
+                - cert-fr
+                - circl
+                - cve.org
+                - gitlab
+                - go
+                - ibm
+                - nist-nvd
+                - vulncheck-nvd
+                - wiz
+            highest_maturity: poc
+        remediation:
+            fix_availability: no_fix
+        source_files:
+            - ./go.mod
+            - ./go.sum
+    CVE-2024-27304:
+        package: github.com/jackc/pgx/v5
+        ecosystem: golang
+        discovery:
+            date: "2026-06-08T00:28:14Z"
+            source: scan
+            file: ./go.mod
+        versions:
+            current: 5.9.1
+        severity: critical
+        status: fixed
+        history:
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: auto-resolved
+              detail: Package still present but no longer flagged — patched upstream
+        source: vulnetix-sca
+        tool: sca
+        locations:
+            - file: ./go.mod
+            - file: ./go.sum
+        last_seen_branch: main
+        last_seen_at: "2026-06-09T12:21:05Z"
+        scores:
+            cvss_score: 9.800000190734863
+            cvss_severity: critical
+            epss_score: 0.01875000074505806
+            epss_percentile: 0.8345000147819519
+            epss_severity: low
+            coalition_ess: 0.7517790794372559
+            ces_severity: low
+            ssvc_decision: Attend
+            ssvc_severity: high
+            max_severity: critical
+        exploits:
+            exploit_count: 21
+            sources:
+                - certbund
+                - cert-fr
+                - circl
+                - coalition_cess
+                - cve.org
+                - github
+                - gitlab
+                - go
+                - nist-nvd
+                - osv
+                - vulncheck-nvd
+            highest_maturity: poc
+        remediation:
+            fix_availability: no_fix
+        source_files:
+            - ./go.mod
+            - ./go.sum
+    CVE-2026-33816:
+        package: github.com/jackc/pgx/v5
+        ecosystem: golang
+        discovery:
+            date: "2026-06-08T00:28:14Z"
+            source: scan
+            file: ./go.mod
+        versions:
+            current: 5.9.1
+        severity: critical
+        status: fixed
+        history:
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: auto-resolved
+              detail: Package still present but no longer flagged — patched upstream
+        source: vulnetix-sca
+        tool: sca
+        locations:
+            - file: ./go.mod
+            - file: ./go.sum
+        last_seen_branch: main
+        last_seen_at: "2026-06-09T12:21:05Z"
+        scores:
+            cvss_score: 9.800000190734863
+            cvss_severity: critical
+            epss_score: 0.00022000000171829015
+            epss_percentile: 0.06466999650001526
+            epss_severity: low
+            ssvc_decision: Track
+            ssvc_severity: low
+            max_severity: critical
+        remediation:
+            fix_availability: no_fix
+        source_files:
+            - ./go.mod
+            - ./go.sum
+    CVE-2026-41889:
+        package: github.com/jackc/pgx/v5
+        ecosystem: golang
+        discovery:
+            date: "2026-06-08T00:28:14Z"
+            source: scan
+            file: ./go.mod
+        versions:
+            current: 5.9.1
+        severity: critical
+        status: under_investigation
+        history:
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: scan
+              detail: Updated by vulnetix scan
+        source: vulnetix-sca
+        tool: sca
+        locations:
+            - file: ./go.mod
+            - file: ./go.sum
+        last_seen_branch: main
+        last_seen_at: "2026-06-23T03:58:40Z"
+        affected_range: <5.9.2
+        scores:
+            cvss_score: 9.800000190734863
+            cvss_severity: critical
+            epss_score: 0.00011999999696854502
+            epss_percentile: 0.017340000718832016
+            epss_severity: low
+            ssvc_decision: Track
+            ssvc_severity: low
+            max_severity: critical
+        remediation:
+            fix_availability: no_fix
+        source_files:
+            - ./go.mod
+            - ./go.sum
+    GHSA-7jwh-3vrq-q3m8:
+        package: github.com/jackc/pgx/v5
+        ecosystem: golang
+        discovery:
+            date: "2026-05-31T14:46:19Z"
+            source: scan
+            file: ./go.mod
+        versions:
+            current: 5.9.1
+        severity: critical
+        status: fixed
+        history:
+            - date: "2026-05-31T14:46:19Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-05-31T14:46:19Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: auto-resolved
+              detail: Package still present but no longer flagged — patched upstream
+        source: vulnetix-sca
+        tool: sca
+        locations:
+            - file: ./go.mod
+            - file: ./go.sum
+        last_seen_branch: main
+        last_seen_at: "2026-06-09T12:21:05Z"
+        scores:
+            cvss_score: 9.800000190734863
+            cvss_severity: critical
+            ssvc_decision: Attend
+            ssvc_severity: high
+            max_severity: critical
+        exploits:
+            exploit_count: 8
+            sources:
+                - github
+                - gitlab
+                - google_osi
+                - osv
+            highest_maturity: poc
+        remediation:
+            fix_availability: no_fix
+        source_files:
+            - ./go.mod
+            - ./go.sum
+    GHSA-fqpg-rq76-99pq:
+        package: github.com/jackc/pgx/v5
+        ecosystem: golang
+        discovery:
+            date: "2026-05-31T14:46:19Z"
+            source: scan
+            file: ./go.mod
+        versions:
+            current: 5.9.1
+        severity: medium
+        status: fixed
+        history:
+            - date: "2026-05-31T14:46:19Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-05-31T14:46:19Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T00:28:14Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-08T05:52:45Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-09T12:21:05Z"
+              event: scan
+              detail: Updated by vulnetix scan
+            - date: "2026-06-23T03:58:40Z"
+              event: auto-resolved
+              detail: Package still present but no longer flagged — patched upstream
+        source: vulnetix-sca
+        tool: sca
+        locations:
+            - file: ./go.mod
+            - file: ./go.sum
+        last_seen_branch: main
+        last_seen_at: "2026-06-09T12:21:05Z"
+        scores:
+            cvss_score: 5.300000190734863
+            cvss_severity: medium
+            ssvc_decision: Track
+            ssvc_severity: low
+            max_severity: medium
+        remediation:
+            fix_availability: no_fix
+        source_files:
+            - ./go.mod
+            - ./go.sum

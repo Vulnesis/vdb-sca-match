@@ -1,0 +1,1478 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.7",
+  "serialNumber": "urn:uuid:481f8473-347c-4913-9a97-d7f1f388e0b6",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-06-23T03:58:40Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "vulnetix-sca",
+          "version": "v3.22.0"
+        },
+        {
+          "type": "application",
+          "name": "vulnetix-sca",
+          "version": "v3.34.1"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "urn:project",
+      "name": "Vulnetix/vdb-sca-match",
+      "version": "44704bb9",
+      "description": "Source code repository",
+      "authors": [
+        {
+          "name": "Christopher Langton",
+          "email": "chris@vulnetix.com"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/Vulnetix/vdb-sca-match"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:git/branch",
+          "value": "main"
+        },
+        {
+          "name": "vulnetix:git/commit",
+          "value": "44704bb9250d2d79dc39a033f7125de7a245f74a"
+        },
+        {
+          "name": "vulnetix:git/commit-timestamp",
+          "value": "2026-05-31T14:02:54Z"
+        },
+        {
+          "name": "vulnetix:git/commit-message",
+          "value": "feat: add License field to Dependency struct"
+        },
+        {
+          "name": "vulnetix:git/commit-author",
+          "value": "Christopher Langton <chris@vulnetix.com>"
+        },
+        {
+          "name": "vulnetix:git/dirty",
+          "value": "true"
+        },
+        {
+          "name": "vulnetix:git/is-worktree",
+          "value": "false"
+        },
+        {
+          "name": "vulnetix:git/repo-root",
+          "value": "/home/chris/GitHub/Vulnetix/vdb-sca-match"
+        }
+      ]
+    },
+    "properties": [
+      {
+        "name": "vulnetix:env/hostname",
+        "value": "dakwara"
+      },
+      {
+        "name": "vulnetix:env/shell",
+        "value": "/bin/fish"
+      },
+      {
+        "name": "vulnetix:env/os",
+        "value": "linux"
+      },
+      {
+        "name": "vulnetix:env/arch",
+        "value": "amd64"
+      },
+      {
+        "name": "vulnetix:env/user",
+        "value": "chris"
+      },
+      {
+        "name": "vulnetix:env/shell",
+        "value": "/usr/bin/zsh"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2FMasterminds%2Fsemver%2Fv3@3.3.1",
+      "name": "github.com/Masterminds/semver/v3",
+      "version": "3.3.1",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2FMasterminds%2Fsemver%2Fv3@3.3.1",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Faquasecurity%2Fgo-pep440-version@0.0.1",
+      "name": "github.com/aquasecurity/go-pep440-version",
+      "version": "0.0.1",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Faquasecurity%2Fgo-pep440-version@0.0.1",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fjackc%2Fpgx%2Fv5@5.9.1",
+      "name": "github.com/jackc/pgx/v5",
+      "version": "5.9.1",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fjackc%2Fpgx%2Fv5@5.9.1",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fmasahiro331%2Fgo-mvn-version@0.0.0-20260119054159-d21fcd2e7de1",
+      "name": "github.com/masahiro331/go-mvn-version",
+      "version": "0.0.0-20260119054159-d21fcd2e7de1",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fmasahiro331%2Fgo-mvn-version@0.0.0-20260119054159-d21fcd2e7de1",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Faquasecurity%2Fgo-version@0.0.1",
+      "name": "github.com/aquasecurity/go-version",
+      "version": "0.0.1",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Faquasecurity%2Fgo-version@0.0.1",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fhashicorp%2Ferrwrap@1.0.0",
+      "name": "github.com/hashicorp/errwrap",
+      "version": "1.0.0",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Ferrwrap@1.0.0",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fhashicorp%2Fgo-multierror@1.1.1",
+      "name": "github.com/hashicorp/go-multierror",
+      "version": "1.1.1",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fgo-multierror@1.1.1",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fjackc%2Fpgpassfile@1.0.0",
+      "name": "github.com/jackc/pgpassfile",
+      "version": "1.0.0",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fjackc%2Fpgpassfile@1.0.0",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fjackc%2Fpgservicefile@0.0.0-20240606120523-5a60cdf6a761",
+      "name": "github.com/jackc/pgservicefile",
+      "version": "0.0.0-20240606120523-5a60cdf6a761",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fjackc%2Fpgservicefile@0.0.0-20240606120523-5a60cdf6a761",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/golang.org%2Fx%2Ftext@0.29.0",
+      "name": "golang.org/x/text",
+      "version": "0.29.0",
+      "scope": "required",
+      "purl": "pkg:golang/golang.org%2Fx%2Ftext@0.29.0",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/golang.org%2Fx%2Fxerrors@0.0.0-20231012003039-104605ab7028",
+      "name": "golang.org/x/xerrors",
+      "version": "0.0.0-20231012003039-104605ab7028",
+      "scope": "required",
+      "purl": "pkg:golang/golang.org%2Fx%2Fxerrors@0.0.0-20231012003039-104605ab7028",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fdavecgh%2Fgo-spew@1.1.1",
+      "name": "github.com/davecgh/go-spew",
+      "version": "1.1.1",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fdavecgh%2Fgo-spew@1.1.1",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.sum"
+        },
+        {
+          "name": "vulnetix:gosum-h1",
+          "value": "vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c="
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fjackc%2Fpuddle%2Fv2@2.2.2",
+      "name": "github.com/jackc/puddle/v2",
+      "version": "2.2.2",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fjackc%2Fpuddle%2Fv2@2.2.2",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.sum"
+        },
+        {
+          "name": "vulnetix:gosum-h1",
+          "value": "PR8nw+E/1w0GLuRFSmiioY6UooMp6KJv0/61nB7icHo="
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fpmezard%2Fgo-difflib@1.0.0",
+      "name": "github.com/pmezard/go-difflib",
+      "version": "1.0.0",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fpmezard%2Fgo-difflib@1.0.0",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.sum"
+        },
+        {
+          "name": "vulnetix:gosum-h1",
+          "value": "4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM="
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com%2Fstretchr%2Ftestify@1.11.1",
+      "name": "github.com/stretchr/testify",
+      "version": "1.11.1",
+      "scope": "required",
+      "purl": "pkg:golang/github.com%2Fstretchr%2Ftestify@1.11.1",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.sum"
+        },
+        {
+          "name": "vulnetix:gosum-h1",
+          "value": "7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U="
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/golang.org%2Fx%2Fsync@0.17.0",
+      "name": "golang.org/x/sync",
+      "version": "0.17.0",
+      "scope": "required",
+      "purl": "pkg:golang/golang.org%2Fx%2Fsync@0.17.0",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.sum"
+        },
+        {
+          "name": "vulnetix:gosum-h1",
+          "value": "l60nONMj9l5drqw6jlhIELNv9I0A4OFgRsG9k2oT9Ug="
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/gopkg.in%2Fyaml.v3@3.0.1",
+      "name": "gopkg.in/yaml.v3",
+      "version": "3.0.1",
+      "scope": "required",
+      "purl": "pkg:golang/gopkg.in%2Fyaml.v3@3.0.1",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.sum"
+        },
+        {
+          "name": "vulnetix:gosum-h1",
+          "value": "fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/golang.org%2Fx%2Ftext@0.38.0",
+      "name": "golang.org/x/text",
+      "version": "0.38.0",
+      "scope": "required",
+      "purl": "pkg:golang/golang.org%2Fx%2Ftext@0.38.0",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/golang.org%2Fx%2Fsync@0.21.0",
+      "name": "golang.org/x/sync",
+      "version": "0.21.0",
+      "scope": "required",
+      "purl": "pkg:golang/golang.org%2Fx%2Fsync@0.21.0",
+      "properties": [
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:environment",
+          "value": "production"
+        },
+        {
+          "name": "vulnetix:ecosystem",
+          "value": "golang"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.sum"
+        },
+        {
+          "name": "vulnetix:gosum-h1",
+          "value": "HLII4xRRTtCRkxYp4HNFF0Js/Og6q2i++KXbg0gHCwM="
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "urn:project",
+      "dependsOn": [
+        "pkg:golang/github.com%2FMasterminds%2Fsemver%2Fv3@3.3.1",
+        "pkg:golang/github.com%2Faquasecurity%2Fgo-pep440-version@0.0.1",
+        "pkg:golang/github.com%2Faquasecurity%2Fgo-version@0.0.1",
+        "pkg:golang/github.com%2Fhashicorp%2Ferrwrap@1.0.0",
+        "pkg:golang/github.com%2Fhashicorp%2Fgo-multierror@1.1.1",
+        "pkg:golang/github.com%2Fjackc%2Fpgpassfile@1.0.0",
+        "pkg:golang/github.com%2Fjackc%2Fpgservicefile@0.0.0-20240606120523-5a60cdf6a761",
+        "pkg:golang/github.com%2Fjackc%2Fpgx%2Fv5@5.9.1",
+        "pkg:golang/github.com%2Fmasahiro331%2Fgo-mvn-version@0.0.0-20260119054159-d21fcd2e7de1",
+        "pkg:golang/golang.org%2Fx%2Ftext@0.29.0",
+        "pkg:golang/golang.org%2Fx%2Fxerrors@0.0.0-20231012003039-104605ab7028",
+        "pkg:golang/golang.org%2Fx%2Ftext@0.38.0"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com%2Faquasecurity%2Fgo-version@0.0.1",
+      "dependsOn": [
+        "pkg:golang/github.com%2Fstretchr%2Ftestify@1.11.1",
+        "pkg:golang/golang.org%2Fx%2Fxerrors@0.0.0-20231012003039-104605ab7028",
+        "pkg:golang/github.com%2Fdavecgh%2Fgo-spew@1.1.1",
+        "pkg:golang/github.com%2Fpmezard%2Fgo-difflib@1.0.0",
+        "pkg:golang/gopkg.in%2Fyaml.v3@3.0.1"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com%2Fjackc%2Fpgpassfile@1.0.0",
+      "dependsOn": [
+        "pkg:golang/github.com%2Fstretchr%2Ftestify@1.11.1"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com%2Fjackc%2Fpgservicefile@0.0.0-20240606120523-5a60cdf6a761",
+      "dependsOn": [
+        "pkg:golang/github.com%2Fstretchr%2Ftestify@1.11.1"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com%2Fjackc%2Fpgx%2Fv5@5.9.1",
+      "dependsOn": [
+        "pkg:golang/github.com%2Fjackc%2Fpgpassfile@1.0.0",
+        "pkg:golang/github.com%2Fjackc%2Fpgservicefile@0.0.0-20240606120523-5a60cdf6a761",
+        "pkg:golang/github.com%2Fjackc%2Fpuddle%2Fv2@2.2.2",
+        "pkg:golang/github.com%2Fstretchr%2Ftestify@1.11.1",
+        "pkg:golang/golang.org%2Fx%2Fsync@0.17.0",
+        "pkg:golang/golang.org%2Fx%2Ftext@0.29.0",
+        "pkg:golang/github.com%2Fdavecgh%2Fgo-spew@1.1.1",
+        "pkg:golang/github.com%2Fpmezard%2Fgo-difflib@1.0.0",
+        "pkg:golang/gopkg.in%2Fyaml.v3@3.0.1",
+        "pkg:golang/golang.org%2Fx%2Fsync@0.21.0",
+        "pkg:golang/golang.org%2Fx%2Ftext@0.38.0"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com%2Fmasahiro331%2Fgo-mvn-version@0.0.0-20260119054159-d21fcd2e7de1",
+      "dependsOn": [
+        "pkg:golang/github.com%2Fhashicorp%2Fgo-multierror@1.1.1",
+        "pkg:golang/github.com%2Fstretchr%2Ftestify@1.11.1",
+        "pkg:golang/golang.org%2Fx%2Fxerrors@0.0.0-20231012003039-104605ab7028",
+        "pkg:golang/github.com%2Fdavecgh%2Fgo-spew@1.1.1",
+        "pkg:golang/github.com%2Fhashicorp%2Ferrwrap@1.0.0",
+        "pkg:golang/github.com%2Fpmezard%2Fgo-difflib@1.0.0",
+        "pkg:golang/gopkg.in%2Fyaml.v3@3.0.1"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com%2FMasterminds%2Fsemver%2Fv3@3.3.1"
+    },
+    {
+      "ref": "pkg:golang/github.com%2Fhashicorp%2Fgo-multierror@1.1.1",
+      "dependsOn": [
+        "pkg:golang/github.com%2Fhashicorp%2Ferrwrap@1.0.0"
+      ]
+    },
+    {
+      "ref": "pkg:golang/golang.org%2Fx%2Ftext@0.29.0",
+      "dependsOn": [
+        "pkg:golang/golang.org%2Fx%2Fsync@0.17.0"
+      ]
+    },
+    {
+      "ref": "pkg:golang/github.com%2Fstretchr%2Ftestify@1.11.1",
+      "dependsOn": [
+        "pkg:golang/github.com%2Fdavecgh%2Fgo-spew@1.1.1",
+        "pkg:golang/github.com%2Fpmezard%2Fgo-difflib@1.0.0",
+        "pkg:golang/gopkg.in%2Fyaml.v3@3.0.1"
+      ]
+    },
+    {
+      "ref": "pkg:golang/gopkg.in%2Fyaml.v3@3.0.1"
+    },
+    {
+      "ref": "pkg:golang/github.com%2Faquasecurity%2Fgo-pep440-version@0.0.1",
+      "dependsOn": [
+        "pkg:golang/github.com%2Faquasecurity%2Fgo-version@0.0.1",
+        "pkg:golang/github.com%2Fstretchr%2Ftestify@1.11.1",
+        "pkg:golang/golang.org%2Fx%2Fxerrors@0.0.0-20231012003039-104605ab7028",
+        "pkg:golang/github.com%2Fdavecgh%2Fgo-spew@1.1.1",
+        "pkg:golang/github.com%2Fpmezard%2Fgo-difflib@1.0.0",
+        "pkg:golang/gopkg.in%2Fyaml.v3@3.0.1"
+      ]
+    },
+    {
+      "ref": "pkg:golang/golang.org%2Fx%2Ftext@0.38.0",
+      "dependsOn": [
+        "pkg:golang/golang.org%2Fx%2Fsync@0.21.0"
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "CVE-2024-27304",
+      "id": "CVE-2024-27304",
+      "source": {
+        "name": "go",
+        "url": "https://www.vulnetix.com/vdb"
+      },
+      "ratings": [
+        {
+          "score": 9.800000190734863,
+          "severity": "critical",
+          "method": "CVSSv3",
+          "source": {
+            "name": "NVD"
+          }
+        },
+        {
+          "score": 0.01875000074505806,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "EPSS"
+          }
+        },
+        {
+          "score": 0.7517790794372559,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "Coalition ESS"
+          }
+        },
+        {
+          "score": 3,
+          "severity": "high",
+          "method": "other",
+          "source": {
+            "name": "SSVC"
+          }
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:golang/github.com%2Fjackc%2Fpgx%2Fv5@5.9.1"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:ssvc-decision",
+          "value": "Attend"
+        },
+        {
+          "name": "vulnetix:max-severity",
+          "value": "critical"
+        },
+        {
+          "name": "vulnetix:fix-availability",
+          "value": "no_fix"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        },
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2026-33816",
+      "id": "CVE-2026-33816",
+      "source": {
+        "name": "vulncheck-nvd",
+        "url": "https://www.vulnetix.com/vdb"
+      },
+      "ratings": [
+        {
+          "score": 9.800000190734863,
+          "severity": "critical",
+          "method": "CVSSv3",
+          "source": {
+            "name": "NVD"
+          }
+        },
+        {
+          "score": 0.00022000000171829015,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "EPSS"
+          }
+        },
+        {
+          "score": 1,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "SSVC"
+          }
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:golang/github.com%2Fjackc%2Fpgx%2Fv5@5.9.1"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:ssvc-decision",
+          "value": "Track"
+        },
+        {
+          "name": "vulnetix:max-severity",
+          "value": "critical"
+        },
+        {
+          "name": "vulnetix:fix-availability",
+          "value": "no_fix"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        },
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2026-41889",
+      "id": "CVE-2026-41889",
+      "source": {
+        "name": "wiz",
+        "url": "https://www.vulnetix.com/vdb"
+      },
+      "ratings": [
+        {
+          "score": 9.800000190734863,
+          "severity": "critical",
+          "method": "CVSSv3",
+          "source": {
+            "name": "NVD"
+          }
+        },
+        {
+          "score": 0.00011999999696854502,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "EPSS"
+          }
+        },
+        {
+          "score": 1,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "SSVC"
+          }
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:golang/github.com%2Fjackc%2Fpgx%2Fv5@5.9.1"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:ssvc-decision",
+          "value": "Track"
+        },
+        {
+          "name": "vulnetix:max-severity",
+          "value": "critical"
+        },
+        {
+          "name": "vulnetix:fix-availability",
+          "value": "no_fix"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        },
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "bom-ref": "GHSA-7jwh-3vrq-q3m8",
+      "id": "GHSA-7jwh-3vrq-q3m8",
+      "source": {
+        "name": "github",
+        "url": "https://www.vulnetix.com/vdb"
+      },
+      "ratings": [
+        {
+          "score": 9.800000190734863,
+          "severity": "critical",
+          "method": "CVSSv3",
+          "source": {
+            "name": "NVD"
+          }
+        },
+        {
+          "score": 3,
+          "severity": "high",
+          "method": "other",
+          "source": {
+            "name": "SSVC"
+          }
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:golang/github.com%2Fjackc%2Fpgx%2Fv5@5.9.1"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:ssvc-decision",
+          "value": "Attend"
+        },
+        {
+          "name": "vulnetix:max-severity",
+          "value": "critical"
+        },
+        {
+          "name": "vulnetix:fix-availability",
+          "value": "no_fix"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        },
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "bom-ref": "GHSA-fqpg-rq76-99pq",
+      "id": "GHSA-fqpg-rq76-99pq",
+      "source": {
+        "name": "gitlab",
+        "url": "https://www.vulnetix.com/vdb"
+      },
+      "ratings": [
+        {
+          "score": 5.300000190734863,
+          "severity": "medium",
+          "method": "CVSSv3",
+          "source": {
+            "name": "NVD"
+          }
+        },
+        {
+          "score": 1,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "SSVC"
+          }
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:golang/github.com%2Fjackc%2Fpgx%2Fv5@5.9.1"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:ssvc-decision",
+          "value": "Track"
+        },
+        {
+          "name": "vulnetix:max-severity",
+          "value": "medium"
+        },
+        {
+          "name": "vulnetix:fix-availability",
+          "value": "no_fix"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        },
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2020-14040",
+      "id": "CVE-2020-14040",
+      "source": {
+        "name": "gitlab",
+        "url": "https://www.vulnetix.com/vdb"
+      },
+      "ratings": [
+        {
+          "score": 8.699999809265137,
+          "severity": "high",
+          "method": "CVSSv3",
+          "source": {
+            "name": "NVD"
+          }
+        },
+        {
+          "score": 0.00007999999797903001,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "EPSS"
+          }
+        },
+        {
+          "score": 1,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "SSVC"
+          }
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Ftext@0.29.0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:ssvc-decision",
+          "value": "Track"
+        },
+        {
+          "name": "vulnetix:max-severity",
+          "value": "high"
+        },
+        {
+          "name": "vulnetix:fix-availability",
+          "value": "no_fix"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        },
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2021-38561",
+      "id": "CVE-2021-38561",
+      "source": {
+        "name": "vulncheck-nvd",
+        "url": "https://www.vulnetix.com/vdb"
+      },
+      "ratings": [
+        {
+          "score": 8.699999809265137,
+          "severity": "high",
+          "method": "CVSSv3",
+          "source": {
+            "name": "NVD"
+          }
+        },
+        {
+          "score": 0.0005300000193528831,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "EPSS"
+          }
+        },
+        {
+          "score": 3,
+          "severity": "high",
+          "method": "other",
+          "source": {
+            "name": "SSVC"
+          }
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Ftext@0.29.0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:ssvc-decision",
+          "value": "Attend"
+        },
+        {
+          "name": "vulnetix:max-severity",
+          "value": "high"
+        },
+        {
+          "name": "vulnetix:fix-availability",
+          "value": "no_fix"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        },
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2022-32149",
+      "id": "CVE-2022-32149",
+      "source": {
+        "name": "github",
+        "url": "https://www.vulnetix.com/vdb"
+      },
+      "ratings": [
+        {
+          "score": 9.300000190734863,
+          "severity": "critical",
+          "method": "CVSSv3",
+          "source": {
+            "name": "NVD"
+          }
+        },
+        {
+          "score": 0.0005600000149570405,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "EPSS"
+          }
+        },
+        {
+          "score": 3,
+          "severity": "high",
+          "method": "other",
+          "source": {
+            "name": "SSVC"
+          }
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Ftext@0.29.0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:ssvc-decision",
+          "value": "Attend"
+        },
+        {
+          "name": "vulnetix:max-severity",
+          "value": "critical"
+        },
+        {
+          "name": "vulnetix:fix-availability",
+          "value": "no_fix"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.mod"
+        },
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2022-28948",
+      "id": "CVE-2022-28948",
+      "source": {
+        "name": "cert-fr",
+        "url": "https://www.vulnetix.com/vdb"
+      },
+      "ratings": [
+        {
+          "score": 8.699999809265137,
+          "severity": "high",
+          "method": "CVSSv3",
+          "source": {
+            "name": "NVD"
+          }
+        },
+        {
+          "score": 0.015239999629557133,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "EPSS"
+          }
+        },
+        {
+          "score": 1,
+          "severity": "low",
+          "method": "other",
+          "source": {
+            "name": "SSVC"
+          }
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:golang/gopkg.in%2Fyaml.v3@3.0.1"
+        }
+      ],
+      "properties": [
+        {
+          "name": "vulnetix:ssvc-decision",
+          "value": "Track"
+        },
+        {
+          "name": "vulnetix:max-severity",
+          "value": "high"
+        },
+        {
+          "name": "vulnetix:fix-availability",
+          "value": "no_fix"
+        },
+        {
+          "name": "vulnetix:source-file",
+          "value": "./go.sum"
+        },
+        {
+          "name": "vulnetix:scope",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2020-14040",
+      "id": "CVE-2020-14040",
+      "source": {
+        "name": "vulnetix-sca"
+      },
+      "analysis": {
+        "state": "resolved",
+        "response": [
+          "update"
+        ],
+        "detail": "Package still present but no longer flagged — patched upstream"
+      },
+      "properties": [
+        {
+          "name": "vulnetix:vex-auto",
+          "value": "true"
+        },
+        {
+          "name": "vulnetix:package",
+          "value": "golang.org/x/text"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2022-32149",
+      "id": "CVE-2022-32149",
+      "source": {
+        "name": "vulnetix-sca"
+      },
+      "analysis": {
+        "state": "resolved",
+        "response": [
+          "update"
+        ],
+        "detail": "Package still present but no longer flagged — patched upstream"
+      },
+      "properties": [
+        {
+          "name": "vulnetix:vex-auto",
+          "value": "true"
+        },
+        {
+          "name": "vulnetix:package",
+          "value": "golang.org/x/text"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2026-33816",
+      "id": "CVE-2026-33816",
+      "source": {
+        "name": "vulnetix-sca"
+      },
+      "analysis": {
+        "state": "resolved",
+        "response": [
+          "update"
+        ],
+        "detail": "Package still present but no longer flagged — patched upstream"
+      },
+      "properties": [
+        {
+          "name": "vulnetix:vex-auto",
+          "value": "true"
+        },
+        {
+          "name": "vulnetix:package",
+          "value": "github.com/jackc/pgx/v5"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2021-38561",
+      "id": "CVE-2021-38561",
+      "source": {
+        "name": "vulnetix-sca"
+      },
+      "analysis": {
+        "state": "resolved",
+        "response": [
+          "update"
+        ],
+        "detail": "Package still present but no longer flagged — patched upstream"
+      },
+      "properties": [
+        {
+          "name": "vulnetix:vex-auto",
+          "value": "true"
+        },
+        {
+          "name": "vulnetix:package",
+          "value": "golang.org/x/text"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2022-28948",
+      "id": "CVE-2022-28948",
+      "source": {
+        "name": "vulnetix-sca"
+      },
+      "analysis": {
+        "state": "resolved",
+        "response": [
+          "update"
+        ],
+        "detail": "Package still present but no longer flagged — patched upstream"
+      },
+      "properties": [
+        {
+          "name": "vulnetix:vex-auto",
+          "value": "true"
+        },
+        {
+          "name": "vulnetix:package",
+          "value": "gopkg.in/yaml.v3"
+        }
+      ]
+    },
+    {
+      "bom-ref": "CVE-2024-27304",
+      "id": "CVE-2024-27304",
+      "source": {
+        "name": "vulnetix-sca"
+      },
+      "analysis": {
+        "state": "resolved",
+        "response": [
+          "update"
+        ],
+        "detail": "Package still present but no longer flagged — patched upstream"
+      },
+      "properties": [
+        {
+          "name": "vulnetix:vex-auto",
+          "value": "true"
+        },
+        {
+          "name": "vulnetix:package",
+          "value": "github.com/jackc/pgx/v5"
+        }
+      ]
+    },
+    {
+      "bom-ref": "GHSA-7jwh-3vrq-q3m8",
+      "id": "GHSA-7jwh-3vrq-q3m8",
+      "source": {
+        "name": "vulnetix-sca"
+      },
+      "analysis": {
+        "state": "resolved",
+        "response": [
+          "update"
+        ],
+        "detail": "Package still present but no longer flagged — patched upstream"
+      },
+      "properties": [
+        {
+          "name": "vulnetix:vex-auto",
+          "value": "true"
+        },
+        {
+          "name": "vulnetix:package",
+          "value": "github.com/jackc/pgx/v5"
+        }
+      ]
+    },
+    {
+      "bom-ref": "GHSA-fqpg-rq76-99pq",
+      "id": "GHSA-fqpg-rq76-99pq",
+      "source": {
+        "name": "vulnetix-sca"
+      },
+      "analysis": {
+        "state": "resolved",
+        "response": [
+          "update"
+        ],
+        "detail": "Package still present but no longer flagged — patched upstream"
+      },
+      "properties": [
+        {
+          "name": "vulnetix:vex-auto",
+          "value": "true"
+        },
+        {
+          "name": "vulnetix:package",
+          "value": "github.com/jackc/pgx/v5"
+        }
+      ]
+    }
+  ]
+}
