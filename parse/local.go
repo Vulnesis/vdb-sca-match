@@ -28,8 +28,11 @@ const (
 // directory (e.g. a transitive in node_modules, not in any manifest) is fixed by
 // pinning/reinstalling — so the two are tracked distinctly for remediation.
 const (
-	SourceTypeManifest  = "manifest"  // declared in a manifest/lockfile
-	SourceTypeInstalled = "installed" // found in an install dir, not declared
+	SourceTypeManifest  = "manifest"     // declared in a manifest/lockfile
+	SourceTypeInstalled = "installed"    // found in an install dir, not declared
+	SourceTypeCommand   = "command"      // inferred from package-manager install commands
+	SourceTypeBinary    = "binary"       // inferred from a compiled binary
+	SourceTypeContainer = "container-db" // found in container filesystem package DBs
 )
 
 // PackageChecksum holds one integrity hash extracted from a lock file.
@@ -248,6 +251,12 @@ func ParseManifest(data []byte, manifestType, filePath string) ([]ScopedPackage,
 	// ── GitHub Actions ────────────────────────────────────────────────────
 	case "github-actions.yml":
 		return parseGithubActionsScoped(data, filePath)
+	case "ci-pipeline":
+		return parseCIFileScoped(data, filePath)
+	case "Jenkinsfile":
+		return parseJenkinsfileScoped(data, filePath)
+	case "shell-script":
+		return ParseShellScriptPackages(data, filePath), nil
 	// ── Terraform ─────────────────────────────────────────────────────────
 	case "*.tf":
 		return parseTerraformScoped(data, filePath)

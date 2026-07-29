@@ -997,33 +997,68 @@ func clojureCoord(coord string) string {
 }
 
 type containerInstallSpec struct {
-	Ecosystem string
-	Commands  []string
-	Subcmds   []string
+	Ecosystem       string
+	Commands        []string
+	Subcmds         []string
+	SubcmdSequences [][]string
 }
 
 var containerInstallSpecs = []containerInstallSpec{
 	{Ecosystem: "apk", Commands: []string{"apk"}, Subcmds: []string{"add"}},
 	{Ecosystem: "deb", Commands: []string{"apt", "apt-get", "aptitude"}, Subcmds: []string{"install"}},
 	{Ecosystem: "deb", Commands: []string{"dpkg"}, Subcmds: []string{"-i", "--install"}},
-	{Ecosystem: "rpm", Commands: []string{"yum", "dnf", "microdnf"}, Subcmds: []string{"install", "localinstall", "groupinstall"}},
+	{Ecosystem: "rpm", Commands: []string{"yum", "dnf", "microdnf", "zypper"}, Subcmds: []string{"install", "in", "localinstall", "groupinstall"}},
 	{Ecosystem: "rpm", Commands: []string{"rpm"}, Subcmds: []string{"-i", "-U", "-Uvh", "--install", "--upgrade"}},
 	{Ecosystem: "arch", Commands: []string{"pacman", "yay", "paru"}, Subcmds: []string{"-S", "-Sy", "-Syu", "--sync"}},
 	{Ecosystem: "npm", Commands: []string{"npm"}, Subcmds: []string{"install", "i", "add"}},
 	{Ecosystem: "npm", Commands: []string{"yarn"}, Subcmds: []string{"add", "install"}},
 	{Ecosystem: "npm", Commands: []string{"pnpm"}, Subcmds: []string{"add", "install"}},
 	{Ecosystem: "npm", Commands: []string{"bun"}, Subcmds: []string{"add", "install"}},
-	{Ecosystem: "pypi", Commands: []string{"pip", "pip3", "uv"}, Subcmds: []string{"install", "add"}},
+	{Ecosystem: "pypi", Commands: []string{"pip", "pip3", "pipx"}, Subcmds: []string{"install"}},
+	{Ecosystem: "pypi", Commands: []string{"uv"}, SubcmdSequences: [][]string{{"pip", "install"}, {"add"}}},
+	{Ecosystem: "pypi", Commands: []string{"poetry", "pipenv"}, Subcmds: []string{"add", "install"}},
+	{Ecosystem: "pypi", Commands: []string{"python", "python3"}, SubcmdSequences: [][]string{{"-m", "pip", "install"}, {"-m", "pip3", "install"}}},
 	{Ecosystem: "conda", Commands: []string{"conda", "mamba", "micromamba"}, Subcmds: []string{"install"}},
 	{Ecosystem: "gem", Commands: []string{"gem"}, Subcmds: []string{"install"}},
+	{Ecosystem: "composer", Commands: []string{"composer"}, Subcmds: []string{"require"}},
+	{Ecosystem: "cargo", Commands: []string{"cargo"}, Subcmds: []string{"add", "install"}},
+	{Ecosystem: "nuget", Commands: []string{"nuget"}, Subcmds: []string{"install"}},
+	{Ecosystem: "nuget", Commands: []string{"dotnet"}, SubcmdSequences: [][]string{{"add", "package"}}},
 	{Ecosystem: "maven", Commands: []string{"mvn"}, Subcmds: []string{"dependency:get"}},
 	{Ecosystem: "maven", Commands: []string{"gradle", "./gradlew"}, Subcmds: []string{"dependencies"}},
 	{Ecosystem: "golang", Commands: []string{"go"}, Subcmds: []string{"get", "install"}},
+	{Ecosystem: "brew", Commands: []string{"brew"}, Subcmds: []string{"install", "tap"}},
+	{Ecosystem: "chocolatey", Commands: []string{"choco", "chocolatey"}, Subcmds: []string{"install"}},
+	{Ecosystem: "scoop", Commands: []string{"scoop"}, Subcmds: []string{"install"}},
+	{Ecosystem: "winget", Commands: []string{"winget"}, Subcmds: []string{"install"}},
 }
 
 func parseContainerRunPackages(command, source string) []ScopedPackage {
+	return ParseInstallCommandPackages(command, source, InstallCommandOptions{SourceType: SourceTypeCommand})
+}
+
+// InstallCommandOptions controls package extraction from shell-like package
+// manager commands.
+type InstallCommandOptions struct {
+	// SourceType is written into each returned ScopedPackage. Empty defaults to
+	// SourceTypeCommand.
+	SourceType string
+}
+
+// ParseInstallCommandPackages extracts packages from shell-like install
+// commands. It covers Linux distro managers, language package managers, common
+// Windows package managers used in CI, and Dockerfile RUN command syntax. The
+// parser is deliberately conservative: flags, variables, URLs and command
+// boundaries are skipped, and unresolved versions are left empty rather than
+// guessed.
+func ParseInstallCommandPackages(command, source string, opts InstallCommandOptions) []ScopedPackage {
 	tokens := shellishFields(command)
 	var pkgs []ScopedPackage
+	seen := map[string]bool{}
+	sourceType := opts.SourceType
+	if sourceType == "" {
+		sourceType = SourceTypeCommand
+	}
 	for i := 0; i < len(tokens); i++ {
 		cmd := baseCommand(tokens[i])
 		spec, ok := matchInstallCommand(cmd)
@@ -1031,15 +1066,33 @@ func parseContainerRunPackages(command, source string) []ScopedPackage {
 			continue
 		}
 		j := i + 1
-		if commandMatches(tokens[j], spec.Subcmds) {
-			j++
-		} else if len(spec.Subcmds) > 0 {
+		if advance, ok := matchInstallSubcommand(tokens[j:], spec); ok {
+			j += advance
+		} else {
 			continue
 		}
 		for ; j < len(tokens); j++ {
 			tok := tokens[j]
 			if isShellBoundary(tok) || matchAnyInstallCommand(tok) {
 				break
+			}
+			if isVersionFlag(tok) && j+1 < len(tokens) && len(pkgs) > 0 {
+				next := strings.Trim(tokens[j+1], `"'`)
+				if next != "" && !strings.HasPrefix(next, "-") {
+					pkgs[len(pkgs)-1].Version = cleanLocalVersion(next)
+					j++
+				}
+				continue
+			}
+			if spec.Ecosystem == "maven" && strings.HasPrefix(tok, "-Dartifact=") {
+				name, version := splitInstalledPackage(strings.TrimPrefix(tok, "-Dartifact="), spec.Ecosystem)
+				if name != "" {
+					appendScopedPackage(&pkgs, seen, ScopedPackage{
+						Name: name, Version: version, Ecosystem: spec.Ecosystem,
+						Scope: ScopeProduction, SourceFile: source, IsDirect: true, SourceType: sourceType,
+					})
+				}
+				continue
 			}
 			if shouldSkipInstallToken(tok) {
 				continue
@@ -1048,13 +1101,41 @@ func parseContainerRunPackages(command, source string) []ScopedPackage {
 			if name == "" {
 				continue
 			}
-			pkgs = append(pkgs, ScopedPackage{
+			appendScopedPackage(&pkgs, seen, ScopedPackage{
 				Name: name, Version: version, Ecosystem: spec.Ecosystem,
-				Scope: ScopeProduction, SourceFile: source, IsDirect: true,
+				Scope: ScopeProduction, SourceFile: source, IsDirect: true, SourceType: sourceType,
 			})
 		}
 	}
 	return pkgs
+}
+
+func matchInstallSubcommand(tokens []string, spec containerInstallSpec) (int, bool) {
+	if len(spec.SubcmdSequences) > 0 {
+		for _, seq := range spec.SubcmdSequences {
+			if len(tokens) < len(seq) {
+				continue
+			}
+			matched := true
+			for i, want := range seq {
+				if tokens[i] != want {
+					matched = false
+					break
+				}
+			}
+			if matched {
+				return len(seq), true
+			}
+		}
+		return 0, false
+	}
+	if len(spec.Subcmds) == 0 {
+		return 0, true
+	}
+	if len(tokens) > 0 && commandMatches(tokens[0], spec.Subcmds) {
+		return 1, true
+	}
+	return 0, false
 }
 
 func matchInstallCommand(cmd string) (containerInstallSpec, bool) {
@@ -1071,6 +1152,15 @@ func matchInstallCommand(cmd string) (containerInstallSpec, bool) {
 func matchAnyInstallCommand(tok string) bool {
 	_, ok := matchInstallCommand(baseCommand(tok))
 	return ok
+}
+
+func isVersionFlag(tok string) bool {
+	switch tok {
+	case "--version", "-v", "--package-version":
+		return true
+	default:
+		return false
+	}
 }
 
 func commandMatches(tok string, allowed []string) bool {
@@ -1154,7 +1244,7 @@ func splitInstalledPackage(tok, ecosystem string) (name, version string) {
 		if at := strings.LastIndex(tok, "@"); at > 0 {
 			return tok[:at], tok[at+1:]
 		}
-	case "pypi", "gem", "golang":
+	case "pypi", "gem", "golang", "composer", "cargo", "nuget":
 		for _, sep := range []string{"==", "@", ":"} {
 			if idx := strings.LastIndex(tok, sep); idx > 0 {
 				return tok[:idx], strings.TrimPrefix(tok[idx+len(sep):], "v")
@@ -1181,18 +1271,14 @@ func stripInlineComment(line string) string {
 // GitHub Actions — .github/workflows/*.yml
 // ---------------------------------------------------------------------------
 
-func parseGithubActionsScoped(data []byte, _ string) ([]ScopedPackage, error) {
+func parseGithubActionsScoped(data []byte, filePath string) ([]ScopedPackage, error) {
 	usesRe := regexp.MustCompile(`uses\s*:\s*([^#\s]+)`)
 	var pkgs []ScopedPackage
 	seen := map[string]bool{}
-	for _, line := range strings.Split(string(data), "\n") {
-		m := usesRe.FindStringSubmatch(strings.TrimSpace(line))
-		if m == nil {
-			continue
-		}
-		ref := strings.TrimSpace(m[1])
-		if strings.HasPrefix(ref, "./") || strings.HasPrefix(ref, "../") {
-			continue
+	addAction := func(ref string) {
+		ref = strings.TrimSpace(strings.Trim(ref, `"'`))
+		if strings.HasPrefix(ref, "./") || strings.HasPrefix(ref, "../") || ref == "" {
+			return
 		}
 		name, ver := splitAtSign(ref)
 		key := name + "@" + ver
@@ -1200,8 +1286,30 @@ func parseGithubActionsScoped(data []byte, _ string) ([]ScopedPackage, error) {
 			seen[key] = true
 			pkgs = append(pkgs, ScopedPackage{
 				Name: name, Version: ver,
-				Ecosystem: "github-actions", Scope: ScopeProduction, IsDirect: true,
+				Ecosystem: "github-actions", Scope: ScopeProduction, SourceFile: filePath, IsDirect: true, SourceType: SourceTypeManifest,
 			})
+		}
+	}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(data, &doc); err == nil && len(doc.Content) > 0 {
+		walkCIYAML(&doc, func(key, value string) {
+			switch strings.ToLower(key) {
+			case "uses":
+				addAction(value)
+			case "run":
+				for _, pkg := range ParseInstallCommandPackages(value, filePath, InstallCommandOptions{SourceType: SourceTypeCommand}) {
+					appendScopedPackage(&pkgs, seen, pkg)
+				}
+			}
+		})
+		return pkgs, nil
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if m := usesRe.FindStringSubmatch(strings.TrimSpace(line)); m != nil {
+			addAction(m[1])
+		}
+		for _, pkg := range ParseInstallCommandPackages(line, filePath, InstallCommandOptions{SourceType: SourceTypeCommand}) {
+			appendScopedPackage(&pkgs, seen, pkg)
 		}
 	}
 	return pkgs, nil
@@ -1212,6 +1320,120 @@ func splitAtSign(ref string) (name, ver string) {
 		return ref[:idx], ref[idx+1:]
 	}
 	return ref, ""
+}
+
+// ParseShellScriptPackages extracts package installations from a shell script.
+func ParseShellScriptPackages(data []byte, filePath string) []ScopedPackage {
+	var pkgs []ScopedPackage
+	seen := map[string]bool{}
+	var current strings.Builder
+	for _, raw := range strings.Split(string(data), "\n") {
+		line := strings.TrimSpace(stripInlineComment(raw))
+		if line == "" || strings.HasPrefix(line, "#!") {
+			continue
+		}
+		continued := strings.HasSuffix(line, "\\")
+		line = strings.TrimSpace(strings.TrimSuffix(line, "\\"))
+		if current.Len() > 0 {
+			current.WriteByte(' ')
+		}
+		current.WriteString(line)
+		if continued {
+			continue
+		}
+		for _, pkg := range ParseInstallCommandPackages(current.String(), filePath, InstallCommandOptions{SourceType: SourceTypeCommand}) {
+			appendScopedPackage(&pkgs, seen, pkg)
+		}
+		current.Reset()
+	}
+	if current.Len() > 0 {
+		for _, pkg := range ParseInstallCommandPackages(current.String(), filePath, InstallCommandOptions{SourceType: SourceTypeCommand}) {
+			appendScopedPackage(&pkgs, seen, pkg)
+		}
+	}
+	return pkgs
+}
+
+func parseCIFileScoped(data []byte, filePath string) ([]ScopedPackage, error) {
+	var pkgs []ScopedPackage
+	seen := map[string]bool{}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(data, &doc); err == nil && len(doc.Content) > 0 {
+		walkCIYAML(&doc, func(key, value string) {
+			if !isCICommandKey(strings.ToLower(key)) {
+				return
+			}
+			for _, pkg := range ParseInstallCommandPackages(value, filePath, InstallCommandOptions{SourceType: SourceTypeCommand}) {
+				appendScopedPackage(&pkgs, seen, pkg)
+			}
+		})
+		return pkgs, nil
+	}
+	return ParseShellScriptPackages(data, filePath), nil
+}
+
+func parseJenkinsfileScoped(data []byte, filePath string) ([]ScopedPackage, error) {
+	var pkgs []ScopedPackage
+	seen := map[string]bool{}
+	for _, re := range []*regexp.Regexp{jenkinsShellCallSingle, jenkinsShellCallDouble} {
+		for _, m := range re.FindAllStringSubmatch(string(data), -1) {
+			for _, pkg := range ParseInstallCommandPackages(m[1], filePath, InstallCommandOptions{SourceType: SourceTypeCommand}) {
+				appendScopedPackage(&pkgs, seen, pkg)
+			}
+		}
+	}
+	for _, pkg := range ParseShellScriptPackages(data, filePath) {
+		appendScopedPackage(&pkgs, seen, pkg)
+	}
+	return pkgs, nil
+}
+
+var (
+	jenkinsShellCallSingle = regexp.MustCompile(`(?s)\b(?:sh|bat|powershell|pwsh)\s+(?:script\s*:\s*)?'([^']*)'`)
+	jenkinsShellCallDouble = regexp.MustCompile(`(?s)\b(?:sh|bat|powershell|pwsh)\s+(?:script\s*:\s*)?"([^"]*)"`)
+)
+
+func walkCIYAML(node *yaml.Node, visit func(key, value string)) {
+	if node == nil {
+		return
+	}
+	switch node.Kind {
+	case yaml.DocumentNode, yaml.SequenceNode:
+		for _, child := range node.Content {
+			walkCIYAML(child, visit)
+		}
+	case yaml.MappingNode:
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			keyNode := node.Content[i]
+			valNode := node.Content[i+1]
+			key := keyNode.Value
+			visitScalarValues(key, valNode, visit)
+			walkCIYAML(valNode, visit)
+		}
+	}
+}
+
+func visitScalarValues(key string, node *yaml.Node, visit func(key, value string)) {
+	if node == nil {
+		return
+	}
+	switch node.Kind {
+	case yaml.ScalarNode:
+		visit(key, node.Value)
+	case yaml.SequenceNode, yaml.MappingNode, yaml.DocumentNode:
+		for _, child := range node.Content {
+			visitScalarValues(key, child, visit)
+		}
+	}
+}
+
+func isCICommandKey(key string) bool {
+	switch key {
+	case "run", "script", "scripts", "command", "commands", "shell", "bash", "cmd", "powershell", "pwsh", "before_script", "after_script", "before_install", "install", "before_build", "build_script", "test_script", "deploy_script", "steps":
+		return true
+	default:
+		return false
+	}
 }
 
 // ---------------------------------------------------------------------------
