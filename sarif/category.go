@@ -23,6 +23,14 @@ const (
 	CategoryCloud      Category = "CLOUD"
 	CategoryCompliance Category = "COMPLIANCE"
 	CategoryMalware    Category = "MALWARE"
+
+	// The three classes the catalog lists that had no home here, so every tool
+	// in them was either misfiled under the nearest survivor or dropped for
+	// being unclassifiable. A mobile app scanner is not a source-code scanner,
+	// a network scanner is not a web scanner, and a fuzzer's crash is neither.
+	CategoryMobile  Category = "MOBILE"
+	CategoryNetwork Category = "NETWORK"
+	CategoryFuzzing Category = "FUZZING"
 )
 
 // Route returns the /v2/cli.<route> path segment a third-party SARIF document
@@ -41,12 +49,26 @@ var categoryRoutes = map[Category]struct{}{
 	CategoryOCI: {}, CategoryLicense: {}, CategoryLint: {}, CategoryCompiler: {},
 	CategoryPentest: {}, CategoryDAST: {}, CategoryCloud: {},
 	CategoryCompliance: {}, CategoryMalware: {},
+	CategoryMobile: {}, CategoryNetwork: {}, CategoryFuzzing: {},
 }
 
 // Valid reports whether c is a category the route family accepts.
 func (c Category) Valid() bool {
 	_, ok := categoryRoutes[c]
 	return ok
+}
+
+// AllCategories returns every category the classifier can produce, in a stable
+// order, so a server can assert it has a handler for each one instead of
+// keeping its own copy of the list. Two hand-maintained lists is how a category
+// gets added here, classified correctly, and then 404s on submission.
+func AllCategories() []Category {
+	return []Category{
+		CategorySAST, CategorySCA, CategoryIAC, CategorySecrets, CategoryOCI,
+		CategoryLicense, CategoryLint, CategoryCompiler, CategoryPentest,
+		CategoryDAST, CategoryCloud, CategoryCompliance, CategoryMalware,
+		CategoryMobile, CategoryNetwork, CategoryFuzzing,
+	}
 }
 
 // ParseCategory normalizes a user- or API-supplied category string.
@@ -61,6 +83,12 @@ func ParseCategory(s string) Category {
 		return CategorySecrets
 	case "QUALITY":
 		return CategoryLint
+	case "MAST", "ANDROID", "IOS":
+		return CategoryMobile
+	case "HOST", "INFRASTRUCTURE-SCAN", "VULNSCAN":
+		return CategoryNetwork
+	case "FUZZ", "FUZZER":
+		return CategoryFuzzing
 	}
 	if c.Valid() {
 		return c
@@ -71,63 +99,190 @@ func ParseCategory(s string) Category {
 // driverCategories maps a normalized tool driver name to its scan category.
 // Keys are produced by normalizeName: lowercased with every non-alphanumeric
 // character removed, so "osv-scanner", "OSV Scanner" and "osvscanner" collide.
+//
+// The table covers the whole published integration catalog, not the handful of
+// scanners our own workflows happen to run. A driver name absent from here
+// falls through InferCategory to "", and `vulnetix gha upload` skips an
+// unclassifiable report rather than filing it wrong — so a missing row is a
+// tool that silently produces nothing, which is the failure mode this table
+// exists to prevent. Where a tool self-reports under more than one spelling
+// (its product name, its binary name, its vendor-prefixed name) every spelling
+// gets a row; they cost nothing and guessing wrong costs a whole scan.
 var driverCategories = map[string]Category{
-	// SAST
-	"gosec": CategorySAST, "semgrep": CategorySAST, "zizmor": CategorySAST,
+	// ── SAST ────────────────────────────────────────────────────────────────
+	"gosec": CategorySAST, "semgrep": CategorySAST, "semgreposs": CategorySAST,
+	"opengrep": CategorySAST, "zizmor": CategorySAST,
 	"bandit": CategorySAST, "brakeman": CategorySAST, "staticcheck": CategorySAST,
 	"codeql": CategorySAST, "sonarqube": CategorySAST, "sonarcloud": CategorySAST,
+	"sonarsource": CategorySAST, "sonarlint": CategorySAST,
 	"pmd": CategorySAST, "spotbugs": CategorySAST, "findsecbugs": CategorySAST,
-	"njsscan": CategorySAST, "mobsf": CategorySAST, "flawfinder": CategorySAST,
-	"cppcheck": CategorySAST, "sonarlint": CategorySAST, "snykcode": CategorySAST,
+	"njsscan": CategorySAST, "nodejsscan": CategorySAST,
+	"flawfinder": CategorySAST, "cppcheck": CategorySAST, "snykcode": CategorySAST,
+	"checkmarx": CategorySAST, "checkmarxone": CategorySAST, "cxone": CategorySAST,
+	"cxsast": CategorySAST,
+	"fortify": CategorySAST, "opentextfortify": CategorySAST, "fortifysca": CategorySAST,
+	"microfocusfortify": CategorySAST,
+	"coverity": CategorySAST, "synopsyscoverity": CategorySAST,
+	"veracode": CategorySAST, "veracodestaticanalysis": CategorySAST,
+	"bearer": CategorySAST, "pumascan": CategorySAST, "pumascanpro": CategorySAST,
+	"shiftleft": CategorySAST, "qwiet": CategorySAST, "qwietai": CategorySAST,
+	"apiiro": CategorySAST, "cycode": CategorySAST, "arnica": CategorySAST,
+	"mend": CategorySAST, "mendsast": CategorySAST, "whitesource": CategorySAST,
+	"devskim": CategorySAST, "microsoftdevskim": CategorySAST,
+	"securitycodescan": CategorySAST, "insider": CategorySAST,
+	"aikido": CategorySAST, "aikidosecurity": CategorySAST,
+	"contrast": CategorySAST, "contrastsecurity": CategorySAST,
+	"infer": CategorySAST, "facebookinfer": CategorySAST,
+	"detekt": CategorySAST, "psalm": CategorySAST, "phpstan": CategorySAST,
+	"42crunch": CategorySAST, "42crunchrestapistaticsecuritytesting": CategorySAST,
+	"msdo": CategorySAST, "microsoftsecuritydevops": CategorySAST,
+	"salus": CategorySAST, "coinbasesalus": CategorySAST,
 
-	// SCA
+	// ── SCA ─────────────────────────────────────────────────────────────────
 	"grype": CategorySCA, "osvscanner": CategorySCA, "osv": CategorySCA,
 	"dependencycheck": CategorySCA, "owaspdependencycheck": CategorySCA,
 	"govulncheck": CategorySCA, "nancy": CategorySCA, "retirejs": CategorySCA,
+	"retire": CategorySCA,
 	"snyk": CategorySCA, "snykopensource": CategorySCA, "cargoaudit": CategorySCA,
 	"pipaudit": CategorySCA, "bundleraudit": CategorySCA, "npmaudit": CategorySCA,
+	"yarnaudit": CategorySCA, "pnpmaudit": CategorySCA, "composeraudit": CategorySCA,
+	"blackduck": CategorySCA, "synopsys": CategorySCA, "blackduckscan": CategorySCA,
+	"mendsca": CategorySCA, "endorlabs": CategorySCA, "endorctl": CategorySCA,
+	"gemnasium": CategorySCA, "dependabot": CategorySCA,
+	"syft": CategorySCA, "anchore": CategorySCA, "cdxgen": CategorySCA,
+	"owaspcdxgen": CategorySCA, "tern": CategorySCA, "distro2sbom": CategorySCA,
+	"sbomtool": CategorySCA, "microsoftsbomtool": CategorySCA,
+	"spdxsbomgenerator": CategorySCA, "cyclonedxcli": CategorySCA,
+	"cyclonedx": CategorySCA, "dockersbom": CategorySCA,
+	"sonatype": CategorySCA, "nexusiq": CategorySCA, "sonatypenexusiq": CategorySCA,
+	"jfrogxray": CategorySCA, "xray": CategorySCA, "jfrog": CategorySCA,
+	"checkmarxsca": CategorySCA, "cxsca": CategorySCA, "checkmarxcxsca": CategorySCA,
+	"debricked": CategorySCA, "opentextdebricked": CategorySCA,
+	"parlay": CategorySCA, "socket": CategorySCA, "socketsecurity": CategorySCA,
+	"phylum": CategorySCA, "renovate": CategorySCA,
+	"dependencytrack": CategorySCA, "owaspdependencytrack": CategorySCA,
+	"kubeclarity": CategorySCA, "apko": CategorySCA, "chainguardapko": CategorySCA,
+	"deepfence": CategorySCA, "threatmapper": CategorySCA,
 
-	// IaC
+	// ── IaC ─────────────────────────────────────────────────────────────────
 	"checkov": CategoryIAC, "kics": CategoryIAC, "tfsec": CategoryIAC,
 	"terrascan": CategoryIAC, "cfnlint": CategoryIAC, "cfnnag": CategoryIAC,
 	"kubesec": CategoryIAC, "kubescore": CategoryIAC, "datree": CategoryIAC,
 	"terraformcompliance": CategoryIAC, "kubelinter": CategoryIAC,
 	"kubeaudit": CategoryIAC, "polaris": CategoryIAC, "defsec": CategoryIAC,
+	"snykiac": CategoryIAC, "snykinfrastructureascode": CategoryIAC,
+	"templateanalyzer": CategoryIAC, "armttk": CategoryIAC,
+	"pulumi": CategoryIAC, "crossguard": CategoryIAC, "pulumipolicy": CategoryIAC,
+	"pike": CategoryIAC, "regula": CategoryIAC, "fugueregula": CategoryIAC,
+	"kubescape": CategoryIAC, "tflint": CategoryIAC, "terraformdocs": CategoryIAC,
 
-	// Secrets
+	// ── Secrets ─────────────────────────────────────────────────────────────
 	"gitleaks": CategorySecrets, "trufflehog": CategorySecrets,
 	"detectsecrets": CategorySecrets, "ggshield": CategorySecrets,
 	"gitguardian": CategorySecrets, "whispers": CategorySecrets,
-	"talismanscan": CategorySecrets, "noseyparker": CategorySecrets,
+	"talismanscan": CategorySecrets, "talisman": CategorySecrets,
+	"noseyparker": CategorySecrets, "betterleaks": CategorySecrets,
+	"credscan": CategorySecrets, "semgrepsecrets": CategorySecrets,
+	"githubsecretscanning": CategorySecrets, "secretscanning": CategorySecrets,
 
-	// Containers / OCI
+	// ── Containers / OCI ────────────────────────────────────────────────────
 	"dockle": CategoryOCI, "hadolint": CategoryOCI, "dockerscout": CategoryOCI,
-	"clair": CategoryOCI, "anchoreengine": CategoryOCI, "conftest": CategoryOCI,
+	"haskelldockerfilelinter": CategoryOCI,
+	"clair": CategoryOCI, "anchoreengine": CategoryOCI,
+	"snykcontainer": CategoryOCI, "qualysqscanner": CategoryOCI,
+	"aquasecurity": CategoryOCI, "aqua": CategoryOCI,
+	"sysdig": CategoryOCI, "sysdigsecure": CategoryOCI,
+	"falco": CategoryOCI, "falcosecurity": CategoryOCI,
 
-	// License
+	// ── License ─────────────────────────────────────────────────────────────
 	"licensee": CategoryLicense, "licensefinder": CategoryLicense,
-	"scancode": CategoryLicense, "licensechecker": CategoryLicense,
+	"scancode": CategoryLicense, "scancodetoolkit": CategoryLicense,
+	"licensechecker": CategoryLicense,
+	"fossa": CategoryLicense, "fossology": CategoryLicense,
+	"ort": CategoryLicense, "ossreviewtoolkit": CategoryLicense,
+	"sw360": CategoryLicense, "clearlydefined": CategoryLicense,
+	"reuse": CategoryLicense, "licensecheck": CategoryLicense,
 
-	// Lint / quality
+	// ── Lint / quality ──────────────────────────────────────────────────────
 	"clippy": CategoryLint, "eslint": CategoryLint, "golangcilint": CategoryLint,
 	"ruff": CategoryLint, "rubocop": CategoryLint, "shellcheck": CategoryLint,
 	"actionlint": CategoryLint, "hlint": CategoryLint, "swiftlint": CategoryLint,
 	"stylelint": CategoryLint, "vale": CategoryLint,
+	"pylint": CategoryLint, "biome": CategoryLint, "ktlint": CategoryLint,
+	"androidlint": CategoryLint, "lint": CategoryLint, "lintr": CategoryLint,
+	"codeclimate": CategoryLint, "trunk": CategoryLint, "trunkcheck": CategoryLint,
+	"megalinter": CategoryLint, "spectral": CategoryLint, "stoplightspectral": CategoryLint,
+	"mypy": CategoryLint, "flake8": CategoryLint, "markdownlint": CategoryLint,
+	"yamllint": CategoryLint, "hadolintlint": CategoryLint,
 
-	// Compiler diagnostics
+	// ── Compiler diagnostics ────────────────────────────────────────────────
 	"rustc": CategoryCompiler, "clangtidy": CategoryCompiler,
 	"msvc": CategoryCompiler, "gcc": CategoryCompiler,
+	"clang": CategoryCompiler, "llvm": CategoryCompiler, "llvmclang": CategoryCompiler,
+	"cmake": CategoryCompiler, "roslyn": CategoryCompiler,
+	"roslynanalyzers": CategoryCompiler, "binskim": CategoryCompiler,
+	"microsoftrvisualcsharpcompiler": CategoryCompiler,
 
-	// DAST / pentest
-	"zap": CategoryDAST, "owaspzap": CategoryDAST, "nuclei": CategoryPentest,
-	"burpsuite": CategoryDAST, "nikto": CategoryDAST, "arachni": CategoryDAST,
+	// ── DAST ────────────────────────────────────────────────────────────────
+	"zap": CategoryDAST, "owaspzap": CategoryDAST,
+	"burpsuite": CategoryDAST, "burp": CategoryDAST,
+	"nikto": CategoryDAST, "arachni": CategoryDAST, "wapiti": CategoryDAST,
+	"w3af": CategoryDAST, "invicti": CategoryDAST, "netsparker": CategoryDAST,
+	"acunetix": CategoryDAST, "brightsecurity": CategoryDAST, "neuralegion": CategoryDAST,
+	"stackhawk": CategoryDAST, "hawkscan": CategoryDAST,
+	"rapid7appspider": CategoryDAST, "appspider": CategoryDAST,
+	"qualyswas": CategoryDAST, "aptori": CategoryDAST,
 
-	// Cloud posture
+	// ── Pentest / disclosure ────────────────────────────────────────────────
+	"nuclei": CategoryPentest,
+	"plextrac": CategoryPentest, "dradis": CategoryPentest, "faraday": CategoryPentest,
+	"ghostwriter": CategoryPentest, "attackforge": CategoryPentest,
+	"hackerone": CategoryPentest, "bugcrowd": CategoryPentest,
+	"intigriti": CategoryPentest, "yeswehack": CategoryPentest,
+	"synack": CategoryPentest, "cobalt": CategoryPentest,
+
+	// ── Cloud posture ───────────────────────────────────────────────────────
 	"wiz": CategoryCloud, "prowler": CategoryCloud, "scoutsuite": CategoryCloud,
 	"cloudsploit": CategoryCloud, "steampipe": CategoryCloud,
+	"cloudquery": CategoryCloud, "orca": CategoryCloud, "orcasecurity": CategoryCloud,
+	"lacework": CategoryCloud, "prismacloud": CategoryCloud, "twistlock": CategoryCloud,
+	"paloaltonetworks": CategoryCloud,
+	"microsoftdefenderforcloud": CategoryCloud, "defenderforcloud": CategoryCloud,
+	"microsoftdefenderfordevops": CategoryCloud, "defenderfordevops": CategoryCloud,
+	"crowdstrikefalcon": CategoryCloud, "crowdstrike": CategoryCloud,
 
-	// Malware
+	// ── Compliance / policy engines ─────────────────────────────────────────
+	"opa": CategoryCompliance, "openpolicyagent": CategoryCompliance,
+	"conftest": CategoryCompliance, "gatekeeper": CategoryCompliance,
+	"kyverno": CategoryCompliance, "mitresaf": CategoryCompliance,
+	"inspec": CategoryCompliance, "openscap": CategoryCompliance,
+
+	// ── Mobile (MAST) ───────────────────────────────────────────────────────
+	"mobsf": CategoryMobile, "mobsfscan": CategoryMobile,
+	"nowsecure": CategoryMobile, "quixxi": CategoryMobile,
+	"ostorlab": CategoryMobile, "appknox": CategoryMobile,
+
+	// ── Network / host scanners ─────────────────────────────────────────────
+	"nessus": CategoryNetwork, "tenable": CategoryNetwork,
+	"openvas": CategoryNetwork, "greenbone": CategoryNetwork,
+	"qualysvmdr": CategoryNetwork, "qualys": CategoryNetwork,
+	"insightvm": CategoryNetwork, "rapid7insightvm": CategoryNetwork,
+	"nexpose": CategoryNetwork, "nmap": CategoryNetwork,
+	"crowdstrikespotlight": CategoryNetwork, "spotlight": CategoryNetwork,
+	"pentesttools": CategoryNetwork, "pentesttoolscom": CategoryNetwork,
+	"intruder": CategoryNetwork,
+	"shodan": CategoryNetwork,
+
+	// ── Fuzzing ─────────────────────────────────────────────────────────────
+	"afl": CategoryFuzzing, "aflplusplus": CategoryFuzzing,
+	"libfuzzer": CategoryFuzzing, "ossfuzz": CategoryFuzzing,
+	"honggfuzz": CategoryFuzzing, "jazzer": CategoryFuzzing,
+	"clusterfuzz": CategoryFuzzing, "atheris": CategoryFuzzing,
+	"boofuzz": CategoryFuzzing, "gofuzz": CategoryFuzzing,
+
+	// ── Malware ─────────────────────────────────────────────────────────────
 	"malscan": CategoryMalware, "yara": CategoryMalware, "clamav": CategoryMalware,
+	"clamscan": CategoryMalware,
 }
 
 // hintCategories maps GitHub artifact names (and file basenames) that already
@@ -139,8 +294,28 @@ var hintCategories = map[string]Category{
 	"trivyconfig": CategoryIAC, "trivyiac": CategoryIAC, "trivymisconfig": CategoryIAC,
 	"trivyimage": CategoryOCI, "trivycontainer": CategoryOCI,
 	"trivylicense": CategoryLicense, "trivysecret": CategorySecrets,
-	"grypeimage": CategoryOCI,
-	"syftsbom":   CategorySCA,
+	"trivyk8s": CategoryIAC, "trivykubernetes": CategoryIAC, "trivysbom": CategorySCA,
+	"grypeimage": CategoryOCI, "grypesbom": CategorySCA,
+	"syftsbom": CategorySCA, "syftimage": CategoryOCI,
+
+	// Snyk is one binary and four products; the workflow's job name is the only
+	// place the product is written down.
+	"snykcode": CategorySAST, "snykoss": CategorySCA, "snykopensource": CategorySCA,
+	"snykcontainer": CategoryOCI, "snykiac": CategoryIAC,
+
+	// Docker Scout emits both an SBOM and a CVE report under one driver name.
+	"dockerscoutsbom": CategorySCA, "dockerscoutcves": CategoryOCI,
+
+	// Semgrep's secrets product reports as plain "semgrep".
+	"semgrepsecrets": CategorySecrets, "semgrepsupplychain": CategorySCA,
+
+	// MobSF's two shapes: the static analyzer over source, and the app scanner.
+	"mobsfscan": CategoryMobile, "mobsfapk": CategoryMobile,
+
+	// Checkov over a Dockerfile is a container scan even though the tool is
+	// sold as IaC; naming the job says which was meant.
+	"checkovdockerfile": CategoryOCI, "checkovterraform": CategoryIAC,
+	"checkovkubernetes": CategoryIAC,
 }
 
 // automationCategories maps a run.automationDetails.id token to a category.
@@ -150,9 +325,14 @@ var automationCategories = map[string]Category{
 	"fs": CategorySCA, "filesystem": CategorySCA, "repo": CategorySCA,
 	"rootfs": CategorySCA, "vuln": CategorySCA, "sbom": CategorySCA,
 	"config": CategoryIAC, "misconfig": CategoryIAC, "misconfiguration": CategoryIAC,
-	"iac": CategoryIAC, "defsec": CategoryIAC,
+	"iac": CategoryIAC, "defsec": CategoryIAC, "kubernetes": CategoryIAC, "k8s": CategoryIAC,
 	"image": CategoryOCI, "container": CategoryOCI,
 	"secret": CategorySecrets, "license": CategoryLicense,
+	"dast": CategoryDAST, "webapp": CategoryDAST,
+	"mobile": CategoryMobile, "android": CategoryMobile, "ios": CategoryMobile,
+	"network": CategoryNetwork, "host": CategoryNetwork,
+	"fuzz": CategoryFuzzing, "fuzzing": CategoryFuzzing,
+	"compliance": CategoryCompliance, "policy": CategoryCompliance,
 }
 
 // normalizeName lowercases and strips every non-alphanumeric character, so all
