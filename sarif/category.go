@@ -119,10 +119,10 @@ var driverCategories = map[string]Category{
 	"njsscan": CategorySAST, "nodejsscan": CategorySAST,
 	"flawfinder": CategorySAST, "cppcheck": CategorySAST, "snykcode": CategorySAST,
 	"checkmarx": CategorySAST, "checkmarxone": CategorySAST, "cxone": CategorySAST,
-	"cxsast": CategorySAST,
+	"cxsast":  CategorySAST,
 	"fortify": CategorySAST, "opentextfortify": CategorySAST, "fortifysca": CategorySAST,
 	"microfocusfortify": CategorySAST,
-	"coverity": CategorySAST, "synopsyscoverity": CategorySAST,
+	"coverity":          CategorySAST, "synopsyscoverity": CategorySAST,
 	"veracode": CategorySAST, "veracodestaticanalysis": CategorySAST,
 	"bearer": CategorySAST, "pumascan": CategorySAST, "pumascanpro": CategorySAST,
 	"shiftleft": CategorySAST, "qwiet": CategorySAST, "qwietai": CategorySAST,
@@ -143,7 +143,7 @@ var driverCategories = map[string]Category{
 	"dependencycheck": CategorySCA, "owaspdependencycheck": CategorySCA,
 	"govulncheck": CategorySCA, "nancy": CategorySCA, "retirejs": CategorySCA,
 	"retire": CategorySCA,
-	"snyk": CategorySCA, "snykopensource": CategorySCA, "cargoaudit": CategorySCA,
+	"snyk":   CategorySCA, "snykopensource": CategorySCA, "cargoaudit": CategorySCA,
 	"pipaudit": CategorySCA, "bundleraudit": CategorySCA, "npmaudit": CategorySCA,
 	"yarnaudit": CategorySCA, "pnpmaudit": CategorySCA, "composeraudit": CategorySCA,
 	"blackduck": CategorySCA, "synopsys": CategorySCA, "blackduckscan": CategorySCA,
@@ -188,7 +188,7 @@ var driverCategories = map[string]Category{
 	// ── Containers / OCI ────────────────────────────────────────────────────
 	"dockle": CategoryOCI, "hadolint": CategoryOCI, "dockerscout": CategoryOCI,
 	"haskelldockerfilelinter": CategoryOCI,
-	"clair": CategoryOCI, "anchoreengine": CategoryOCI,
+	"clair":                   CategoryOCI, "anchoreengine": CategoryOCI,
 	"snykcontainer": CategoryOCI, "qualysqscanner": CategoryOCI,
 	"aquasecurity": CategoryOCI, "aqua": CategoryOCI,
 	"sysdig": CategoryOCI, "sysdigsecure": CategoryOCI,
@@ -198,7 +198,7 @@ var driverCategories = map[string]Category{
 	"licensee": CategoryLicense, "licensefinder": CategoryLicense,
 	"scancode": CategoryLicense, "scancodetoolkit": CategoryLicense,
 	"licensechecker": CategoryLicense,
-	"fossa": CategoryLicense, "fossology": CategoryLicense,
+	"fossa":          CategoryLicense, "fossology": CategoryLicense,
 	"ort": CategoryLicense, "ossreviewtoolkit": CategoryLicense,
 	"sw360": CategoryLicense, "clearlydefined": CategoryLicense,
 	"reuse": CategoryLicense, "licensecheck": CategoryLicense,
@@ -234,7 +234,7 @@ var driverCategories = map[string]Category{
 	"qualyswas": CategoryDAST, "aptori": CategoryDAST,
 
 	// ── Pentest / disclosure ────────────────────────────────────────────────
-	"nuclei": CategoryPentest,
+	"nuclei":   CategoryPentest,
 	"plextrac": CategoryPentest, "dradis": CategoryPentest, "faraday": CategoryPentest,
 	"ghostwriter": CategoryPentest, "attackforge": CategoryPentest,
 	"hackerone": CategoryPentest, "bugcrowd": CategoryPentest,
@@ -246,7 +246,7 @@ var driverCategories = map[string]Category{
 	"cloudsploit": CategoryCloud, "steampipe": CategoryCloud,
 	"cloudquery": CategoryCloud, "orca": CategoryCloud, "orcasecurity": CategoryCloud,
 	"lacework": CategoryCloud, "prismacloud": CategoryCloud, "twistlock": CategoryCloud,
-	"paloaltonetworks": CategoryCloud,
+	"paloaltonetworks":          CategoryCloud,
 	"microsoftdefenderforcloud": CategoryCloud, "defenderforcloud": CategoryCloud,
 	"microsoftdefenderfordevops": CategoryCloud, "defenderfordevops": CategoryCloud,
 	"crowdstrikefalcon": CategoryCloud, "crowdstrike": CategoryCloud,
@@ -271,7 +271,7 @@ var driverCategories = map[string]Category{
 	"crowdstrikespotlight": CategoryNetwork, "spotlight": CategoryNetwork,
 	"pentesttools": CategoryNetwork, "pentesttoolscom": CategoryNetwork,
 	"intruder": CategoryNetwork,
-	"shodan": CategoryNetwork,
+	"shodan":   CategoryNetwork,
 
 	// ── Fuzzing ─────────────────────────────────────────────────────────────
 	"afl": CategoryFuzzing, "aflplusplus": CategoryFuzzing,
@@ -392,11 +392,73 @@ func InferCategory(run Run, hint string) (Category, string) {
 	if c, why := categoryFromRuleIDs(run); c != "" {
 		return c, why
 	}
-	driver := normalizeName(ToolOf(run).Name)
-	if c, ok := driverCategories[driver]; ok {
-		return c, "driver-name:" + driver
+	for _, driver := range driverNameKeys(ToolOf(run).Name) {
+		if c, ok := driverCategories[driver]; ok {
+			return c, "driver-name:" + driver
+		}
 	}
 	return "", ""
+}
+
+// driverNameKeys returns the lookup keys for a driver name: the name itself,
+// then the name with a trailing version removed, then its leading word.
+//
+// Tools stamp their build into the driver name in ways no table can enumerate:
+// "Semgrep OSS", "noseyparker-cli", "Opengrep OSS 1.27.1", and GitHub's SPDX
+// export reports "protobom-v0.0.0-20260814182028-8c0ca4678565+dirty". Each of
+// those normalizes to a string that matches nothing, so the run was
+// unclassifiable on the driver name alone.
+//
+// The version cut requires a separator before the digit, which is what keeps
+// 42Crunch, w3af and cfn-nag intact.
+func driverNameKeys(name string) []string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil
+	}
+
+	keys := []string{normalizeName(name)}
+	add := func(candidate string) {
+		n := normalizeName(candidate)
+		if n == "" {
+			return
+		}
+		for _, seen := range keys {
+			if seen == n {
+				return
+			}
+		}
+		keys = append(keys, n)
+	}
+
+	add(trimTrailingVersion(name))
+	// The leading word, for the "<name> OSS" / "<name> Community" shapes.
+	if i := strings.IndexAny(name, " \t-_"); i > 0 {
+		add(name[:i])
+	}
+
+	return keys
+}
+
+// trimTrailingVersion cuts at the first separator that introduces a digit.
+func trimTrailingVersion(name string) string {
+	for i := 1; i < len(name); i++ {
+		c := name[i]
+		if c != '-' && c != '_' && c != '@' && c != ' ' && c != '\t' {
+			continue
+		}
+		rest := name[i+1:]
+		if rest == "" {
+			continue
+		}
+		if rest[0] >= '0' && rest[0] <= '9' {
+			return name[:i]
+		}
+		if (rest[0] == 'v' || rest[0] == 'V') && len(rest) > 1 && rest[1] >= '0' && rest[1] <= '9' {
+			return name[:i]
+		}
+	}
+	return name
 }
 
 func categoryFromHint(hint string) (Category, string) {

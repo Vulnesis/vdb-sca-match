@@ -317,3 +317,71 @@ func TestAllCategoriesMatchesRouteTable(t *testing.T) {
 		}
 	}
 }
+
+// The driver names below are exactly what these tools reported on a real
+// publish, not what their documentation calls them. Each normalises to a string
+// no table can enumerate, so on the driver name alone the run was
+// unclassifiable and `vulnetix gha upload` skipped it.
+func TestDriverNamesCarryingBuildsAndVersions(t *testing.T) {
+	cases := []struct {
+		driver string
+		want   Category
+	}{
+		{"Semgrep OSS", CategorySAST},
+		{"Opengrep OSS", CategorySAST},
+		{"Opengrep OSS 1.27.1", CategorySAST},
+		{"noseyparker-cli", CategorySecrets},
+		{"gitleaks v8.0.0", CategorySecrets},
+		{"grype-0.110.0", CategorySCA},
+		{"Snyk Code", CategorySAST},
+		{"golangci-lint v2.6.0", CategoryLint},
+	}
+	for _, tc := range cases {
+		run := Run{}
+		run.Tool.Driver.Name = tc.driver
+
+		if got, why := InferCategory(run, ""); got != tc.want {
+			t.Errorf("%q: category = %q (%s), want %q", tc.driver, got, why, tc.want)
+		}
+	}
+}
+
+// The version cut needs a separator before the digit, or it eats the name of
+// every tool whose name simply contains one.
+func TestVersionTrimKeepsNamesWithDigits(t *testing.T) {
+	for _, name := range []string{"42Crunch", "w3af", "cfn-nag", "cfn-lint", "s3scanner"} {
+		if got := trimTrailingVersion(name); got != name {
+			t.Errorf("trimTrailingVersion(%q) = %q, want it untouched", name, got)
+		}
+	}
+	for driver, want := range map[string]Category{
+		"42Crunch": CategorySAST,
+		"w3af":     CategoryDAST,
+		"cfn-nag":  CategoryIAC,
+	} {
+		run := Run{}
+		run.Tool.Driver.Name = driver
+		if got, _ := InferCategory(run, ""); got != want {
+			t.Errorf("%q: category = %q, want %q", driver, got, want)
+		}
+	}
+}
+
+// Trivy is deliberately absent from the driver table: it reports one name for
+// filesystem, config, image, licence and secret scans, so the driver name alone
+// is not evidence of anything. The artifact name is what separates them, and a
+// version suffix must not change that.
+func TestTrivyStillNeedsItsHint(t *testing.T) {
+	run := Run{}
+	run.Tool.Driver.Name = "trivy 0.68.0"
+
+	if got, why := InferCategory(run, ""); got != "" {
+		t.Errorf("bare Trivy classified as %q (%s); it must stay unclassifiable without a hint", got, why)
+	}
+	if got, _ := InferCategory(run, "trivy-image"); got != CategoryOCI {
+		t.Errorf("hinted Trivy = %q, want OCI", got)
+	}
+	if got, _ := InferCategory(run, "trivy-fs"); got != CategorySCA {
+		t.Errorf("hinted Trivy = %q, want SCA", got)
+	}
+}
