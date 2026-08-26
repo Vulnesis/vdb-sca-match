@@ -263,6 +263,8 @@ func ParseManifest(data []byte, manifestType, filePath string) ([]ScopedPackage,
 	// ── C/C++ / Conan ─────────────────────────────────────────────────────
 	case "conanfile.txt":
 		return parseConanfileScoped(data, filePath)
+	case "conanfile.py":
+		return parseConanfilePyScoped(data, filePath)
 	case "conan.lock":
 		return parseConanLockScoped(data, filePath)
 	// ── C/C++ / vcpkg ─────────────────────────────────────────────────────
@@ -306,6 +308,9 @@ func ParseManifest(data []byte, manifestType, filePath string) ([]ScopedPackage,
 	// ── Haskell / Stack ───────────────────────────────────────────────────
 	case "stack.yaml":
 		return parseStackYAMLScoped(data, filePath)
+	// ── Haskell / hpack ───────────────────────────────────────────────────
+	case "package.yaml":
+		return parseHpackScoped(data, filePath)
 	// ── Haskell / Cabal ───────────────────────────────────────────────────
 	case "*.cabal":
 		return parseCabalScoped(data, filePath)
@@ -1861,13 +1866,18 @@ func extractInlineVersion(s string) string {
 	return ""
 }
 
-// cleanLocalVersion strips common semver prefix characters.
+// cleanLocalVersion strips the quoting and the range operator a manifest writes
+// around a version, leaving the bare version string. The two-character
+// operators are tested first so "~> 1.4.0" does not degrade to "> 1.4.0".
 func cleanLocalVersion(v string) string {
+	v = strings.Trim(strings.TrimSpace(v), `"'`)
 	v = strings.TrimSpace(v)
-	v = strings.TrimPrefix(v, "==")
-	v = strings.TrimPrefix(v, "^")
-	v = strings.TrimPrefix(v, "~")
-	v = strings.TrimPrefix(v, ">=")
+	for _, op := range []string{"==", "~>", ">=", "<=", "^", "~", "="} {
+		if rest, ok := strings.CutPrefix(v, op); ok {
+			v = strings.TrimSpace(rest)
+			break
+		}
+	}
 	v = strings.TrimPrefix(v, "v")
 	return v
 }

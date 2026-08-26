@@ -1551,6 +1551,84 @@ func parseConanfileScoped(data []byte, _ string) ([]ScopedPackage, error) {
 }
 
 // ---------------------------------------------------------------------------
+// C/C++ — conanfile.py (Python recipe)
+// ---------------------------------------------------------------------------
+
+// parseConanfilePyScoped reads the requirements of a Conan Python recipe, in
+// both the method form (self.requires("boost/1.85.0") inside requirements())
+// and the class-attribute form (requires = "boost/1.85.0", "fmt/10.2.1").
+func parseConanfilePyScoped(data []byte, _ string) ([]ScopedPackage, error) {
+	content := string(data)
+	var pkgs []ScopedPackage
+	seen := map[string]bool{}
+	refRe := regexp.MustCompile(`["']([^"']+)["']`)
+
+	callRe := regexp.MustCompile(`self\.(requires|tool_requires|build_requires|test_requires)\s*\(\s*["']([^"']+)["']`)
+	for _, m := range callRe.FindAllStringSubmatch(content, -1) {
+		addConanRef(&pkgs, seen, m[2], conanRequireScope(m[1]))
+	}
+
+	attrRe := regexp.MustCompile(`(?m)^[ \t]*(requires|tool_requires|build_requires|test_requires)\s*=\s*`)
+	for _, loc := range attrRe.FindAllStringSubmatchIndex(content, -1) {
+		kind := content[loc[2]:loc[3]]
+		for _, m := range refRe.FindAllStringSubmatch(conanAttrValue(content[loc[1]:]), -1) {
+			addConanRef(&pkgs, seen, m[1], conanRequireScope(kind))
+		}
+	}
+	return pkgs, nil
+}
+
+// conanAttrValue returns the value assigned to a recipe attribute: a bracketed
+// list or tuple up to its closing bracket, otherwise the rest of the line.
+func conanAttrValue(rest string) string {
+	open := strings.IndexAny(rest, "[(")
+	nl := strings.IndexByte(rest, '\n')
+	if open >= 0 && (nl < 0 || open < nl) {
+		closer := byte(']')
+		if rest[open] == '(' {
+			closer = ')'
+		}
+		if end := strings.IndexByte(rest[open:], closer); end >= 0 {
+			return rest[open : open+end]
+		}
+	}
+	if nl < 0 {
+		return rest
+	}
+	return rest[:nl]
+}
+
+// conanRequireScope maps a Conan requirement kind to a package scope.
+func conanRequireScope(kind string) string {
+	switch kind {
+	case "tool_requires", "build_requires":
+		return ScopeDevelopment
+	case "test_requires":
+		return ScopeTest
+	default:
+		return ScopeProduction
+	}
+}
+
+// addConanRef records one "name/version@user/channel#revision" reference.
+func addConanRef(pkgs *[]ScopedPackage, seen map[string]bool, ref, scope string) {
+	spec := strings.SplitN(strings.SplitN(strings.TrimSpace(ref), "@", 2)[0], "#", 2)[0]
+	idx := strings.Index(spec, "/")
+	if idx <= 0 || idx+1 >= len(spec) {
+		return
+	}
+	name := spec[:idx]
+	if seen[name] {
+		return
+	}
+	seen[name] = true
+	*pkgs = append(*pkgs, ScopedPackage{
+		Name: name, Version: spec[idx+1:],
+		Ecosystem: "conan", Scope: scope, IsDirect: true,
+	})
+}
+
+// ---------------------------------------------------------------------------
 // C/C++ — conan.lock (JSON)
 // ---------------------------------------------------------------------------
 
@@ -1935,18 +2013,19 @@ func parseShardYAMLScoped(data []byte, _ string) ([]ScopedPackage, error) {
 				currentGitHub = strings.TrimSpace(strings.TrimPrefix(trimmed, "github:"))
 			}
 			if strings.HasPrefix(trimmed, "version:") {
-				ver := cleanLocalVersion(strings.TrimSpace(strings.TrimPrefix(trimmed, "version:")))
+				spec := strings.Trim(strings.TrimSpace(strings.TrimPrefix(trimmed, "version:")), `"'`)
 				scope := ScopeProduction
 				if section == secDev {
 					scope = ScopeDevelopment
 				}
 				pkgs = append(pkgs, ScopedPackage{
-					Name:      currentName,
-					Version:   ver,
-					Ecosystem: "crystal",
-					Scope:     scope,
-					IsDirect:  true,
-					GitHubURL: currentGitHub,
+					Name:        currentName,
+					Version:     cleanLocalVersion(spec),
+					VersionSpec: spec,
+					Ecosystem:   "crystal",
+					Scope:       scope,
+					IsDirect:    true,
+					GitHubURL:   currentGitHub,
 				})
 			}
 		}
@@ -2338,13 +2417,102 @@ func parseCabalFreezeScoped(data []byte, _ string) ([]ScopedPackage, error) {
 }
 
 // ---------------------------------------------------------------------------
+// Haskell / hpack — package.yaml
+// ---------------------------------------------------------------------------
+
+// parseHpackScoped reads the dependency lists of an hpack package description.
+// hpack generates the .cabal file from this one, so in a stack project it is the
+// only place the package's own dependencies are declared — stack.yaml carries
+// the resolver and the extra-deps overrides, not build-depends.
+func parseHpackScoped(data []byte, _ string) ([]ScopedPackage, error) {
+	var root yaml.Node
+	if err := yaml.Unmarshal(data, &root); err != nil {
+		return nil, nil //nolint:nilerr
+	}
+	var pkgs []ScopedPackage
+	seen := map[string]bool{}
+	var walk func(n *yaml.Node, scope string)
+	walk = func(n *yaml.Node, scope string) {
+		switch n.Kind {
+		case yaml.DocumentNode, yaml.SequenceNode:
+			for _, c := range n.Content {
+				walk(c, scope)
+			}
+		case yaml.MappingNode:
+			for i := 0; i+1 < len(n.Content); i += 2 {
+				key, val := n.Content[i].Value, n.Content[i+1]
+				childScope := scope
+				switch key {
+				case "tests":
+					childScope = ScopeTest
+				case "benchmarks":
+					childScope = ScopeDevelopment
+				}
+				if key == "dependencies" || key == "build-depends" {
+					for _, spec := range hpackDependencySpecs(val) {
+						addHpackDep(&pkgs, seen, spec, childScope)
+					}
+					continue
+				}
+				walk(val, childScope)
+			}
+		}
+	}
+	walk(&root, ScopeProduction)
+	return pkgs, nil
+}
+
+// hpackDependencySpecs flattens the three shapes hpack accepts for a dependency
+// list: a single string, a list of strings, and a mapping of name → constraint.
+func hpackDependencySpecs(n *yaml.Node) []string {
+	switch n.Kind {
+	case yaml.ScalarNode:
+		return []string{n.Value}
+	case yaml.SequenceNode:
+		var out []string
+		for _, c := range n.Content {
+			if c.Kind == yaml.ScalarNode {
+				out = append(out, c.Value)
+			}
+		}
+		return out
+	case yaml.MappingNode:
+		var out []string
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			out = append(out, strings.TrimSpace(n.Content[i].Value+" "+n.Content[i+1].Value))
+		}
+		return out
+	}
+	return nil
+}
+
+// addHpackDep records one "base >= 4.7" style entry, keeping the constraint as
+// the version spec (hpack pins nothing — the resolver decides the version).
+func addHpackDep(pkgs *[]ScopedPackage, seen map[string]bool, spec, scope string) {
+	fields := strings.Fields(spec)
+	if len(fields) == 0 {
+		return
+	}
+	name := fields[0]
+	key := name + "::" + scope
+	if seen[key] {
+		return
+	}
+	seen[key] = true
+	*pkgs = append(*pkgs, ScopedPackage{
+		Name: name, VersionSpec: strings.TrimSpace(strings.Join(fields[1:], " ")),
+		Ecosystem: "hackage", Scope: scope, IsDirect: true,
+	})
+}
+
+// ---------------------------------------------------------------------------
 // OCaml / opam — *.opam
 // ---------------------------------------------------------------------------
 
 func parseOpamScoped(data []byte, _ string) ([]ScopedPackage, error) {
 	var pkgs []ScopedPackage
 	content := string(data)
-	depRe := regexp.MustCompile(`"([a-zA-Z0-9_-]+)"(?:\s*\{[^}]*\})?`)
+	depRe := regexp.MustCompile(`"([a-zA-Z0-9_-]+)"(?:\s*\{([^}]*)\})?`)
 	depsIdx := strings.Index(content, "depends:")
 	if depsIdx < 0 {
 		return nil, nil
@@ -2358,12 +2526,40 @@ func parseOpamScoped(data []byte, _ string) ([]ScopedPackage, error) {
 	block := rest[start+1 : end]
 	for _, m := range depRe.FindAllStringSubmatch(block, -1) {
 		name := m[1]
-		if strings.HasPrefix(name, "conf-") || name == "ocaml" || name == "dune" {
+		// conf-* are opam's system-package shims (they resolve to an apt/brew
+		// package, not to code opam ships), so they carry no version to match.
+		// The compiler and the build system are real opam packages with their
+		// own advisories and are kept.
+		if strings.HasPrefix(name, "conf-") {
 			continue
 		}
-		pkgs = append(pkgs, ScopedPackage{Name: name, Ecosystem: "opam", Scope: ScopeProduction, IsDirect: true})
+		spec := strings.TrimSpace(m[2])
+		pkgs = append(pkgs, ScopedPackage{
+			Name: name, Version: opamPinnedVersion(spec), VersionSpec: spec,
+			Ecosystem: "opam", Scope: ScopeProduction, IsDirect: true,
+		})
 	}
 	return pkgs, nil
+}
+
+// opamPinnedVersion returns the version an opam constraint pins exactly
+// (`{= "1.2.3"}`), and "" for a range — a lower bound such as `{>= "5.7"}` is
+// not the installed version and must not be reported as one.
+func opamPinnedVersion(spec string) string {
+	rest, ok := strings.CutPrefix(strings.TrimSpace(spec), "=")
+	if !ok {
+		return ""
+	}
+	rest = strings.TrimSpace(rest)
+	if !strings.HasPrefix(rest, `"`) {
+		return ""
+	}
+	rest = rest[1:]
+	end := strings.Index(rest, `"`)
+	if end < 0 {
+		return ""
+	}
+	return rest[:end]
 }
 
 // ---------------------------------------------------------------------------
@@ -2473,24 +2669,29 @@ func parseZigZonScoped(data []byte, _ string) ([]ScopedPackage, error) {
 			currentURL = strings.Trim(strings.TrimPrefix(trimmed, ".url = "), `",`)
 		}
 		if trimmed == "}," && currentName != "" {
-			name, ver := parseZigURL(currentURL)
-			if name == "" {
-				name = currentName
-			}
-			pkgs = append(pkgs, ScopedPackage{Name: name, Version: ver, Ecosystem: "zig", Scope: ScopeProduction, IsDirect: true})
+			// The .zon key is the dependency name; the URL only carries the
+			// release tag (.../tags/v0.2.0.tar.gz), which is the version.
+			// Naming from the URL's last segment collapses every dependency
+			// released under the same tag into one package.
+			ver, ghURL := parseZigURL(currentURL)
+			pkgs = append(pkgs, ScopedPackage{
+				Name: currentName, Version: ver,
+				Ecosystem: "zig", Scope: ScopeProduction, IsDirect: true,
+				GitHubURL: ghURL,
+			})
 			currentName, currentURL = "", ""
 		}
 	}
 	return pkgs, nil
 }
 
-func parseZigURL(url string) (name, ver string) {
-	if idx := strings.LastIndex(url, "/"); idx >= 0 {
-		name = url[idx+1:]
-		name = strings.TrimSuffix(name, ".tar.gz")
-		name = strings.TrimSuffix(name, ".zip")
+// parseZigURL returns the release version and, when the source is GitHub, the
+// "owner/repo" the dependency is fetched from.
+func parseZigURL(url string) (ver, ghURL string) {
+	if owner, repo, ok := gitHubOwnerRepo(url); ok {
+		ghURL = owner + "/" + repo
 	}
-	return name, ""
+	return archiveURLVersion(url), ghURL
 }
 
 // ---------------------------------------------------------------------------
@@ -2583,7 +2784,115 @@ func parseWorkspaceScoped(data []byte, _ string) ([]ScopedPackage, error) {
 		}
 		pkgs = append(pkgs, ScopedPackage{Name: impM[1], Version: ver, Ecosystem: "golang", Scope: ScopeProduction, IsDirect: true})
 	}
+
+	// Repository rules are how a WORKSPACE-era project declares every external
+	// dependency that is not a Maven or Go module: the archive URL carries the
+	// identity, strip_prefix (or the release tag) carries the version. Names are
+	// taken from the upstream repository rather than the Bazel workspace alias
+	// (com_google_absl → abseil-cpp) so they key the same package MODULE.bazel
+	// would name.
+	archiveRe := regexp.MustCompile(`(?:http_archive|http_jar|http_file|git_repository|new_git_repository)\s*\(([^)]*)\)`)
+	nameAttrRe := regexp.MustCompile(`name\s*=\s*"([^"]+)"`)
+	stripPrefixRe := regexp.MustCompile(`strip_prefix\s*=\s*"([^"]+)"`)
+	urlAttrRe := regexp.MustCompile(`"(https?://[^"]+|git@[^"]+)"`)
+	tagAttrRe := regexp.MustCompile(`(?:tag|commit)\s*=\s*"([^"]+)"`)
+	seen := map[string]bool{}
+	for _, m := range archiveRe.FindAllStringSubmatch(content, -1) {
+		block := m[1]
+		alias := ""
+		if am := nameAttrRe.FindStringSubmatch(block); am != nil {
+			alias = am[1]
+		}
+		url := ""
+		if um := urlAttrRe.FindStringSubmatch(block); um != nil {
+			url = um[1]
+		}
+		stripPrefix := ""
+		if sm := stripPrefixRe.FindStringSubmatch(block); sm != nil {
+			stripPrefix = sm[1]
+		}
+		name, ghURL := bazelRepoIdentity(url, stripPrefix, alias)
+		if name == "" {
+			continue
+		}
+		ver := trailingVersion(stripPrefix)
+		if ver == "" {
+			if tm := tagAttrRe.FindStringSubmatch(block); tm != nil {
+				ver = strings.TrimPrefix(tm[1], "v")
+			}
+		}
+		if ver == "" {
+			ver = archiveURLVersion(url)
+		}
+		if seen[name] {
+			continue
+		}
+		seen[name] = true
+		pkgs = append(pkgs, ScopedPackage{
+			Name: name, Version: ver,
+			Ecosystem: "bazel", Scope: ScopeProduction, IsDirect: true,
+			GitHubURL: ghURL,
+		})
+	}
 	return pkgs, nil
+}
+
+// bazelRepoIdentity resolves the package name for a WORKSPACE repository rule.
+// The upstream repository name wins, then the strip_prefix stem, then the Bazel
+// workspace alias. ghURL is "owner/repo" when the source is GitHub.
+func bazelRepoIdentity(url, stripPrefix, alias string) (name, ghURL string) {
+	if owner, repo, ok := gitHubOwnerRepo(url); ok {
+		return repo, owner + "/" + repo
+	}
+	if stem := strings.TrimSuffix(stripPrefix, "-"+trailingVersion(stripPrefix)); stem != "" && stem != stripPrefix {
+		return stem, ""
+	}
+	return alias, ""
+}
+
+// gitHubOwnerRepo pulls owner and repository out of a GitHub archive/clone URL.
+func gitHubOwnerRepo(url string) (owner, repo string, ok bool) {
+	idx := strings.Index(url, "github.com")
+	if idx < 0 {
+		return "", "", false
+	}
+	rest := strings.TrimLeft(url[idx+len("github.com"):], "/:")
+	parts := strings.Split(rest, "/")
+	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", false
+	}
+	return parts[0], strings.TrimSuffix(parts[1], ".git"), true
+}
+
+// trailingVersion returns the version suffix of a "name-1.2.3" style string
+// (strip_prefix, archive stem), or "" when the last segment is not a version.
+func trailingVersion(s string) string {
+	idx := strings.LastIndex(s, "-")
+	if idx < 0 || idx+1 >= len(s) {
+		return ""
+	}
+	ver := strings.TrimPrefix(s[idx+1:], "v")
+	if ver == "" || ver[0] < '0' || ver[0] > '9' {
+		return ""
+	}
+	return ver
+}
+
+// archiveURLVersion recovers a release version from an archive URL, covering the
+// GitHub layouts (…/releases/download/<tag>/… and …/archive/refs/tags/<tag>.tar.gz)
+// and the plain "<name>-<version>.tar.gz" filename.
+func archiveURLVersion(url string) string {
+	url = strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(url, ".tar.gz"), ".zip"), ".tgz")
+	parts := strings.Split(url, "/")
+	for i, p := range parts {
+		if (p == "download" || p == "tags") && i+1 < len(parts) {
+			return strings.TrimPrefix(parts[i+1], "v")
+		}
+	}
+	if len(parts) > 0 {
+		return trailingVersion(parts[len(parts)-1])
+	}
+	return ""
 }
 
 // ---------------------------------------------------------------------------
@@ -2658,7 +2967,35 @@ func parseBuckScoped(data []byte, _ string) ([]ScopedPackage, error) {
 		extractJarVersion(m[2], m[1])
 	}
 
+	// Third-party targets referenced by build rules: deps = ["//third-party:fmt"].
+	// A Buck2 project vendors its external libraries behind those labels, so the
+	// label is the only dependency identity the build file carries. Only
+	// third-party package paths qualify — every other "//" label is a
+	// first-party target of this repository, not a dependency.
+	labelRe := regexp.MustCompile(`"//([A-Za-z0-9_./-]*):([A-Za-z0-9_.+-]+)"`)
+	for _, m := range labelRe.FindAllStringSubmatch(content, -1) {
+		if !isThirdPartyPackagePath(m[1]) || seen[m[2]] {
+			continue
+		}
+		seen[m[2]] = true
+		pkgs = append(pkgs, ScopedPackage{
+			Name: m[2], Ecosystem: "buck", Scope: ScopeProduction, IsDirect: true,
+		})
+	}
+
 	return pkgs, nil
+}
+
+// isThirdPartyPackagePath reports whether a Buck package path is one of the
+// conventional directories external dependencies are vendored into.
+func isThirdPartyPackagePath(pkgPath string) bool {
+	for _, seg := range strings.Split(strings.ToLower(pkgPath), "/") {
+		switch seg {
+		case "third-party", "third_party", "thirdparty", "3rdparty", "external", "vendor", "deps":
+			return true
+		}
+	}
+	return false
 }
 
 // ---------------------------------------------------------------------------
