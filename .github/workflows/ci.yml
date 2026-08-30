@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build, Vet & Test
+    runs-on: [self-hosted, Linux, X64, vulnetix-local]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      # This module is consumed by vdb-api, vdb-sca-monitor and
+      # vdb-api-cyclonedx-uploads through `replace ../`, against whatever is on
+      # main. There is no version boundary to absorb a mistake, so a red build
+      # here is the only thing standing between a bad commit and three
+      # production services picking it up on their next build. Treat a failure
+      # as an outage in progress, not as a chore.
+      - name: Test
+        run: go test -race -count=1 ./...
