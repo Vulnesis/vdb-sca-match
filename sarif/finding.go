@@ -8,20 +8,24 @@ package sarif
 // contract. The second block is read-side information the write-only model
 // never captured.
 type Finding struct {
-	RuleID           string   `json:"ruleId"`
-	RuleName         string   `json:"ruleName,omitempty"`
-	Message          string   `json:"message,omitempty"`
-	Severity         string   `json:"severity,omitempty"`
-	Level            string   `json:"level,omitempty"`
-	SecuritySeverity string   `json:"securitySeverity,omitempty"`
-	File             string   `json:"file,omitempty"`
-	PackagePurl      string   `json:"packagePurl,omitempty"`
-	StartLine        int      `json:"startLine,omitempty"`
-	EndLine          int      `json:"endLine,omitempty"`
-	Fingerprint      string   `json:"fingerprint,omitempty"`
-	CWEs             []int    `json:"cwes,omitempty"`
-	Tags             []string `json:"tags,omitempty"`
-	SARIFGuid        string   `json:"sarifGuid,omitempty"`
+	RuleID           string `json:"ruleId"`
+	RuleName         string `json:"ruleName,omitempty"`
+	Message          string `json:"message,omitempty"`
+	Severity         string `json:"severity,omitempty"`
+	Level            string `json:"level,omitempty"`
+	SecuritySeverity string `json:"securitySeverity,omitempty"`
+	File             string `json:"file,omitempty"`
+	PackagePurl      string `json:"packagePurl,omitempty"`
+	StartLine        int    `json:"startLine,omitempty"`
+	EndLine          int    `json:"endLine,omitempty"`
+	Fingerprint      string `json:"fingerprint,omitempty"`
+	CWEs             []int  `json:"cwes,omitempty"`
+	// CWSS is the rule's CWSS 1.0.1 vector. Rule findings carry no CVE, so this
+	// is the only impact assessment they have; the server scores it and bands the
+	// finding from the result rather than leaving it unknown.
+	CWSS      string   `json:"cwss,omitempty"`
+	Tags      []string `json:"tags,omitempty"`
+	SARIFGuid string   `json:"sarifGuid,omitempty"`
 
 	Description      string `json:"description,omitempty"`
 	CodeSnippet      string `json:"codeSnippet,omitempty"`
