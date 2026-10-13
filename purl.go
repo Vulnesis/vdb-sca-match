@@ -28,6 +28,7 @@ func matchPurl(ctx context.Context, q Querier, dep Dependency) ([]Match, error) 
 		    WHERE cm."cveId" = pvc."cveId"
 		      AND UPPER(COALESCE(cm.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
 		  )
+		  AND `+notWithdrawnSQL(`pvc."cveId"`)+`
 		LIMIT 2000`,
 		eco, fullName, version,
 	)

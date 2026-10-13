@@ -151,18 +151,21 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 		WHERE %s
 		  AND (%s)
 		  AND UPPER(COALESCE(cm.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
+		  AND %s
 		  AND a."cveId" IN (
 		    SELECT ai."cveId" FROM "CVEAffected" ai
 		    JOIN "CVEMetadata" cmi ON cmi."cveId" = ai."cveId" AND cmi.source = ai.source
 		    WHERE %s
 		      AND (%s)
 		      AND UPPER(COALESCE(cmi.state, 'PUBLISHED')) NOT IN ('REJECTED', 'WITHDRAWN')
+		      AND %s
 		    GROUP BY ai."cveId"
 		    ORDER BY MAX(cmi."datePublished") DESC NULLS LAST
 		    LIMIT %d
 		  )
 		ORDER BY a."cveId", a.uuid`,
-		nameMatchExpr("a", pypi), outerEco, nameMatchExpr("ai", pypi), innerEco, versionRangeCVELimit),
+		nameMatchExpr("a", pypi), outerEco, notWithdrawnSQL(`a."cveId"`),
+		nameMatchExpr("ai", pypi), innerEco, notWithdrawnSQL(`ai."cveId"`), versionRangeCVELimit),
 		args...,
 	)
 	if err != nil {
