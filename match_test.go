@@ -478,3 +478,42 @@ func TestSuppress_OpenRangeLosesToBoundedFix(t *testing.T) {
 		t.Fatal("an open range must lose to a bounded fix the install sits above")
 	}
 }
+
+// cve.org and GitLab write "no stated start" as version 0; GitHub and OSV work out
+// where the bug entered. For one fix the later start is the stronger statement:
+// webpack 1.15.0 predates the code CVE-2024-43788 is about.
+func TestZeroStartLosesToARealStartWithTheSameFix(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vr("CVE-W", "cveorg-p", "affected", "0", "5.94.0"),
+		vr("CVE-W", "gh-p", "affected", "5.0.0-alpha.0", "5.94.0"),
+	}}
+	old := Dependency{Name: "webpack", Version: "1.15.0", Ecosystem: "npm"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, old))["CVE-W"]; ok {
+		t.Fatal("1.15.0 is before the stated start 5.0.0-alpha.0 and must not match")
+	}
+	in := Dependency{Name: "webpack", Version: "5.50.0", Ecosystem: "npm"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, in))["CVE-W"]; !ok {
+		t.Fatal("5.50.0 is inside the bounded range and must match")
+	}
+}
+
+// With no counterpart the zero-start range is all the evidence there is.
+func TestZeroStartKeptWhenNothingMoreSpecificExists(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{vr("CVE-Y", "p", "affected", "0", "5.94.0")}}
+	dep := Dependency{Name: "x", Version: "1.0.0", Ecosystem: "npm"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, dep))["CVE-Y"]; !ok {
+		t.Fatal("a lone 0..<5.94.0 must still match 1.0.0")
+	}
+}
+
+// A different fix is a different claim: nothing is superseded.
+func TestZeroStartKeptWhenTheFixesDiffer(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vr("CVE-V", "p1", "affected", "0", "3.0.0"),
+		vr("CVE-V", "p2", "affected", "2.0.0", "2.5.0"),
+	}}
+	dep := Dependency{Name: "x", Version: "1.0.0", Ecosystem: "npm"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, dep))["CVE-V"]; !ok {
+		t.Fatal("ranges ending at different fixes must not supersede one another")
+	}
+}

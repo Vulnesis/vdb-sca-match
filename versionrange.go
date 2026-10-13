@@ -239,6 +239,7 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 	var matches []Match
 	for _, cveID := range cveOrder {
 		cd := perCve[cveID]
+		dropSupersededZeroRows(cd)
 		verdict, method, rangeStr := evaluateCVE(dep.Version, dep.Ecosystem, cd)
 		if verdict == cveDrop {
 			continue
