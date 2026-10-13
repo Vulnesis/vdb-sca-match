@@ -379,3 +379,102 @@ func TestAppendMethod(t *testing.T) {
 		t.Fatalf("append duplicate should be a no-op: %q", got)
 	}
 }
+
+// "introduced 0, never fixed" arrives as `0 .. *` from OSV and GitHub, while cve.org
+// records the same advisory as a bare exact `0`. The bare 0 is a placeholder for "from
+// the beginning", not a specific version, so it must not discard the open range as
+// over-broad evidence. Before this, babel-traverse 6.26.0 was missed for
+// GHSA-67hx-6x53-jw92 / CVE-2023-45133.
+func TestKeep_OpenRangeWhenAliasHasBareZero(t *testing.T) {
+	q := &fakeQuerier{
+		versionRange: [][]any{
+			vr("GHSA-Z", "osv-p", "affected", "0", "*"),
+			vr("CVE-Z", "cve-org-p", "affected", "0", nil),
+			vr("CVE-Z", "osv-p2", "affected", "0", "*"),
+		},
+		alias: [][]any{{"CVE-Z", "GHSA-Z"}},
+	}
+	dep := Dependency{Name: "babel-traverse", Version: "6.26.0", Ecosystem: "npm"}
+	byCve := cveSet(MatchDependencyMust(t, q, dep))
+	for _, id := range []string{"GHSA-Z", "CVE-Z"} {
+		m, ok := byCve[id]
+		if !ok || !strings.Contains(m.Method, "version-range:wildcard") {
+			t.Fatalf("%s should be kept as an open-ended match: %+v", id, byCve)
+		}
+	}
+}
+
+// A real exact version is still specific evidence: it discards a wildcard the
+// installed version sits outside of.
+func TestSuppress_RealExactVersionStillSpecific(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vr("CVE-W", "p1", "affected", "*", nil),
+		vr("CVE-W", "p2", "affected", "2.0.0", nil),
+	}}
+	dep := Dependency{Name: "x", Version: "5.0.0", Ecosystem: "npm"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, dep))["CVE-W"]; ok {
+		t.Fatal("an exact 2.0.0 is specific evidence; the wildcard should be suppressed at 5.0.0")
+	}
+}
+
+func TestRowIsZeroPlaceholder(t *testing.T) {
+	cases := []struct {
+		r    affRow
+		want bool
+	}{
+		{affRow{version: "0"}, true},
+		{affRow{version: "0.0.0"}, true},
+		{affRow{version: "0", lessThan: "1.2.3"}, false},
+		{affRow{version: "0", lessThanOrEqual: "1.2.3"}, false},
+		{affRow{version: "0", lessThan: "*"}, false},
+		{affRow{version: "1.0.0"}, false},
+		{affRow{version: "0.1"}, false},
+		{affRow{}, false},
+	}
+	for _, c := range cases {
+		if got := rowIsZeroPlaceholder(c.r); got != c.want {
+			t.Errorf("rowIsZeroPlaceholder(%+v) = %v, want %v", c.r, got, c.want)
+		}
+	}
+}
+
+// OSV lists the affected releases beside an open-ended "introduced 0, never fixed"
+// range as `versions`. They are the range spelled out, so they must not cancel it:
+// MAL-2025-653 (eslint-v9) marks the whole package malicious, and an install that is
+// not one of the listed releases is still the malicious package.
+func TestKeep_OpenRangeNextToEnumeratedVersions(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vr("MAL-1", "p", "affected", "0", "*"),
+		vr("MAL-1", "p", "affected", "9.9.9", nil),
+	}}
+	dep := Dependency{Name: "eslint-v9", Version: "9.0.0", Ecosystem: "npm"}
+	m, ok := cveSet(MatchDependencyMust(t, q, dep))["MAL-1"]
+	if !ok || !strings.Contains(m.Method, "version-range:wildcard") {
+		t.Fatalf("an open range must survive its own enumerated versions: %+v", m)
+	}
+}
+
+// A legacy bare "*" is still discarded by an enumerated exact version: that pairing
+// says "these releases", not "everything".
+func TestSuppress_BareWildcardStillLosesToExactVersion(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vr("CVE-B", "p1", "affected", "*", nil),
+		vr("CVE-B", "p2", "affected", "2.0.0", nil),
+	}}
+	dep := Dependency{Name: "x", Version: "5.0.0", Ecosystem: "npm"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, dep))["CVE-B"]; ok {
+		t.Fatal("a bare wildcard must still lose to an exact version")
+	}
+}
+
+// A bounded range says the package WAS fixed, so it does cancel an open range.
+func TestSuppress_OpenRangeLosesToBoundedFix(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vr("CVE-F", "p", "affected", "0", "*"),
+		vr("CVE-F", "p2", "affected", "", "2.0.0"),
+	}}
+	dep := Dependency{Name: "x", Version: "5.0.0", Ecosystem: "npm"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, dep))["CVE-F"]; ok {
+		t.Fatal("an open range must lose to a bounded fix the install sits above")
+	}
+}

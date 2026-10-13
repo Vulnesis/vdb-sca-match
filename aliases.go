@@ -69,11 +69,31 @@ func applyWildcardSuppression(seen map[string]Match, facts map[string]affectedFa
 	// Aggregate specific evidence per group from ALL facts (including cveIds that
 	// produced a fact but no surviving match — e.g. a specific range the
 	// installed version sits above).
-	groupHasSpecific := map[string]bool{}
+	//
+	// What counts as specific depends on what the wildcard is. A bounded range says the
+	// package was fixed, which contradicts any "all versions" claim. An enumerated exact
+	// version does too, EXCEPT next to an open-ended "introduced X, never fixed" range:
+	// OSV lists the affected releases beside that range as `versions`, so they are the
+	// range spelled out. Treating them as contradicting it hid whole-package malware
+	// (MAL-2025-653 eslint-v9) from every install that was not one of the listed releases.
+	groupBounded := map[string]bool{}
+	groupAnySpecific := map[string]bool{}
+	groupOpenRange := map[string]bool{}
 	for cveID, f := range facts {
-		if f.hasSpecific {
-			groupHasSpecific[groupKey(cveID)] = true
+		g := groupKey(cveID)
+		if f.hasBounded {
+			groupBounded[g] = true
 		}
+		if f.hasSpecific {
+			groupAnySpecific[g] = true
+		}
+		if f.hasOpenRange {
+			groupOpenRange[g] = true
+		}
+	}
+	groupHasSpecific := map[string]bool{}
+	for g := range groupAnySpecific {
+		groupHasSpecific[g] = groupBounded[g] || !groupOpenRange[g]
 	}
 
 	for cveID, m := range seen {

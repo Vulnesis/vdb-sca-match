@@ -16,7 +16,15 @@ import (
 // alias group discards an over-broad "*".
 type affectedFacts struct {
 	hasWildcard bool
-	hasSpecific bool
+	hasSpecific bool // any exact version or bounded range (the union of the two below)
+
+	// hasBounded: a range with a real upper bound. It says the package WAS fixed, so it
+	// contradicts any claim that every version is affected.
+	hasBounded bool
+	// hasOpenRange: "introduced X, never fixed" (a concrete start, lessThan "*"). OSV
+	// writes the enumerated releases next to it as `versions`; they are the range
+	// spelled out, not a contradiction of it.
+	hasOpenRange bool
 }
 
 // verChange is a CVE 5.1 in-range status step ({at, status}).
@@ -210,10 +218,16 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 		// Record facts from every AFFECTED row (matched or not) for suppression.
 		if row.status == "affected" {
 			f := facts[cveID]
-			if rowIsWildcard(row) {
+			if rowIsWildcard(row) || rowIsZeroPlaceholder(row) {
 				f.hasWildcard = true
+				if rowIsOpenRange(row) {
+					f.hasOpenRange = true
+				}
 			} else if row.version != "" || row.lessThan != "" || row.lessThanOrEqual != "" {
 				f.hasSpecific = true
+				if row.lessThan != "" || row.lessThanOrEqual != "" {
+					f.hasBounded = true
+				}
 			}
 			facts[cveID] = f
 		}
@@ -379,6 +393,30 @@ func evaluateProduct(installed, eco string, rows []affRow) (prodVerdict, string,
 }
 
 // rowIsWildcard reports whether a row encodes an "all versions" signal.
+// rowIsZeroPlaceholder reports an affected row that says only "from the beginning":
+// an exact version 0 with no bound. CVE 5 sources write it for "introduced 0" when
+// the fix is unknown or unstated, and no release is version 0. It is the same claim as
+// an open range, not a specific version, so it must not count as the specific
+// evidence that discards an alias group's real open-ended range: a bare `0` from
+// cve.org used to suppress `introduced 0, never fixed` from OSV/GitHub for the same
+// advisory, and the vulnerable version went unreported.
+func rowIsZeroPlaceholder(r affRow) bool {
+	if r.lessThan != "" || r.lessThanOrEqual != "" {
+		return false
+	}
+	switch strings.TrimSpace(r.version) {
+	case "0", "0.0", "0.0.0", "0.0.0.0":
+		return true
+	}
+	return false
+}
+
+// rowIsOpenRange reports "introduced X, never fixed": a concrete start with lessThan "*".
+// A bare "*" version is a different, weaker claim (every version, no start stated).
+func rowIsOpenRange(r affRow) bool {
+	return ver.IsFullWildcard(r.lessThan) && r.version != "" && !ver.IsFullWildcard(r.version)
+}
+
 func rowIsWildcard(r affRow) bool {
 	return ver.IsFullWildcard(r.version) ||
 		ver.IsFullWildcard(r.lessThan) ||
