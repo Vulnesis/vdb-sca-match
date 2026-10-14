@@ -36,6 +36,7 @@ type verChange struct {
 // affRow is one CVEAffectedVersion row, normalised.
 type affRow struct {
 	status          string // lowercased: "affected" | "unaffected" | …
+	src             string // the source that stated the row (cve.org, github, osv, ...)
 	versionType     string
 	version         string
 	lessThan        string
@@ -207,6 +208,7 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 		}
 		row := affRow{
 			status:          strings.ToLower(strings.TrimSpace(status)),
+			src:             source,
 			versionType:     vt,
 			version:         derefStr(versionValue),
 			lessThan:        derefStr(lessThan),

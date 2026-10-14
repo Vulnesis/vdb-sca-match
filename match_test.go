@@ -484,8 +484,8 @@ func TestSuppress_OpenRangeLosesToBoundedFix(t *testing.T) {
 // webpack 1.15.0 predates the code CVE-2024-43788 is about.
 func TestZeroStartLosesToARealStartWithTheSameFix(t *testing.T) {
 	q := &fakeQuerier{versionRange: [][]any{
-		vr("CVE-W", "cveorg-p", "affected", "0", "5.94.0"),
-		vr("CVE-W", "gh-p", "affected", "5.0.0-alpha.0", "5.94.0"),
+		vrs("CVE-W", "cveorg-p", "cve.org", "affected", "0", "5.94.0"),
+		vrs("CVE-W", "gh-p", "github", "affected", "5.0.0-alpha.0", "5.94.0"),
 	}}
 	old := Dependency{Name: "webpack", Version: "1.15.0", Ecosystem: "npm"}
 	if _, ok := cveSet(MatchDependencyMust(t, q, old))["CVE-W"]; ok {
@@ -552,5 +552,27 @@ func TestNonAuthoritativeOpenRangeStillLosesToABoundedFix(t *testing.T) {
 	dep := Dependency{Name: "rsa", Version: "0.9.9", Ecosystem: "cargo"}
 	if got := cveSet(MatchDependencyMust(t, q, dep)); len(got) != 0 {
 		t.Fatalf("a GHSA open range must lose to the bounded fix, got %v", got)
+	}
+}
+
+// vrs is vr with an explicit source.
+func vrs(cve, prod, src, status, version string, lessThan any) []any {
+	r := vr(cve, prod, status, version, lessThan)
+	r[2] = src
+	return r
+}
+
+// cve.org lists uuid as 0 .. < 11.1.1 AND 11.0.0 .. < 11.1.1; GitHub says < 11.1.1.
+// One source stating both is stating the union, not correcting itself, so the zero-start
+// range stands and uuid 2.0.3 is still flagged.
+func TestZeroStartKeptWhenTheSameSourceStatesItToo(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vrs("CVE-U", "cveorg-a", "cve.org", "affected", "0", "11.1.1"),
+		vrs("CVE-U", "cveorg-b", "cve.org", "affected", "11.0.0", "11.1.1"),
+		vrs("CVE-U", "gh-a", "github", "affected", "0", "11.1.1"),
+	}}
+	dep := Dependency{Name: "uuid", Version: "2.0.3", Ecosystem: "npm"}
+	if _, ok := cveSet(MatchDependencyMust(t, q, dep))["CVE-U"]; !ok {
+		t.Fatal("uuid 2.0.3 is below 11.1.1 and must stay flagged")
 	}
 }
