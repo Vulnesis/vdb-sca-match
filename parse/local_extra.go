@@ -44,17 +44,19 @@ func parsePackageSwiftScoped(data []byte, _ string) ([]ScopedPackage, error) {
 		}
 		name = strings.TrimSuffix(name, ".git")
 
-		ver := ""
+		ver, spec := "", ""
 		if m := fromRe.FindStringSubmatch(line); m != nil {
-			ver = m[1]
+			// `from: "1.24.0"` means 1.24.0 or any later compatible release, not 1.24.0.
+			ver, spec = m[1], ">="+m[1]
 		} else if m := exactRe.FindStringSubmatch(line); m != nil {
-			ver = m[1]
+			ver, spec = m[1], m[1]
 		}
 		if name != "" {
 			seen[name] = true
 			pkgs = append(pkgs, ScopedPackage{
 				Name: name, Version: ver,
-				Ecosystem: "swift", Scope: ScopeProduction, IsDirect: true,
+				VersionSpec: spec,
+				Ecosystem:   "swift", Scope: ScopeProduction, IsDirect: true,
 			})
 		}
 	}

@@ -69,3 +69,23 @@ func TestDirectoryPackagesPropsYieldsThePinnedVersions(t *testing.T) {
 		t.Errorf("an MSBuild property is kept verbatim, got %q", got["Newtonsoft.Json"])
 	}
 }
+
+// `.package(url:, from: "1.24.0")` is a minimum, not an installed version, and must say so
+// or a lockfile gate reads it as pinned. `exact:` is a pin.
+func TestPackageSwiftFromIsARangeAndExactIsAPin(t *testing.T) {
+	src := []byte(`let package = Package(dependencies: [
+    .package(url: "https://github.com/apple/swift-nio.git", from: "2.101.3"),
+    .package(url: "https://github.com/apple/swift-log.git", exact: "1.6.0"),
+])`)
+	pkgs, err := ParseManifest(src, "Package.swift", "Package.swift")
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := map[string]string{}
+	for _, p := range pkgs {
+		spec[p.Name] = p.VersionSpec
+	}
+	if spec["swift-nio"] != ">=2.101.3" || spec["swift-log"] != "1.6.0" {
+		t.Fatalf("specs = %v", spec)
+	}
+}
