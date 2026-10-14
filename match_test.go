@@ -576,3 +576,61 @@ func TestZeroStartKeptWhenTheSameSourceStatesItToo(t *testing.T) {
 		t.Fatal("uuid 2.0.3 is below 11.1.1 and must stay flagged")
 	}
 }
+
+// cve.org states next's CVE-2026-27980 as one range; GitHub states it branch by branch
+// (15.x was fixed by a backport at 15.5.14). 15.5.15 is past that fix.
+func TestFinerBranchRangesBeatACoarseRangeThatFillsTheGap(t *testing.T) {
+	rows := [][]any{
+		vrs("CVE-N", "cveorg-p", "cve.org", "affected", "10.0.0", "16.1.7"),
+		vrs("GHSA-N", "gh-a", "github", "affected", "10.0.0", "15.5.14"),
+		vrs("GHSA-N", "gh-b", "github", "affected", "16.0.0-beta.0", "16.1.7"),
+	}
+	q := &fakeQuerier{versionRange: rows, alias: [][]any{{"CVE-N", "GHSA-N"}}}
+	got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "next", Version: "15.5.15", Ecosystem: "npm"}))
+	if len(got) != 0 {
+		t.Fatalf("15.5.15 is past the 15.x backport fix and must not match, got %v", got)
+	}
+	// 15.5.0 is before the backport: still affected.
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "next", Version: "15.5.0", Ecosystem: "npm"})); len(got) == 0 {
+		t.Fatal("15.5.0 is inside 10.0.0..<15.5.14 and must match")
+	}
+	// 16.0.5 is inside the second branch.
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "next", Version: "16.0.5", Ecosystem: "npm"})); len(got) == 0 {
+		t.Fatal("16.0.5 is inside 16.0.0-beta.0..<16.1.7 and must match")
+	}
+}
+
+// A source that merely knows less does not have the shape of a backport: the envelopes
+// differ, so the coarse range stands.
+func TestCoarseRangeStandsWhenTheEnvelopesDiffer(t *testing.T) {
+	rows := [][]any{
+		vrs("CVE-M", "cveorg-p", "cve.org", "affected", "10.0.0", "16.1.7"),
+		vrs("GHSA-M", "gh-a", "github", "affected", "10.0.0", "12.0.0"),
+		vrs("GHSA-M", "gh-b", "github", "affected", "13.0.0", "14.0.0"),
+	}
+	q := &fakeQuerier{versionRange: rows, alias: [][]any{{"CVE-M", "GHSA-M"}}}
+	got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "x", Version: "15.0.0", Ecosystem: "npm"}))
+	if _, ok := got["CVE-M"]; !ok {
+		t.Fatalf("a finer source with a smaller envelope must not retract the coarse range, got %v", got)
+	}
+}
+
+// Within one CVE, GitLab states both the branch ranges and an extra range spanning them
+// (10.0.0..<16.1.7), the envelope that fills the 15.x backport gap. cve.org and GitHub
+// state only the branches. 15.5.15 sits in the gap.
+func TestEnvelopeRangeThatFillsAGapIsDropped(t *testing.T) {
+	rows := [][]any{
+		vrs("CVE-E", "cveorg-a", "cve.org", "affected", "10.0.0", "15.5.14"),
+		vrs("CVE-E", "cveorg-b", "cve.org", "affected", "16.0.0-beta.0", "16.1.7"),
+		vrs("CVE-E", "gl-a", "gitlab", "affected", "10.0.0", "15.5.14"),
+		vrs("CVE-E", "gl-b", "gitlab", "affected", "16.0.0-beta.0", "16.1.7"),
+		vrs("CVE-E", "gl-c", "gitlab", "affected", "10.0.0", "16.1.7"),
+	}
+	q := &fakeQuerier{versionRange: rows}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "next", Version: "15.5.15", Ecosystem: "npm"})); len(got) != 0 {
+		t.Fatalf("15.5.15 is past the 15.x backport fix and must not match, got %v", got)
+	}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "next", Version: "15.0.0", Ecosystem: "npm"})); len(got) == 0 {
+		t.Fatal("15.0.0 is inside 10.0.0..<15.5.14 and must match")
+	}
+}

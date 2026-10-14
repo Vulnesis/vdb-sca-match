@@ -94,6 +94,7 @@ func MatchDependency(ctx context.Context, q Querier, dep Dependency) ([]Match, e
 			groupOf = nil
 		}
 		applyWildcardSuppression(seen, facts, groupOf)
+		applyFinerBranchRanges(seen, facts, groupOf, dep.Version, dep.Ecosystem)
 	}
 
 	// 4. CRIT tagging — runs AFTER suppression so it never resurrects or tags a

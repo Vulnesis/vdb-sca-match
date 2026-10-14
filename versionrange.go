@@ -25,6 +25,15 @@ type affectedFacts struct {
 	// writes the enumerated releases next to it as `versions`; they are the range
 	// spelled out, not a contradiction of it.
 	hasOpenRange bool
+
+	// ranges are the bounded affected ranges stated for this id, with the source that
+	// stated each. They let a group compare how finely each id describes the same span.
+	ranges []factRange
+}
+
+// factRange is one bounded affected range of an id.
+type factRange struct {
+	lower, lt, lte, vt, src string
 }
 
 // verChange is a CVE 5.1 in-range status step ({at, status}).
@@ -232,6 +241,7 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 				f.hasSpecific = true
 				if row.lessThan != "" || row.lessThanOrEqual != "" {
 					f.hasBounded = true
+					f.ranges = append(f.ranges, factRange{lower: row.version, lt: row.lessThan, lte: row.lessThanOrEqual, vt: row.versionType, src: source})
 				}
 			}
 			facts[cveID] = f
@@ -242,6 +252,7 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 	for _, cveID := range cveOrder {
 		cd := perCve[cveID]
 		dropSupersededZeroRows(cd)
+		dropEnvelopeFill(cd, dep.Version, dep.Ecosystem)
 		verdict, method, rangeStr := evaluateCVE(dep.Version, dep.Ecosystem, cd)
 		if verdict == cveDrop {
 			continue
