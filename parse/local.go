@@ -209,6 +209,8 @@ func ParseManifest(data []byte, manifestType, filePath string) ([]ScopedPackage,
 		return parsePaketLockScoped(data, filePath)
 	case "*.csproj":
 		return parseCsprojScoped(data, filePath)
+	case "Directory.Packages.props":
+		return parseDirectoryPackagesPropsScoped(data, filePath)
 	case "packages.config":
 		return parsePackagesConfigScoped(data, filePath)
 	// ── Clojure (Leiningen / tools.deps / Babashka) ───────────────────────
@@ -1924,4 +1926,61 @@ func extractXMLAttr(xml, attr string) string {
 		return ""
 	}
 	return xml[start : start+end]
+}
+
+// ---------------------------------------------------------------------------
+// .NET / NuGet — Directory.Packages.props (central package management)
+// ---------------------------------------------------------------------------
+
+// parseDirectoryPackagesPropsScoped reads the versions a repository pins centrally:
+//
+//	<PackageVersion Include="Serilog" Version="4.3.0" />
+//	<GlobalPackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+//
+// With central package management the project files carry no version at all, so these
+// pins are the only place a version exists (Jellyfin scanned to zero packages without
+// them). A version written as an MSBuild property ($(SerilogVersion)) is kept verbatim;
+// it is not a resolved version and is never queried.
+func parseDirectoryPackagesPropsScoped(data []byte, filePath string) ([]ScopedPackage, error) {
+	var pkgs []ScopedPackage
+	seen := map[string]bool{}
+	content := string(data)
+	for _, tag := range []string{"<PackageVersion", "<GlobalPackageReference"} {
+		depStart := 0
+		for {
+			idx := strings.Index(content[depStart:], tag)
+			if idx < 0 {
+				break
+			}
+			start := depStart + idx
+			end := strings.IndexAny(content[start:], ">")
+			if end < 0 {
+				break
+			}
+			block := content[start : start+end+1]
+			depStart = start + end + 1
+			include := extractXMLAttr(block, "Include")
+			if include == "" {
+				include = extractXMLAttr(block, "Update")
+			}
+			version := extractXMLAttr(block, "Version")
+			if version == "" {
+				version = extractXMLAttr(block, "VersionOverride")
+			}
+			if include == "" || version == "" {
+				continue
+			}
+			key := strings.ToLower(include) + "@" + version
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			scope := ScopeProduction
+			if tag == "<GlobalPackageReference" {
+				scope = ScopeDevelopment
+			}
+			pkgs = append(pkgs, ScopedPackage{Name: include, Version: version, VersionSpec: version, Ecosystem: "nuget", Scope: scope, SourceFile: filePath, IsDirect: true})
+		}
+	}
+	return pkgs, nil
 }

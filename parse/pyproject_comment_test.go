@@ -43,3 +43,29 @@ func TestManifestRangesKeepTheirRawSpec(t *testing.T) {
 		t.Fatalf("pubspec.yaml spec = %+v err=%v", pub, err)
 	}
 }
+
+// With central package management the project files carry no version; the pins live in
+// Directory.Packages.props. Jellyfin scanned to zero packages without reading it.
+func TestDirectoryPackagesPropsYieldsThePinnedVersions(t *testing.T) {
+	src := []byte(`<Project>
+  <ItemGroup>
+    <PackageVersion Include="Serilog" Version="4.3.0" />
+    <PackageVersion Include="Newtonsoft.Json" Version="$(NewtonsoftVersion)" />
+    <GlobalPackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+  </ItemGroup>
+</Project>`)
+	pkgs, err := ParseManifest(src, "Directory.Packages.props", "Directory.Packages.props")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, p := range pkgs {
+		got[p.Name] = p.Version
+	}
+	if got["Serilog"] != "4.3.0" || got["StyleCop.Analyzers"] != "1.2.0-beta.556" {
+		t.Fatalf("pins not read: %v", got)
+	}
+	if got["Newtonsoft.Json"] != "$(NewtonsoftVersion)" {
+		t.Errorf("an MSBuild property is kept verbatim, got %q", got["Newtonsoft.Json"])
+	}
+}
