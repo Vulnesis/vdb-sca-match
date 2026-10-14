@@ -153,3 +153,32 @@ func TestWithinPEP440(t *testing.T) {
 		}
 	}
 }
+
+// A bound that is not valid semver (a four-part gem version) used to be compared as a
+// string, so "1.19.4" < "1.6.7.1" and nokogiri 1.19.4 matched a range ending at 1.6.7.1.
+func TestWithinOrdersFourPartVersionsNumerically(t *testing.T) {
+	cases := []struct {
+		version, lower, lt string
+		wantIn, wantOK     bool
+	}{
+		{"1.19.4", "1.6.0", "1.6.7.1", false, true},
+		{"1.6.7.0", "1.6.0", "1.6.7.1", true, true},
+		{"1.6.7.1", "1.6.0", "1.6.7.1", false, true},
+		{"1.5.9", "1.6.0.rc1", "1.6.7.1", false, true},
+		{"1.6.0.rc2", "1.6.0.rc1", "1.6.7.1", true, true},
+	}
+	for _, c := range cases {
+		in, ok := Within("rubygems", "semver", c.version, c.lower, c.lt, "")
+		if in != c.wantIn || ok != c.wantOK {
+			t.Errorf("Within(%s in [%s,%s)) = (%v,%v), want (%v,%v)", c.version, c.lower, c.lt, in, ok, c.wantIn, c.wantOK)
+		}
+	}
+}
+
+// What cannot be parsed at all is inconclusive, never ordered as text.
+func TestWithinNeverOrdersAnUnparseableBoundAsText(t *testing.T) {
+	in, ok := Within("npm", "semver", "1.19.4", "", "a060c15ef87e0f0e72974c7c0e57fe811bbd06a2", "")
+	if in || ok {
+		t.Fatalf("a git commit bound is inconclusive, got (%v,%v)", in, ok)
+	}
+}

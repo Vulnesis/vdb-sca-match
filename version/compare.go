@@ -38,25 +38,24 @@ func Within(ecosystem, versionType, version, lowerBound, lessThan, lessThanOrEqu
 	scheme := pickScheme(versionType, ecosystem)
 
 	// Check lower bound
+	lowerUnparsed := false
 	if lowerBound != "" {
 		cmp, parsed := compareWithScheme(scheme, version, lowerBound)
 		if parsed && cmp < 0 {
 			return false, true
 		}
-		if !parsed && version < lowerBound {
-			return false, false
-		}
+		// Unparseable: say so. Comparing the strings ("1.19.4" < "1.6.7.1") is not
+		// an ordering of versions, so the answer below can only be inconclusive.
+		lowerUnparsed = !parsed
 	}
 
 	// Check lessThan upper bound (exclusive)
 	if lessThan != "" {
 		cmp, parsed := compareWithScheme(scheme, version, lessThan)
 		if parsed && cmp < 0 {
-			return true, true
+			return true, !lowerUnparsed
 		}
-		if !parsed && version < lessThan {
-			return true, false
-		}
+		// Unparseable bound: inconclusive, never a string comparison.
 		return false, parsed
 	}
 
@@ -64,16 +63,14 @@ func Within(ecosystem, versionType, version, lowerBound, lessThan, lessThanOrEqu
 	if lessThanOrEqual != "" {
 		cmp, parsed := compareWithScheme(scheme, version, lessThanOrEqual)
 		if parsed && cmp <= 0 {
-			return true, true
+			return true, !lowerUnparsed
 		}
-		if !parsed && version <= lessThanOrEqual {
-			return true, false
-		}
+		// Unparseable bound: inconclusive, never a string comparison.
 		return false, parsed
 	}
 
 	// No upper bound — if we got here, lower bound passed
-	return lowerBound != "", true
+	return lowerBound != "", !lowerUnparsed
 }
 
 func pickScheme(versionType, ecosystem string) string {
@@ -122,13 +119,38 @@ func compareSemver(a, b string) (int, bool) {
 	}
 	va, err := semver.NewVersion(normalizeSemver(a))
 	if err != nil {
-		return 0, false
+		return compareSegments(a, b)
 	}
 	vb, err := semver.NewVersion(normalizeSemver(b))
 	if err != nil {
-		return 0, false
+		return compareSegments(a, b)
 	}
 	return va.Compare(vb), true
+}
+
+// compareSegments orders two versions that are not valid semver (a four-part gem
+// version like 1.6.7.1, a .rc suffix) by numeric segments. Only a version made of
+// dotted segments can be ordered this way; anything else is not comparable.
+func compareSegments(a, b string) (int, bool) {
+	if !segmentedVersion(a) || !segmentedVersion(b) {
+		return 0, false
+	}
+	return compareGeneric(normalizeSemver(a), normalizeSemver(b))
+}
+
+func segmentedVersion(v string) bool {
+	v = normalizeSemver(strings.TrimSpace(v))
+	if v == "" || v[0] < '0' || v[0] > '9' {
+		return false
+	}
+	for _, r := range v {
+		switch {
+		case r >= '0' && r <= '9', r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r == '.', r == '-', r == '+', r == '_':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func normalizeSemver(v string) string {
