@@ -184,13 +184,13 @@ func parsePubspecYAMLScoped(data []byte, _ string) ([]ScopedPackage, error) {
 
 		if idx := strings.Index(trimmed, ":"); idx > 0 {
 			name := strings.TrimSpace(trimmed[:idx])
-			ver := strings.TrimSpace(trimmed[idx+1:])
-			ver = cleanLocalVersion(ver)
+			spec := strings.TrimSpace(trimmed[idx+1:])
+			ver := cleanLocalVersion(spec)
 			scope := ScopeProduction
 			if section == secDev {
 				scope = ScopeDevelopment
 			}
-			pkgs = append(pkgs, ScopedPackage{Name: name, Version: ver, Ecosystem: "pub", Scope: scope, IsDirect: true})
+			pkgs = append(pkgs, ScopedPackage{Name: name, Version: ver, VersionSpec: spec, Ecosystem: "pub", Scope: scope, IsDirect: true})
 		}
 	}
 	return pkgs, nil
@@ -290,7 +290,7 @@ func parseMixScoped(data []byte, _ string) ([]ScopedPackage, error) {
 				scope = ScopeTest
 			}
 			pkgs = append(pkgs, ScopedPackage{
-				Name: m[1], Version: cleanLocalVersion(m[2]),
+				Name: m[1], Version: cleanLocalVersion(m[2]), VersionSpec: m[2],
 				Ecosystem: "hex", Scope: scope, IsDirect: true,
 			})
 		}
@@ -1730,7 +1730,7 @@ func parsePodfileScoped(data []byte, _ string) ([]ScopedPackage, error) {
 		m := podRe.FindStringSubmatch(line)
 		if m != nil {
 			pkgs = append(pkgs, ScopedPackage{
-				Name: m[1], Version: cleanLocalVersion(m[2]),
+				Name: m[1], Version: cleanLocalVersion(m[2]), VersionSpec: m[2],
 				Ecosystem: "cocoapods", Scope: ScopeProduction, IsDirect: true,
 			})
 		}
@@ -1843,7 +1843,7 @@ func parseCartfileScoped(data []byte, _ string) ([]ScopedPackage, error) {
 				name = parts[1]
 			}
 			pkgs = append(pkgs, ScopedPackage{
-				Name: name, Version: cleanLocalVersion(m[2]),
+				Name: name, Version: cleanLocalVersion(m[2]), VersionSpec: m[2],
 				Ecosystem: "carthage", Scope: ScopeProduction, IsDirect: true,
 			})
 		}
@@ -2281,7 +2281,7 @@ func parseRebarConfigScoped(data []byte, _ string) ([]ScopedPackage, error) {
 		}
 		for _, m := range depRe.FindAllStringSubmatch(line, -1) {
 			pkgs = append(pkgs, ScopedPackage{
-				Name: m[1], Version: cleanLocalVersion(m[2]),
+				Name: m[1], Version: cleanLocalVersion(m[2]), VersionSpec: m[2],
 				Ecosystem: "hex", Scope: ScopeProduction, IsDirect: true,
 			})
 		}

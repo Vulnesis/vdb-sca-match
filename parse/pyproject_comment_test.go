@@ -29,3 +29,17 @@ dependencies = [
 		}
 	}
 }
+
+// A manifest that declares a range must say so. Without the raw spec a lockfile gate
+// reads the package as pinned: mix.exs `{:mint, "~> 1.4"}` was scanned as mint 1.4
+// (a vulnerable release) while mix.lock pinned 1.9.3.
+func TestManifestRangesKeepTheirRawSpec(t *testing.T) {
+	mix, err := parseMixScoped([]byte("  {:mint, \"~> 1.4\", only: :test},\n"), "mix.exs")
+	if err != nil || len(mix) != 1 || mix[0].VersionSpec != "~> 1.4" {
+		t.Fatalf("mix.exs spec = %+v err=%v", mix, err)
+	}
+	pub, err := parsePubspecYAMLScoped([]byte("dependencies:\n  http: ^1.2.0\n"), "pubspec.yaml")
+	if err != nil || len(pub) != 1 || pub[0].VersionSpec != "^1.2.0" {
+		t.Fatalf("pubspec.yaml spec = %+v err=%v", pub, err)
+	}
+}
