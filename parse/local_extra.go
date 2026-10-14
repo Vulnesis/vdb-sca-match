@@ -38,11 +38,7 @@ func parsePackageSwiftScoped(data []byte, _ string) ([]ScopedPackage, error) {
 		if urlM == nil {
 			continue
 		}
-		name := urlM[1]
-		if idx := strings.LastIndex(name, "/"); idx >= 0 {
-			name = name[idx+1:]
-		}
-		name = strings.TrimSuffix(name, ".git")
+		name := swiftPackageName(urlM[1])
 
 		ver, spec := "", ""
 		if m := fromRe.FindStringSubmatch(line); m != nil {
@@ -89,6 +85,8 @@ func parsePackageResolvedScoped(data []byte, _ string) ([]ScopedPackage, error) 
 	type pin struct {
 		Package  string `json:"package"`
 		Identity string `json:"identity"`
+		Location string `json:"location"`
+		RepoURL  string `json:"repositoryURL"`
 		State    struct {
 			Version  string `json:"version"`
 			Branch   string `json:"branch"`
@@ -109,7 +107,10 @@ func parsePackageResolvedScoped(data []byte, _ string) ([]ScopedPackage, error) 
 	if err := json.Unmarshal(data, &v2); err == nil && len(v2.Pins) > 0 {
 		var pkgs []ScopedPackage
 		for _, p := range v2.Pins {
-			name := p.Identity
+			name := swiftPackageName(p.Location)
+			if name == "" {
+				name = p.Identity
+			}
 			if name == "" {
 				name = p.Package
 			}
@@ -128,7 +129,10 @@ func parsePackageResolvedScoped(data []byte, _ string) ([]ScopedPackage, error) 
 	if err := json.Unmarshal(data, &v1); err == nil && len(v1.Object.Pins) > 0 {
 		var pkgs []ScopedPackage
 		for _, p := range v1.Object.Pins {
-			name := p.Package
+			name := swiftPackageName(p.RepoURL)
+			if name == "" {
+				name = p.Package
+			}
 			if name == "" {
 				name = p.Identity
 			}
@@ -3030,4 +3034,26 @@ func parseModuleBazelScoped(data []byte, _ string) ([]ScopedPackage, error) {
 		}
 	}
 	return pkgs, nil
+}
+
+// swiftPackageName turns a package URL into the name advisories use: host/owner/repo
+// ("https://github.com/apple/swift-nio.git" -> "github.com/apple/swift-nio"). The last
+// path segment alone ("swift-nio") named a different thing, so no Swift advisory, all of
+// which are keyed by the full path, ever matched.
+func swiftPackageName(raw string) string {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return ""
+	}
+	if i := strings.Index(s, "://"); i >= 0 {
+		s = s[i+3:]
+	} else if strings.HasPrefix(s, "git@") {
+		s = strings.TrimPrefix(s, "git@")
+		s = strings.Replace(s, ":", "/", 1)
+	}
+	if at := strings.Index(s, "@"); at >= 0 && at < strings.Index(s+"/", "/") { // user@host/...
+		s = s[at+1:]
+	}
+	s = strings.TrimSuffix(strings.TrimSuffix(s, "/"), ".git")
+	return s
 }

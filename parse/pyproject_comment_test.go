@@ -85,7 +85,32 @@ func TestPackageSwiftFromIsARangeAndExactIsAPin(t *testing.T) {
 	for _, p := range pkgs {
 		spec[p.Name] = p.VersionSpec
 	}
-	if spec["swift-nio"] != ">=2.101.3" || spec["swift-log"] != "1.6.0" {
+	if spec["github.com/apple/swift-nio"] != ">=2.101.3" || spec["github.com/apple/swift-log"] != "1.6.0" {
 		t.Fatalf("specs = %v", spec)
+	}
+}
+
+// Swift advisories are keyed by the full path (github.com/apple/swift-nio). Naming a
+// package by its last segment ("swift-nio") meant no Swift advisory ever matched.
+func TestSwiftPackagesAreNamedByTheirFullPath(t *testing.T) {
+	for in, want := range map[string]string{
+		"https://github.com/apple/swift-nio.git": "github.com/apple/swift-nio",
+		"https://github.com/vapor/vapor":         "github.com/vapor/vapor",
+		"git@github.com:apple/swift-log.git":     "github.com/apple/swift-log",
+		"":                                       "",
+	} {
+		if got := swiftPackageName(in); got != want {
+			t.Errorf("swiftPackageName(%q) = %q, want %q", in, got, want)
+		}
+	}
+	resolved := []byte(`{"pins":[{"identity":"swift-nio","location":"https://github.com/apple/swift-nio.git","state":{"version":"2.40.0"}}],"version":2}`)
+	pkgs, err := ParseManifest(resolved, "Package.resolved", "Package.resolved")
+	if err != nil || len(pkgs) != 1 || pkgs[0].Name != "github.com/apple/swift-nio" || pkgs[0].Version != "2.40.0" {
+		t.Fatalf("Package.resolved = %+v err=%v", pkgs, err)
+	}
+	manifest := []byte(`.package(url: "https://github.com/apple/swift-nio.git", from: "2.40.0"),`)
+	pm, err := ParseManifest(manifest, "Package.swift", "Package.swift")
+	if err != nil || len(pm) == 0 || pm[0].Name != "github.com/apple/swift-nio" {
+		t.Fatalf("Package.swift = %+v err=%v", pm, err)
 	}
 }
