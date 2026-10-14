@@ -634,3 +634,33 @@ func TestEnvelopeRangeThatFillsAGapIsDropped(t *testing.T) {
 		t.Fatal("15.0.0 is inside 10.0.0..<15.5.14 and must match")
 	}
 }
+
+// Real advisories name the registry by more hosts than the canonical one:
+// pypi.python.org (17,000 rows), golang.org/pkg, nuget.org/packages and the nuget v3
+// index, repo.packagist.org, repo.hex.pm, pkg.julialang.org. A host missing from the
+// evidence meant the package's advisories were never matched at all.
+func TestEcosystemEvidenceCoversTheRegistryHostsAdvisoriesUse(t *testing.T) {
+	want := map[string][]string{
+		"pypi":      {"https://pypi.python.org"},
+		"go":        {"https://golang.org/pkg"},
+		"nuget":     {"https://nuget.org/packages", "https://api.nuget.org/v3/index.json"},
+		"packagist": {"https://repo.packagist.org"},
+		"hex":       {"https://repo.hex.pm"},
+		"julia":     {"https://pkg.julialang.org"},
+	}
+	for eco, hosts := range want {
+		_, urls, _, ok := EcosystemEvidence(eco)
+		if !ok {
+			t.Fatalf("%s: no evidence", eco)
+		}
+		have := map[string]bool{}
+		for _, u := range urls {
+			have[u] = true
+		}
+		for _, h := range hosts {
+			if !have[h] {
+				t.Errorf("%s evidence is missing %s", eco, h)
+			}
+		}
+	}
+}
