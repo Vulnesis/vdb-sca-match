@@ -993,6 +993,15 @@ func parsePyprojectTOMLScoped(data []byte, filePath string) ([]ScopedPackage, er
 	// dicts, then defers to parsePEP508 for the actual specifier parsing.
 	extractPyDep := func(raw string) (name, ver, versionSpec string, ok bool) {
 		raw = strings.TrimSpace(raw)
+		// An item is one TOML string, possibly followed by a comma and a comment:
+		//   "pkg>=3.6.0", # set from MIN_VERSION_OVERRIDE
+		// Trimming quotes off both ends left `3.6.0"` in the version when a comment
+		// followed. Take what lies between the string's own quotes.
+		if len(raw) > 1 && (raw[0] == '"' || raw[0] == '\'') {
+			if end := strings.IndexByte(raw[1:], raw[0]); end >= 0 {
+				raw = raw[1 : 1+end]
+			}
+		}
 		raw = strings.Trim(raw, `"',`)
 		raw = strings.TrimSpace(raw)
 		if raw == "" || strings.HasPrefix(raw, "{") || strings.HasPrefix(raw, "#") {
