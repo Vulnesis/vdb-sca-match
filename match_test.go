@@ -517,3 +517,40 @@ func TestZeroStartKeptWhenTheFixesDiffer(t *testing.T) {
 		t.Fatal("ranges ending at different fixes must not supersede one another")
 	}
 }
+
+// RustSec says rsa's Marvin attack was never patched; GitHub and cve.org record only the
+// "<= 0.9.6" seen when it was reported. The ecosystem's own statement is not retracted by
+// an aggregator's bound, so 0.9.9 stays flagged under the RUSTSEC id.
+func TestEcosystemAuthorityNeverFixedSurvivesAnAggregatorBound(t *testing.T) {
+	q := &fakeQuerier{
+		versionRange: [][]any{
+			vr("RUSTSEC-2023-0071", "rustsec-p", "affected", "0.0.0-0", "*"),
+			[]any{"CVE-2023-49092", "gh-p", "github", "affected", "semver", "0", nil, "0.9.6", nil, nil},
+		},
+		alias: [][]any{{"CVE-2023-49092", "RUSTSEC-2023-0071"}},
+	}
+	dep := Dependency{Name: "rsa", Version: "0.9.9", Ecosystem: "cargo"}
+	got := cveSet(MatchDependencyMust(t, q, dep))
+	if _, ok := got["RUSTSEC-2023-0071"]; !ok {
+		t.Fatalf("the RustSec never-fixed advisory must survive, got %v", got)
+	}
+	if _, ok := got["CVE-2023-49092"]; ok {
+		t.Errorf("0.9.9 is above the aggregator's <= 0.9.6 and must not match it, got %v", got)
+	}
+}
+
+// An aggregator's open range still loses to a bounded fix; only an ecosystem's own id is
+// treated as authority.
+func TestNonAuthoritativeOpenRangeStillLosesToABoundedFix(t *testing.T) {
+	q := &fakeQuerier{
+		versionRange: [][]any{
+			vr("GHSA-open", "p1", "affected", "0", "*"),
+			[]any{"CVE-bounded", "p2", "github", "affected", "semver", "0", nil, "0.9.6", nil, nil},
+		},
+		alias: [][]any{{"CVE-bounded", "GHSA-open"}},
+	}
+	dep := Dependency{Name: "rsa", Version: "0.9.9", Ecosystem: "cargo"}
+	if got := cveSet(MatchDependencyMust(t, q, dep)); len(got) != 0 {
+		t.Fatalf("a GHSA open range must lose to the bounded fix, got %v", got)
+	}
+}

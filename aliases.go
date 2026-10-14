@@ -105,6 +105,13 @@ func applyWildcardSuppression(seen map[string]Match, facts map[string]affectedFa
 			seen[cveID] = m
 			continue
 		}
+		// An ecosystem's own advisory database is the authority on whether a fix exists
+		// for it: RustSec writes "introduced 0, no patched version" for rsa's Marvin
+		// attack, while GitHub and cve.org record only the "<= 0.9.6" seen at report time.
+		// The aggregator's bound does not retract the ecosystem's statement.
+		if m.isWildcard && ecosystemAuthoritative(cveID) && facts[cveID].hasOpenRange {
+			continue
+		}
 		// Wildcard/coarse-only evidence in a group that has specifics → false
 		// positive. Discard.
 		delete(seen, cveID)
@@ -188,4 +195,11 @@ func (u *unionFind) roots() map[string]string {
 		out[id] = u.find(id)
 	}
 	return out
+}
+
+// ecosystemAuthoritative reports an advisory id issued by the package ecosystem's own
+// vulnerability database, whose "never fixed" outranks an aggregator's bounded range.
+func ecosystemAuthoritative(id string) bool {
+	u := strings.ToUpper(strings.TrimSpace(id))
+	return strings.HasPrefix(u, "RUSTSEC-") || strings.HasPrefix(u, "GO-")
 }
