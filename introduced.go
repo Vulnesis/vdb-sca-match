@@ -1,6 +1,9 @@
 package match
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // dropSupersededZeroRows removes an "introduced 0" range that a DIFFERENT source states
 // more precisely.
@@ -93,11 +96,58 @@ func rowIsZeroStart(r affRow) bool {
 
 // upperKey names a range's end: the fix it stops at. Empty when it has none.
 func upperKey(r affRow) string {
+	u, exclusive := canonicalUpper(r.lessThan, r.lessThanOrEqual)
 	switch {
-	case strings.TrimSpace(r.lessThan) != "":
-		return "lt:" + strings.TrimSpace(r.lessThan)
-	case strings.TrimSpace(r.lessThanOrEqual) != "":
-		return "lte:" + strings.TrimSpace(r.lessThanOrEqual)
+	case u == "":
+		return ""
+	case exclusive:
+		return "lt:" + u
 	}
-	return ""
+	return "lte:" + u
+}
+
+// nextRelease names the release a patch-level inclusive bound stops just before:
+// `<= 4.1.1` and `< 4.1.2` are one statement written two ways, and sources disagree on
+// which they use (GitLab, cve.org and NVD write the inclusive last affected release;
+// GitHub and OSV write the first fixed one). Only a plain dotted-numeric version has a
+// successor this can name; anything else (a pre-release, a suffix, a date) returns false
+// and is compared as written.
+func nextRelease(v string) (string, bool) {
+	v = strings.TrimSpace(v)
+	parts := strings.Split(v, ".")
+	if len(parts) < 2 {
+		return "", false
+	}
+	for _, p := range parts {
+		if p == "" || len(p) > 9 {
+			return "", false
+		}
+		for _, c := range p {
+			if c < '0' || c > '9' {
+				return "", false
+			}
+		}
+	}
+	n := 0
+	for _, c := range parts[len(parts)-1] {
+		n = n*10 + int(c-'0')
+	}
+	parts[len(parts)-1] = strconv.Itoa(n + 1)
+	return strings.Join(parts, "."), true
+}
+
+// canonicalUpper is a range's end as the first release outside it, so an inclusive and an
+// exclusive spelling of one end compare equal. The second result is true when the bound is
+// exclusive after the rewrite.
+func canonicalUpper(lt, lte string) (string, bool) {
+	if v := strings.TrimSpace(lt); v != "" {
+		return v, true
+	}
+	if v := strings.TrimSpace(lte); v != "" {
+		if next, ok := nextRelease(v); ok {
+			return next, true
+		}
+		return v, false
+	}
+	return "", false
 }

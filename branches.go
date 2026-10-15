@@ -83,10 +83,7 @@ func sameEnvelope(a, b []factRange, eco string) bool {
 func envelope(rs []factRange, eco string) (lo, hi string, ok bool) {
 	first := true
 	for _, r := range rs {
-		upper := r.lt
-		if upper == "" {
-			upper = r.lte
-		}
+		upper, _ := canonicalUpper(r.lt, r.lte)
 		if upper == "" || upper == "*" {
 			return "", "", false
 		}
@@ -144,10 +141,7 @@ func dropEnvelopeFill(cd *cveData, installed, eco string) {
 				continue
 			}
 			lo, hi, ok := envelope(t.rows, eco)
-			upper := x.lt
-			if upper == "" {
-				upper = x.lte
-			}
+			upper, _ := canonicalUpper(x.lt, x.lte)
 			if ok && lo == x.lower && hi == upper {
 				return true
 			}

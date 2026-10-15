@@ -664,3 +664,65 @@ func TestEcosystemEvidenceCoversTheRegistryHostsAdvisoriesUse(t *testing.T) {
 		}
 	}
 }
+
+// vrle is vrs with an inclusive upper bound (lessThanOrEqual), which is how cve.org,
+// GitLab and NVD write the last affected release.
+func vrle(cve, prod, src, status, version string, lessThanOrEqual any) []any {
+	r := vrs(cve, prod, src, status, version, nil)
+	r[7] = lessThanOrEqual
+	return r
+}
+
+// cryptiles CVE-2018-1000620: GitLab and cve.org write `0 .. <= 4.1.1`; GitHub and OSV
+// write `3.1.0 .. < 4.1.2`. The same end spelled two ways, so the later start stands and
+// 0.2.2, which predates randomDigits, does not match.
+func TestZeroStartLosesWhenTheFixIsSpelledInclusive(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vrle("CVE-C", "gl-p", "gitlab", "affected", "0", "4.1.1"),
+		vrs("CVE-C", "gh-p", "github", "affected", "3.1.0", "4.1.2"),
+	}}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "cryptiles", Version: "0.2.2", Ecosystem: "npm"})); len(got) != 0 {
+		t.Fatalf("0.2.2 is before the stated start 3.1.0 and must not match, got %v", got)
+	}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "cryptiles", Version: "4.1.1", Ecosystem: "npm"})); len(got) == 0 {
+		t.Fatal("4.1.1 is the last affected release and must match")
+	}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "cryptiles", Version: "4.1.2", Ecosystem: "npm"})); len(got) != 0 {
+		t.Fatalf("4.1.2 is the fix and must not match, got %v", got)
+	}
+}
+
+// An inclusive bound is not rewritten when it has no successor to name: a pre-release or
+// a suffixed version is compared as written, so two different ends are never merged.
+func TestZeroStartKeptWhenAnInclusiveEndIsNotPlainNumeric(t *testing.T) {
+	q := &fakeQuerier{versionRange: [][]any{
+		vrle("CVE-D", "gl-p", "gitlab", "affected", "0", "4.1.1-rc1"),
+		vrs("CVE-D", "gh-p", "github", "affected", "3.1.0", "4.1.2"),
+	}}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "x", Version: "1.0.0", Ecosystem: "npm"})); len(got) == 0 {
+		t.Fatal("ends that cannot be shown equal must not supersede one another")
+	}
+}
+
+// brace-expansion CVE-2026-14257: cve.org states one coarse `0 .. <= 5.0.7`; GitHub states
+// it per branch (`< 1.1.17`, `2.0.0 .. < 2.1.3`, `3.0.0 .. < 3.0.3`, `4.0.0 .. < 5.0.8`).
+// The ends are the same (<= 5.0.7 is < 5.0.8), so 1.1.21, past the 1.x fix, is not affected.
+func TestFinerBranchRangesBeatACoarseRangeWithAnInclusiveEnd(t *testing.T) {
+	rows := [][]any{
+		vrle("CVE-B", "cveorg-p", "cve.org", "affected", "0", "5.0.7"),
+		vrs("GHSA-B", "gh-a", "github", "affected", "0", "1.1.17"),
+		vrs("GHSA-B", "gh-b", "github", "affected", "2.0.0", "2.1.3"),
+		vrs("GHSA-B", "gh-c", "github", "affected", "3.0.0", "3.0.3"),
+		vrs("GHSA-B", "gh-d", "github", "affected", "4.0.0", "5.0.8"),
+	}
+	q := &fakeQuerier{versionRange: rows, alias: [][]any{{"CVE-B", "GHSA-B"}}}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "brace-expansion", Version: "1.1.21", Ecosystem: "npm"})); len(got) != 0 {
+		t.Fatalf("1.1.21 is past the 1.x fix and must not match, got %v", got)
+	}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "brace-expansion", Version: "1.1.16", Ecosystem: "npm"})); len(got) == 0 {
+		t.Fatal("1.1.16 is inside < 1.1.17 and must match")
+	}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "brace-expansion", Version: "2.1.2", Ecosystem: "npm"})); len(got) == 0 {
+		t.Fatal("2.1.2 is inside 2.0.0 .. < 2.1.3 and must match")
+	}
+}
