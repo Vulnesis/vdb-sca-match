@@ -71,35 +71,51 @@ func rangesContain(rs []factRange, installed, eco string) bool {
 // sameEnvelope reports that both range sets start at the same lowest version and end at
 // the same highest one.
 func sameEnvelope(a, b []factRange, eco string) bool {
-	loA, hiA, okA := envelope(a, eco)
-	loB, hiB, okB := envelope(b, eco)
+	loA, hiA, cA, okA := envelope(a, eco)
+	loB, hiB, cB, okB := envelope(b, eco)
 	if !okA || !okB {
 		return false
 	}
-	return loA == loB && hiA == hiB
+	return loA == loB && sameEnd(hiA, cA, hiB, cB)
+}
+
+// sameEnd reports that two range ends are one end: the same version (whether the source
+// wrote it as inclusive or exclusive, since a CNA that writes `<= 3.2.2` for a release the
+// ecosystem sources fix at 3.2.2 is making the common off-by-one), or the same first
+// release outside the range once an inclusive bound is read as `< next`.
+func sameEnd(rawA, canonA, rawB, canonB string) bool {
+	return rawA == rawB || canonA == canonB
 }
 
 // envelope returns the lowest start and highest end, as the version strings that carry them.
-func envelope(rs []factRange, eco string) (lo, hi string, ok bool) {
+func envelope(rs []factRange, eco string) (lo, hi, canonHi string, ok bool) {
 	first := true
+	var rawHi string
 	for _, r := range rs {
-		upper, _ := canonicalUpper(r.lt, r.lte)
-		if upper == "" || upper == "*" {
-			return "", "", false
+		raw := r.lt
+		if raw == "" {
+			raw = r.lte
+		}
+		canon, _ := canonicalUpper(r.lt, r.lte)
+		if raw == "" || raw == "*" {
+			return "", "", "", false
 		}
 		start := r.lower
 		if first {
-			lo, hi, first = start, upper, false
+			lo, rawHi, canonHi, first = start, raw, canon, false
 			continue
 		}
 		if c, ok := ver.Compare(eco, r.vt, start, lo); ok && c < 0 {
 			lo = start
 		}
-		if c, ok := ver.Compare(eco, r.vt, upper, hi); ok && c > 0 {
-			hi = upper
+		if c, ok := ver.Compare(eco, r.vt, raw, rawHi); ok && c > 0 {
+			rawHi = raw
+		}
+		if c, ok := ver.Compare(eco, r.vt, canon, canonHi); ok && c > 0 {
+			canonHi = canon
 		}
 	}
-	return lo, hi, !first
+	return lo, rawHi, canonHi, !first
 }
 
 // dropEnvelopeFill removes, within one CVE, a single range that spans the whole of what
@@ -129,20 +145,44 @@ func dropEnvelopeFill(cd *cveData, installed, eco string) {
 			by[r.src].rows = append(by[r.src].rows, factRange{lower: r.version, lt: r.lessThan, lte: r.lessThanOrEqual, vt: r.versionType, src: r.src})
 		}
 	}
-	if len(by) < 2 {
+	if len(by) < 1 {
 		return
 	}
 	filled := func(x factRange) bool {
 		if !rangesContain([]factRange{x}, installed, eco) {
 			return false
 		}
+		xRaw := x.lt
+		if xRaw == "" {
+			xRaw = x.lte
+		}
+		xCanon, _ := canonicalUpper(x.lt, x.lte)
 		for src, t := range by {
-			if src == x.src || len(t.rows) < 2 || rangesContain(t.rows, installed, eco) {
+			rows := t.rows
+			if src == x.src {
+				// The same source may state the envelope and the branches (cve.org lists
+				// brace-expansion as `0 .. <= 5.0.7` beside `0 .. < 1.1.17`,
+				// `2.0.0 .. < 2.1.3`, ...). The envelope row is then the summary of the
+				// branches, not a second claim, so judge it against the rows that are not
+				// the envelope itself.
+				rows = nil
+				for _, o := range t.rows {
+					oRaw := o.lt
+					if oRaw == "" {
+						oRaw = o.lte
+					}
+					oCanon, _ := canonicalUpper(o.lt, o.lte)
+					if o.lower == x.lower && sameEnd(xRaw, xCanon, oRaw, oCanon) {
+						continue
+					}
+					rows = append(rows, o)
+				}
+			}
+			if len(rows) < 2 || rangesContain(rows, installed, eco) {
 				continue
 			}
-			lo, hi, ok := envelope(t.rows, eco)
-			upper, _ := canonicalUpper(x.lt, x.lte)
-			if ok && lo == x.lower && hi == upper {
+			lo, hi, canonHi, ok := envelope(rows, eco)
+			if ok && lo == x.lower && sameEnd(xRaw, xCanon, hi, canonHi) {
 				return true
 			}
 		}

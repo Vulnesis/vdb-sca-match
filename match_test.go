@@ -726,3 +726,42 @@ func TestFinerBranchRangesBeatACoarseRangeWithAnInclusiveEnd(t *testing.T) {
 		t.Fatal("2.1.2 is inside 2.0.0 .. < 2.1.3 and must match")
 	}
 }
+
+// cve.org lists brace-expansion's CVE-2026-14257 as a summary row `0 .. <= 5.0.7` beside the
+// branches it summarises (`< 1.1.17`, `2.0.0 .. < 2.1.3`, `3.0.0 .. < 3.0.3`,
+// `4.0.0 .. < 5.0.8`). One source, no other to corroborate: the summary is not a second
+// claim, and 1.1.21 sits in the gap the branches leave.
+func TestSameSourceEnvelopeRowDoesNotFillTheGapBetweenItsOwnBranches(t *testing.T) {
+	rows := [][]any{
+		vrle("CVE-S", "p", "cve.org", "affected", "0", "5.0.7"),
+		vrle("CVE-S", "p", "cve.org", "affected", "0", "5.0.7"),
+		vrs("CVE-S", "p", "cve.org", "affected", "0", "1.1.17"),
+		vrs("CVE-S", "p", "cve.org", "affected", "2.0.0", "2.1.3"),
+		vrs("CVE-S", "p", "cve.org", "affected", "3.0.0", "3.0.3"),
+		vrs("CVE-S", "p", "cve.org", "affected", "4.0.0", "5.0.8"),
+	}
+	q := &fakeQuerier{versionRange: rows}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "brace-expansion", Version: "1.1.21", Ecosystem: "npm"})); len(got) != 0 {
+		t.Fatalf("1.1.21 is past the 1.x fix and must not match, got %v", got)
+	}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "brace-expansion", Version: "1.1.5", Ecosystem: "npm"})); len(got) == 0 {
+		t.Fatal("1.1.5 is inside < 1.1.17 and must match")
+	}
+}
+
+// commons-collections CVE-2015-6420: GitHub, GitLab and OSV say `< 3.2.2`; cve.org also
+// carries `<= 3.2.2`, the common off-by-one (the release the others fix). The ecosystem
+// sources agree on the fix, so 3.2.2 is not affected.
+func TestInclusiveEndAtTheFixedReleaseStillMatchesReleasesBelowIt(t *testing.T) {
+	rows := [][]any{
+		vrle("CVE-O", "p", "cve.org", "affected", "0", "3.2.2"),
+		vrle("CVE-O", "p", "cve.org", "affected", "20030418.083655", "20040616"),
+		vrs("CVE-O", "p", "github", "affected", "0", "3.2.2"),
+		vrs("CVE-O", "p", "gitlab", "affected", "0", "3.2.2"),
+		vrs("CVE-O", "p", "gitlab", "affected", "0", "3.2.2"),
+	}
+	q := &fakeQuerier{versionRange: rows}
+	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "commons-collections", Version: "3.2.1", Ecosystem: "maven"})); len(got) == 0 {
+		t.Fatal("3.2.1 is inside < 3.2.2 and must match")
+	}
+}
