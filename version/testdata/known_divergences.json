@@ -1,0 +1,14 @@
+[
+  {
+    "scheme": "calver",
+    "kind": "stability",
+    "key": "2024.02.02",
+    "reason": "contradicts the vector 2024.02.15 (orderable, stable) and the ordering vector 2024.01.02 < 2024.1.15 < 2024.01.31; zero-padded 0M.0D must be accepted, so the SemVer-validity rationale for unparseable does not apply to CalVer"
+  },
+  {
+    "scheme": "calver",
+    "kind": "stability",
+    "key": "20240115.1",
+    "reason": "contradicts the ordering vector 20231201 < 20240101 < 20240101.1, which needs the same shape to be orderable; the 65535 field limit is a Chrome manifest rule (see browser-extension), not a CalVer rule"
+  }
+]

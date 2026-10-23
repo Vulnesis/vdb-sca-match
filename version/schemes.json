@@ -1,0 +1,4543 @@
+[
+ {
+  "id": "alpine",
+  "name": "Alpine apk (digits, letter, suffixes, ~hash, -rN)",
+  "family": "distro",
+  "spec": [
+   "https://gitlab.alpinelinux.org/alpine/abuild/-/blob/master/APKBUILD.5.scd",
+   "https://github.com/alpinelinux/apk-tools/blob/v3.0.8/src/version.c",
+   "https://github.com/alpinelinux/apk-tools/blob/v3.0.8/test/unit/version.data"
+  ],
+  "ecosystems": [
+   "alpine",
+   "alpaquita",
+   "bellsoft hardened containers",
+   "minimos"
+  ],
+  "purlTypes": [
+   "apk"
+  ],
+  "ordering": "alpine",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "_alpha, _beta, _pre, _rc (+ optional number): strictly below the bare version; ladder alpha < beta < pre < rc < release.",
+  "buildMetadata": "None. ~<hex> commit hash (apk-tools 3 only) participates in ordering and sorts above the bare version.",
+  "epoch": "None.",
+  "postRelease": "_p<N>, _cvs, _svn, _git, _hg suffixes and a single trailing letter sort above the bare version (cvs < svn < git < hg < p < letter).",
+  "yankedDeprecated": "No in-band flag. Packages are deleted from a repository branch (edge, vX.Y); secdb lists fixed versions as pkgver-rN.",
+  "stableRule": "Version must pass apk_version_validate (otherwise unparseable). It is UNSTABLE iff it contains _alpha, _beta, _pre or _rc (regex _(alpha|beta|pre|rc)\\d*), a snapshot suffix _(git|hg|cvs|svn)\\d*, or a ~<hex> commit marker. -rN (pkgrel, including security bumps), _p<N>, and a trailing letter are STABLE.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "_(alpha|beta|pre|rc)\\d*",
+    "examples": [
+     "1.2.3_rc1-r0",
+     "1.2.3_beta2"
+    ]
+   },
+   {
+    "kind": "git-snapshot",
+    "syntax": "_(git|hg|cvs|svn)\\d*",
+    "examples": [
+     "1.2.3_git20240101-r0",
+     "1.2.3_svn1234"
+    ]
+   },
+   {
+    "kind": "git-snapshot",
+    "syntax": "~[0-9a-f]+ (v3 only)",
+    "examples": [
+     "1.2.3~abcdef0-r0"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "_alpha/_beta/_pre/_rc suffix",
+   "buildMetadata": "none (~hash is the nearest, but ordered)",
+   "epoch": "none",
+   "postRelease": "_p<N>, _git/_svn/_cvs/_hg, trailing letter"
+  },
+  "conventions": [
+   "-rN is pkgrel (APKBUILD first release is 0); 1.0 < 1.0-r0 < 1.0-r1 in C apk-tools.",
+   "A numeric component with a leading zero switches to raw string comparison (1.01 < 1.1, 1.0 < 1.00).",
+   "Suffix ladder: alpha < beta < pre < rc < (none) < cvs < svn < git < hg < p.",
+   "Suffixes may chain (1.1.3_pre_p2, 1.0_rc1_git20240101-r3).",
+   "Snapshot pkgver convention <last-release>_git<YYYYMMDD>.",
+   "Release branches (edge, testing, v3.xx) are channels, not version syntax."
+  ],
+  "knownGaps": [
+   "apk-tools 2.14.x differs: no ~hash and a different leading-zero path; which Alpine release ships which apk-tools was not verified.",
+   "Compare tokenises invalid input up to the bad token; callers must validate first.",
+   "Alpaquita, BellSoft Hardened Containers and MinimOS are mapped here by assumption."
+  ],
+  "vectorSchemes": [
+   "alpine"
+  ]
+ },
+ {
+  "id": "android",
+  "name": "Android OSV version (<branch>[L][-qprN][-next]:<SPL>)",
+  "family": "distro",
+  "spec": [
+   "https://ossf.github.io/osv-schema/",
+   "https://source.android.com/docs/setup/reference/build-numbers",
+   "https://source.android.com/docs/security/bulletin/asb-overview",
+   "https://developer.android.com/guide/topics/manifest/uses-sdk-element",
+   "https://developer.android.com/studio/publish/versioning"
+  ],
+  "ecosystems": [
+   "android"
+  ],
+  "purlTypes": [],
+  "ordering": "custom:android-osv",
+  "orderingFidelity": "approximate",
+  "recencyOnly": "partial",
+  "prerelease": "No documented syntax. The -next suffix on a branch (13-next) is inferred to be an unreleased development track.",
+  "buildMetadata": "None in OSV strings; AOSP build IDs (PVBB.YYMMDD.bbb[.Cn]) are a separate identifier kind.",
+  "epoch": "None.",
+  "postRelease": "Security patch level after the colon (:YYYY-MM-DD) is the fix granularity within a branch; -qprN and L are later platform releases within a major.",
+  "yankedDeprecated": "None in the version string. Branches reach end of life; apps are superseded by a higher versionCode, which can never be reused on Google Play.",
+  "stableRule": "Version must match ^\\d+(\\.\\d+)?L?(-qpr\\d+)?(-next)?(:\\d{4}-\\d{2}-\\d{2}|:0)?$ (else unparseable: build IDs, AOSP tags, three-component marketing versions). UNSTABLE iff it ends the branch part with -next; bare branches, L, -qprN and any :SPL are STABLE.",
+  "unstableMarkers": [
+   {
+    "kind": "dev",
+    "syntax": "-next after the branch part",
+    "examples": [
+     "13-next",
+     "16-qpr2-next:2025-12-01",
+     "12L-next"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "-next (inferred)",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": ":SPL date, -qprN, L"
+  },
+  "conventions": [
+   "OSV composite <branch>:<SPL>: introduced '<branch>:0', fixed '<branch>:<SPL>', versions list holds the bare branch.",
+   "12L is Android 12.1 (API 32); 16-qprN are quarterly platform releases (API 36.N in the build table).",
+   "API level is a single integer that cannot be derived from the marketing version; the manifest cannot express minor API levels.",
+   "App versionCode is a monotonically increasing positive integer (max 2100000000); versionName is display-only.",
+   "Kernel advisories use package name :linux_kernel:<SoC vendor>."
+  ],
+  "knownGaps": [
+   "No reference comparator exists; the order is derived from OSV data and Android docs.",
+   "The meaning of -next is inferred, not documented.",
+   "SPL -01/-05/-06 semantics are not defined on the bulletin overview page.",
+   "Build-ID and AOSP-tag ordering is only meaningful within a platform branch and is not implemented."
+  ],
+  "vectorSchemes": [
+   "android"
+  ]
+ },
+ {
+  "id": "arch",
+  "name": "Arch pacman/libalpm (epoch:pkgver-pkgrel)",
+  "family": "distro",
+  "spec": [
+   "https://man.archlinux.org/man/vercmp.8",
+   "https://man.archlinux.org/man/PKGBUILD.5",
+   "https://wiki.archlinux.org/title/VCS_package_guidelines",
+   "https://gitlab.archlinux.org/pacman/pacman/-/blob/master/lib/libalpm/version.c"
+  ],
+  "ecosystems": [
+   "arch",
+   "archlinux",
+   "cachyos",
+   "manjaro",
+   "endeavouros",
+   "aur"
+  ],
+  "purlTypes": [
+   "alpm"
+  ],
+  "ordering": "arch",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "No syntax. A trailing alpha attached directly to a number (1.0rc1) sorts below 1.0 by the trailing-alpha rule; with any separator (1.0_rc1, 1.0.rc1, 1.0~rc1) it sorts ABOVE 1.0.",
+  "buildMetadata": "None. '+' and '~' are plain separators.",
+  "epoch": "epoch= in PKGBUILD, epoch: prefix, positive integer default 0, dominates.",
+  "postRelease": "Extra segment (1.0.1, 1.0.a) sorts above the base.",
+  "yankedDeprecated": "No in-band flag. Package removed from the sync repo; old builds in the Arch Linux Archive; AUR packages can be deleted or orphaned.",
+  "stableRule": "No version syntax distinguishes stable, so classify by convention on pkgver (pkgrel and epoch removed): UNSTABLE iff it has a delimited pre-release word (alpha|beta|rc|pre|preview|prerelease|milestone|candidate)\\d*, a VCS form (r\\d+\\.[0-9a-f]{7,}, \\.r\\d+\\.g[0-9a-f]{7,}, \\+r\\d+\\+g[0-9a-f]{7,}, (git|svn|hg|bzr|cvs|darcs) + digits/hex), or a dev/nightly/snapshot word. pkgrel bumps (-2, -1.1), epochs, date versions and single patch letters (1.1.1k) are STABLE.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "delimited alpha|beta|rc|pre words in pkgver",
+    "examples": [
+     "1.2.3rc1-1",
+     "1.2.3_rc1-1",
+     "1.2.3.beta2-1"
+    ]
+   },
+   {
+    "kind": "git-snapshot",
+    "syntax": "r<count>.<sha7+>; <tag>.r<N>.g<sha7+>; +git<date>",
+    "examples": [
+     "r1234.abcdef0-1",
+     "1.2.3.r15.g1a2b3c4-1",
+     "1.2.3+git20240101-1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "delimited words dev|snapshot",
+    "examples": [
+     "1.2.3.dev0-1"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "delimited word nightly",
+    "examples": [
+     "20240101.nightly-1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "none (trailing-alpha accident)",
+   "buildMetadata": "none",
+   "epoch": "epoch",
+   "postRelease": "extra segment"
+  },
+  "conventions": [
+   "pkgver forbids hyphen, colon, slash, whitespace; upstream 1.0-rc1 must be respelled and the spelling changes ordering.",
+   "pkgrel is N or N.M; compared only when both versions have one (1.5 == 1.5-1).",
+   "VCS packages carry -git/-svn/-hg/-bzr/-cvs/-darcs in the package NAME and generate pkgver via git describe | sed or r<count>.<sha>.",
+   "Separator-run length differs => shorter run is older (1.0..1 > 1.0.1).",
+   "Repositories (core, extra, *-testing, *-staging) are channels, not version syntax."
+  ],
+  "knownGaps": [
+   "Pre-release and snapshot classification is purely heuristic.",
+   "libalpm vercmp is rpm 4.8.1-derived: do not reuse the rpm scheme (no ~ or ^).",
+   "Arch packaging-guideline text on pre-release spelling was not retrieved.",
+   "Manjaro/CachyOS/EndeavourOS rebuild markers not verified."
+  ],
+  "vectorSchemes": [
+   "arch"
+  ]
+ },
+ {
+  "id": "bitnami",
+  "name": "Bitnami X.Y.Z[-revision] (revision-aware SemVer)",
+  "family": "distro",
+  "spec": [
+   "https://github.com/aquasecurity/trivy/discussions/5622",
+   "https://github.com/bitnami/go-version/blob/main/pkg/version/version.go",
+   "https://ossf.github.io/osv-schema/",
+   "https://blog.bitnami.com/2024/02/debian-12-is-now-base-operating-system.html"
+  ],
+  "ecosystems": [
+   "bitnami"
+  ],
+  "purlTypes": [
+   "bitnami"
+  ],
+  "ordering": "bitnami",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Not supported as SemVer pre-release: the '-' slot is a REVISION, so 1.0.0-rc1 sorts ABOVE 1.0.0. Named pre-releases are detected by word only.",
+  "buildMetadata": "+meta is ignored for ordering (1.0.0+a == 1.0.0+b).",
+  "epoch": "None.",
+  "postRelease": "The revision itself: 2.4.58 < 2.4.58-1 < 2.4.58-2 < 2.4.59; compared as SemVer pre-release identifiers (numeric before alphanumeric, lexical for alphanumerics).",
+  "yankedDeprecated": "No flag in the version. Old images moved to the bitnamilegacy namespace (no longer updated); rolling tags move on rebuild, immutable tags are fixed.",
+  "stableRule": "Version must be exactly three numeric components plus optional -revision and +meta (SemVer regex without leading zeros), else unparseable. The revision slot is a REBUILD counter: -N, -rN and -<distro>-<release>-rN (7.2.4-debian-12-r5) are STABLE. UNSTABLE iff the revision part contains a delimited pre-release word (alpha|beta|rc|pre|preview|prerelease|milestone|candidate)\\d*, nightly, dev|devel|snapshot|canary, or a VCS word.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "delimited alpha|beta|rc|pre words in the revision part",
+    "examples": [
+     "1.0.0-rc1",
+     "1.0.0-beta.2",
+     "1.0.0-rc.1-debian-12-r1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "words dev|devel|snapshot|canary in the revision part",
+    "examples": [
+     "1.0.0-snapshot"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "word nightly in the revision part",
+    "examples": [
+     "1.0.0-nightly"
+    ]
+   },
+   {
+    "kind": "git-snapshot",
+    "syntax": "git|svn|hg|bzr|cvs + digits/hex in the revision part",
+    "examples": [
+     "1.0.0-git20240101"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "none (the '-' slot is a post-release revision)",
+   "buildMetadata": "+meta (ignored)",
+   "epoch": "none",
+   "postRelease": "-revision (-N, -rN)"
+  },
+  "conventions": [
+   "A plain SemVer comparer ranks 2.4.58-1 below 2.4.58 (real Trivy false positive); Bitnami's comparer ranks any revision above none.",
+   "Container tags: rolling 6.4.3 vs immutable 6.4.3-debian-12-r10; rN increments per rebuild and resets to r0 when the base OS changes (debian-11-r4 -> debian-12-r0).",
+   "Revision r5 vs r10 in a container tag is ONE alphanumeric identifier and compares lexically (r5 > r10).",
+   "Two- or four-component versions are invalid for the comparer.",
+   "Helm chart versions are the chart's own SemVer, independent of appVersion."
+  ],
+  "knownGaps": [
+   "No official Bitnami document defines the grammar; sources are maintainer statements in the Trivy thread, tag docs via summary, and the go-version code.",
+   "Sampled OSV Bitnami data (redis, 50 advisories) used plain SemVer ranges without revisions.",
+   "Legacy-namespace move seen only via search summary and Docker Hub listing."
+  ],
+  "vectorSchemes": [
+   "bitnami"
+  ]
+ },
+ {
+  "id": "debian",
+  "name": "Debian dpkg (epoch:upstream-revision)",
+  "family": "distro",
+  "spec": [
+   "https://www.debian.org/doc/debian-policy/ch-controlfields.html#version",
+   "https://manpages.debian.org/unstable/dpkg-dev/deb-version.7.en.html",
+   "https://ubuntu.com/project/docs/how-ubuntu-is-made/concepts/version-strings/",
+   "https://github.com/guillemj/dpkg/blob/main/lib/dpkg/version.c"
+  ],
+  "ecosystems": [
+   "debian",
+   "ubuntu",
+   "kali",
+   "raspbian",
+   "raspberry pi os",
+   "linuxmint",
+   "mint",
+   "devuan",
+   "echo",
+   "pureos",
+   "tails"
+  ],
+  "purlTypes": [
+   "deb"
+  ],
+  "ordering": "debian",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Tilde: 1.0~rc1 sorts before 1.0 (and 1.0~~ < 1.0~~a < 1.0~ < 1.0). A bare 1.0rc1 is NOT ordered as a pre-release: it sorts after 1.0.",
+  "buildMetadata": "None. +b1 (binNMU), +dfsg, +git2024... are ordinary characters and take part in ordering ('+' sorts after end of string).",
+  "epoch": "Integer before the first colon, default 0, dominates everything (2:0.1 > 1:9.9).",
+  "postRelease": "Any +suffix on upstream or revision (+b1, +nmu1, +deb12u1, +really2.2, +dfsg) sorts above the bare version.",
+  "yankedDeprecated": "No in-band flag. Removal from a suite by ftpmaster (archive); fixed status lives in the Debian Security Tracker; history in snapshot.debian.org.",
+  "stableRule": "A version is STABLE unless, after deleting the stable tilde tokens ~bpo\\d+, ~deb\\d+u\\d+, ~\\d{2}\\.\\d{2}(\\.\\d+)*, ~ubuntu\\d[\\d.]*, ~esm\\d*, ~backport\\d*, it still contains a '~', OR contains a pre-release word (?<![A-Za-z])(alpha|beta|rc|pre|preview|prerelease|milestone|candidate)([._-]?\\d+)?(?![A-Za-z]), OR a VCS/nightly/dev marker (git|svn|hg|bzr|cvs|darcs)(hex|digits)|nightly|dev|snapshot, OR a +YYYYMMDD date snapshot. Security/stable rebuild suffixes (-1ubuntu0.22.04.1, +deb11u1, +b1, +nmu1, +esm1, +dfsg, +really2.2-1, -0.1, kaliN, +rpiN) and stable backport tildes (~bpo11+1, ~deb12u1, ubuntu0~16.04.4, ubuntu2~22.04.1) are STABLE.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "~ not followed by a stable backport token (bpo, debNuN, YY.MM, ubuntuN, esm); or words alpha|beta|rc|pre|preview as delimited tokens",
+    "examples": [
+     "1.0~rc1-1",
+     "2.0rc1-1",
+     "1.0~beta2+dfsg-1"
+    ]
+   },
+   {
+    "kind": "git-snapshot",
+    "syntax": "(git|svn|hg|bzr|cvs|darcs) followed by digits/hex, or .g<7+hex> at end",
+    "examples": [
+     "1.0+git20240101.abc1234-1",
+     "1.0~git20240101-1",
+     "0.9+svn1234-2"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "+YYYYMMDD / ~YYYYMMDD date stamp (heuristic)",
+    "examples": [
+     "1.0+20240101-1"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "delimited word nightly",
+    "examples": [
+     "1.0+nightly20240101-1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "delimited words dev|devel|snapshot|canary",
+    "examples": [
+     "2.0.0~dev1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "~ (tilde) in upstream_version; sorts before the release",
+   "buildMetadata": "none (+bN, +dfsg participate in ordering)",
+   "epoch": "epoch: prefix",
+   "postRelease": "+suffix (+bN, +debNuM, +really)"
+  },
+  "conventions": [
+   "Revision is everything after the LAST hyphen; absent revision equals revision 0 and sorts below any non-zero revision (1.0 < 1.0-1).",
+   "binNMU +bN (2.9-3 -> 2.9-3+b1); source version unchanged, binary version higher.",
+   "NMU: native +nmuN, non-native revision -X.Y (1.5-3 -> 1.5-3.1, 1.0-0.1).",
+   "Stable security/point updates +debXuN (X = release major); same-upstream uploads to stable may use ~debXuN.",
+   "Backports ~bpoX+N sort below the same version without the tilde and above ~bpo(X-1).",
+   "+really rollback without epoch bump (2.3+really2.2-1); never use an epoch for rollbacks.",
+   "Ubuntu: ubuntuN (delta), buildN (no-change rebuild), maysync1 < ubuntu1 < willsync1, SRU ubuntu0.N and ubuntu0.<YY.MM>.N, backport ~<YY.MM>.N, +esmN (Pro ESM).",
+   "Repacked upstream tarballs +dfsg / +ds / +repack are part of upstream_version and stable.",
+   "Suites (stable, testing, unstable, *-backports, *-proposed-updates) are archive channels, never in the version string."
+  ],
+  "knownGaps": [
+   "+YYYYMMDD date-snapshot detection and bare rc/beta words without tilde are heuristics, not Policy rules.",
+   "dpkg treats a non-digit start or odd characters as warnings, not errors; vectors mark them orderable=true.",
+   "Mint +mintN and Kali kaliN suffix forms were not verified against distro documents.",
+   "Developers Reference text on non-native NMU numbering (-1.1) was truncated in the fetch."
+  ],
+  "vectorSchemes": [
+   "debian"
+  ]
+ },
+ {
+  "id": "gentoo",
+  "name": "Gentoo ebuild version (PMS)",
+  "family": "distro",
+  "spec": [
+   "https://projects.gentoo.org/pms/latest/pms.html",
+   "https://devmanual.gentoo.org/ebuild-writing/file-format/index.html",
+   "https://github.com/gentoo/portage/blob/master/lib/portage/versions.py"
+  ],
+  "ecosystems": [
+   "gentoo",
+   "portage"
+  ],
+  "purlTypes": [],
+  "ordering": "gentoo",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "_alpha, _beta, _pre, _rc suffixes (+ number); ladder alpha < beta < pre < rc < release < _p.",
+  "buildMetadata": "None.",
+  "epoch": "None.",
+  "postRelease": "_p<N> upstream patch release and a trailing letter (1.0a) sort above the bare version.",
+  "yankedDeprecated": "Not in the version. package.mask and last-rites removal from the tree; GLSA for security; stability is the per-arch KEYWORDS entry (amd64 vs ~amd64).",
+  "stableRule": "Version must match ^[0-9]+(\\.[0-9]+)*[a-z]?(_(alpha|beta|pre|rc|p)[0-9]*)*(-r[0-9]+)?$ (else unparseable). UNSTABLE iff it has _(alpha|beta|pre|rc)\\d*, a date snapshot _p\\d{8}, or a live marker component 9999+ ((^|\\.)9{4,}(?=$|\\.|[a-z_-])). -rN (Gentoo revision) and _p<N> patch releases are STABLE. Real 'stable' is KEYWORDS, not the version string.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "_(alpha|beta|pre|rc)\\d*",
+    "examples": [
+     "1.2.3_rc1-r1",
+     "1.2.3_pre20240101"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "_p\\d{8} (devmanual last-release_pYYYYMMDD)",
+    "examples": [
+     "1.2.3_p20240101"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "live ebuild: 9999 or 9{4,} as a version component",
+    "examples": [
+     "9999",
+     "1.2.9999",
+     "99999999"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "_alpha/_beta/_pre/_rc suffix",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "_p<N>, trailing letter"
+  },
+  "conventions": [
+   "-rN is a Gentoo-side revision; absent equals -r0 (1.0 == 1.0-r0).",
+   "A numeric component with a leading zero compares as a decimal fraction (1.01 < 1.1); more components wins (1.0 < 1.0.0).",
+   "A trailing letter is compared after all numeric components (1.0b < 1.0.0).",
+   "Suffixes chain (1.0.0_alpha_rc1); if one side has extra suffixes the first extra _p makes it greater, any other makes it smaller.",
+   "Snapshots: <last>_pYYYYMMDD (post) or <upcoming>_preYYYYMMDD (pre); live ebuilds use 9999 or 99999999.",
+   "_git/_svn/_cvs/_hg suffixes are not Gentoo syntax."
+  ],
+  "knownGaps": [
+   "Only the first 100,000 of 220,673 characters of the PMS page were read.",
+   "_p\\d{8} may misflag a genuine 8-digit patch counter.",
+   "Stability via KEYWORDS and package.mask is outside the version string.",
+   "No purl type is known for Gentoo."
+  ],
+  "vectorSchemes": [
+   "gentoo"
+  ]
+ },
+ {
+  "id": "homebrew",
+  "name": "Homebrew formula version (Version/PkgVersion)",
+  "family": "distro",
+  "spec": [
+   "https://ossf.github.io/osv-schema/",
+   "https://github.com/Homebrew/brew/blob/HEAD/Library/Homebrew/version.rb",
+   "https://github.com/Homebrew/brew/blob/HEAD/Library/Homebrew/pkg_version.rb"
+  ],
+  "ecosystems": [
+   "homebrew",
+   "brew"
+  ],
+  "purlTypes": [
+   "brew"
+  ],
+  "ordering": "homebrew",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Tokens alpha[N]|aN, beta[N]|bN, pre[N], rc[N] (case-insensitive, any separator); ladder alpha < beta < pre < rc < release.",
+  "buildMetadata": "None; all tokens are compared.",
+  "epoch": "Formula version_scheme (integer, compared before version); not part of the version string.",
+  "postRelease": "pN and .postN tokens sort above the release; unknown words (-dev, -nightly) also sort above.",
+  "yankedDeprecated": "Not in the version. Formula DSL deprecate!/disable! or removal from the tap; versioned formulae (name@N) hold older streams.",
+  "stableRule": "After removing the formula revision suffix _\\d+$, UNSTABLE iff the version contains a pre-release token (?<![A-Za-z])(alpha|beta|pre|rc)\\d*(?![A-Za-z]) or (?<=\\d)[ab]\\d+, or equals HEAD / HEAD-<sha>, or has a dev|devel|snapshot|canary|nightly word or VCS word. _N revision, pN and .postN are STABLE.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "alpha|beta|pre|rc tokens, aN, bN",
+    "examples": [
+     "1.2.3rc1",
+     "2.0.0-beta.2",
+     "2.0.0a1"
+    ]
+   },
+   {
+    "kind": "branch-ref",
+    "syntax": "HEAD or HEAD-<commit>",
+    "examples": [
+     "HEAD",
+     "HEAD-abc1234"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "words dev|devel|snapshot|canary",
+    "examples": [
+     "1.2.3-dev"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "word nightly",
+    "examples": [
+     "1.2.3-nightly"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "alpha/beta/pre/rc tokens",
+   "buildMetadata": "none",
+   "epoch": "version_scheme (Formula attribute)",
+   "postRelease": "pN / .postN tokens"
+  },
+  "conventions": [
+   "_N suffix is the formula revision (rebuild), compared after the version; omitted when 0; carried by OSV and pkg:brew purls.",
+   "name@N selects a version stream in the NAME.",
+   "HEAD versions are equal to each other and greater than every release.",
+   "1 == 1.0 == 1.0.0 (zero tokens equal the absent token).",
+   "Bottle rebuild numbers are not part of the version."
+  ],
+  "knownGaps": [
+   "Unknown words (-dev, -nightly) sort above the release; do not infer stability from ordering.",
+   "a1/b1 tokens may misread a patch letter plus build number.",
+   "version_scheme is not in the version string; string-only comparison cannot reproduce Formula-level order.",
+   "Casks are not covered."
+  ],
+  "vectorSchemes": [
+   "homebrew"
+  ]
+ },
+ {
+  "id": "linux",
+  "name": "Linux kernel mainline (x.y[.z[.w]][-rcN])",
+  "family": "distro",
+  "spec": [
+   "https://docs.kernel.org/process/2.Process.html",
+   "https://ossf.github.io/osv-schema/"
+  ],
+  "ecosystems": [
+   "linux"
+  ],
+  "purlTypes": [],
+  "ordering": "custom:linux-kernel",
+  "orderingFidelity": "approximate",
+  "recencyOnly": false,
+  "prerelease": "-rcN (6.0-rc1 .. rc7) sorts before the release it precedes and after the previous release; stable-queue 6.1.55-rc1 sorts before 6.1.55.",
+  "buildMetadata": "None for kernel.org versions; distros append their own (-generic, +deb) which belong to the distro scheme.",
+  "epoch": "None.",
+  "postRelease": "Stable updates add a third component (6.1.55); legacy trees use four (2.6.32.71).",
+  "yankedDeprecated": "None in the number. Stable/longterm branches are declared end-of-life by the kernel maintainers.",
+  "stableRule": "Version (optional leading v) must match ^v?\\d+\\.\\d+(\\.\\d+){0,2}(-rc\\d+)?$ or ^next-\\d{8}$. UNSTABLE iff it ends in -rc\\d+ or is a linux-next tag next-YYYYMMDD. x.y, x.y.z and x.y.z.w are STABLE. Distro kernel strings (6.1.0-18-amd64, 5.14.0-362.el9) are not this scheme.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-rc\\d+",
+    "examples": [
+     "v6.0-rc1",
+     "6.13-rc3",
+     "6.1.55-rc1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "next-YYYYMMDD (linux-next)",
+    "examples": [
+     "next-20240101"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "-rcN",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": ".z stable update"
+  },
+  "conventions": [
+   "Numbering is not semantic: 5.0 followed 4.20; the first component carries no compatibility meaning.",
+   "OSV Linux 'versions' arrays use tags with a leading v while ECOSYSTEM range events do not.",
+   "OSV GIT ranges carry commit hashes because fixes are backported across stable trees.",
+   "Only the name Kernel is supported in OSV."
+  ],
+  "knownGaps": [
+   "Ordering is derived, not from a normative comparator.",
+   "next- tag naming was not retrieved from a document.",
+   "v-prefix mapping between versions arrays and range events is inferred from sample data."
+  ],
+  "vectorSchemes": [
+   "linux"
+  ]
+ },
+ {
+  "id": "nix",
+  "name": "Nix/nixpkgs (pname-version, compareVersions)",
+  "family": "distro",
+  "spec": [
+   "https://nix.dev/manual/nix/stable/language/builtins.html",
+   "https://github.com/NixOS/nixpkgs/blob/master/pkgs/README.md",
+   "https://github.com/NixOS/nix/blob/master/src/libstore/names.cc"
+  ],
+  "ecosystems": [
+   "nix",
+   "nixpkgs",
+   "nixos"
+  ],
+  "purlTypes": [
+   "nix?"
+  ],
+  "ordering": "nix",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Only the literal component 'pre' (0.12pre12876) sorts below the release and below end of string; rc/beta/alpha are ordinary words and sort ABOVE the release.",
+  "buildMetadata": "None; '+' stays inside a word component.",
+  "epoch": "None.",
+  "postRelease": "<last>-unstable-YYYY-MM-DD sorts above <last> and below the next release; extra numeric component sorts above.",
+  "yankedDeprecated": "Not in the version. meta.knownVulnerabilities / insecure / broken attributes, or removal from nixpkgs (alias throws).",
+  "stableRule": "UNSTABLE iff the version contains the word unstable (-unstable-YYYY-MM-DD, 0-unstable-..., legacy unstable-...), a delimited pre-release word (alpha|beta|rc|pre|preview|prerelease|milestone|candidate)\\d*, a VCS word (git|svn|hg|bzr|cvs followed by digits/hex), or nightly/dev/devel/snapshot/canary. Plain dotted numbers, date versions and -bin style tags are STABLE. Ordering must not be used to detect pre-releases (rc sorts above).",
+  "unstableMarkers": [
+   {
+    "kind": "git-snapshot",
+    "syntax": "(^|-)unstable-YYYY-MM-DD",
+    "examples": [
+     "0-unstable-2024-01-01",
+     "2.2-unstable-2022-03-15"
+    ]
+   },
+   {
+    "kind": "prerelease",
+    "syntax": "delimited alpha|beta|rc|pre words",
+    "examples": [
+     "0.3.1rc2",
+     "1.0pre1",
+     "0.12pre12876"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "word nightly",
+    "examples": [
+     "1.0-nightly-20240101"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "words dev|devel|snapshot|canary",
+    "examples": [
+     "1.0-dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "literal 'pre' (only)",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "-unstable-YYYY-MM-DD or extra component"
+  },
+  "conventions": [
+   "Derivation name pname-version splits at the first '-' not followed by a letter, so a version must start with a digit.",
+   "'.' and '-' are interchangeable component separators; '_' and '+' are not.",
+   "nixpkgs: <last-release>-unstable-YYYY-MM-DD for commits, 0-unstable-YYYY-MM-DD when no release exists.",
+   "Components that parse as int compare numerically; a word is below a number (2.3a < 2.3.1); end of string is below numbers and words (1.0 < 1.0.0, 1.0 < 1.0a).",
+   "Channels (nixos-unstable) are branches and unrelated to -unstable- in versions."
+  ],
+  "knownGaps": [
+   "No authoritative definition of 'stable' for Nix versions; markers are nixpkgs conventions plus common upstream words.",
+   "Components overflowing int fall back to string comparison (untested).",
+   "purl type for Nix is unverified."
+  ],
+  "vectorSchemes": [
+   "nix"
+  ]
+ },
+ {
+  "id": "rpm",
+  "name": "RPM (epoch:version-release)",
+  "family": "distro",
+  "spec": [
+   "https://github.com/rpm-software-management/rpm/blob/master/docs/man/rpm-version.7.scd",
+   "https://docs.fedoraproject.org/en-US/packaging-guidelines/Versioning/",
+   "https://docs.fedoraproject.org/en-US/packaging-guidelines/DistTag/",
+   "https://github.com/rpm-software-management/rpm/blob/master/rpmio/rpmvercmp.cc"
+  ],
+  "ecosystems": [
+   "red hat",
+   "rhel",
+   "redhat",
+   "centos",
+   "fedora",
+   "rocky linux",
+   "rocky",
+   "almalinux",
+   "suse",
+   "sles",
+   "opensuse",
+   "amazon",
+   "amazon linux",
+   "oracle",
+   "oracle linux",
+   "mageia",
+   "photon os",
+   "photon",
+   "azure linux",
+   "azurelinux",
+   "openeuler",
+   "tuxcare"
+  ],
+  "purlTypes": [
+   "rpm"
+  ],
+  "ordering": "rpm",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Tilde: 2.0~rc1 sorts before 2.0 and before end of string; tilde also appears in the release field. Legacy Fedora convention Release: 0.N.rc1 sorts below Release 1.",
+  "buildMetadata": "None. Separators (. _ +) are interchangeable and ignored; any alphanumeric text is compared.",
+  "epoch": "Integer before ':' in EVR, default 0, most significant component.",
+  "postRelease": "Caret: 2.0^20250611 sorts after 2.0 but before 2.0.1 (snapshot after base); or an extra segment (2.0.post1).",
+  "yankedDeprecated": "No in-band flag. Repositories drop builds; errata supersede with higher release; Obsoletes/Provides tags; epoch bump for backwards moves.",
+  "stableRule": "A version is STABLE unless its version or release contains: a '~' (prerelease); a '^' (snapshot); a delimited pre-release word (alpha|beta|rc|pre|preview|prerelease|milestone|candidate)\\d*; a VCS/nightly/dev marker (git|svn|hg|bzr|cvs|darcs followed by digits/hex, \\d{8}g[0-9a-f]{7,}, nightly, dev, snapshot); or a release matching ^0(\\.|$) (legacy Fedora pre-release/snapshot Release: 0.N.*). Dist tags and z-stream suffixes (.el9, .el9_3, .el9_3.5, .fc40, .module+el8.9.0+..., .amzn2023, .lp155, .mga9, .ph5, 150500.3.12.1) are STABLE rebuilds; a '~' that precedes only a stable backport token (~bpo, ~deb, ~esm, ~NN.NN) is also stable.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "~ in version or release; delimited alpha|beta|rc|pre words; release ^0\\.",
+    "examples": [
+     "2.0~rc1-1.fc40",
+     "1.0.0.rc3-2.fc40",
+     "1.0-0.1.rc1.fc40"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "^<date|number>[.]<scm><rev> in version",
+    "examples": [
+     "2.0^20250611git0123abc-1.fc40",
+     "1.0^1.git0123abc-1.fc40"
+    ]
+   },
+   {
+    "kind": "git-snapshot",
+    "syntax": "(git|svn|hg|bzr|cvs) + digits/hex, or <date>g<7+hex>",
+    "examples": [
+     "1.0-0.3.20240101git0123abc.fc40",
+     "1.0-1.git20240101.fc40"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "delimited word nightly",
+    "examples": [
+     "1.0.nightly-1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "~ operator in VERSION",
+   "buildMetadata": "none",
+   "epoch": "EPOCH",
+   "postRelease": "^ operator (snapshot) or extra segment"
+  },
+  "conventions": [
+   "RELEASE is the packaging revision, compared only after VERSION is equal; reset to 1 when VERSION changes.",
+   "Dist tags %{?dist}: .el9, .el9_3 (z-stream), .fc40, .module+el8.x, .amzn2023, .lp155, .mga9, .ph5; SUSE release counters like 150500.3.12.1.",
+   "Fedora snapshot field after caret: <date>.<rev>, <date><scm><rev>, <number>.<scm><rev>, scm in git|svn|hg|snap or one letter.",
+   "Version: 0 when upstream never chose a version.",
+   "Underscore as visual separator (1.2~pre1, 1.2_final) has no ordering effect.",
+   "Non-ASCII characters are ignored by rpmvercmp (1.1.a-alpha == 1.1.b-beta equal).",
+   "Dependency comparison skips RELEASE when the constraint has none."
+  ],
+  "knownGaps": [
+   "The ^0\\. release rule is a convention and can false-positive on distros using release 0 for other purposes.",
+   "rpm releases that introduced ~ and ^ are from memory; RHEL 7 (rpm 4.11) lacks ^.",
+   "Dist-tag shapes for Mageia, Photon, Azure Linux, openEuler are observed, not specified.",
+   "Missing-epoch semantics in dependency constraints were not verified."
+  ],
+  "vectorSchemes": [
+   "rpm"
+  ]
+ },
+ {
+  "id": "wolfi",
+  "name": "Wolfi/Chainguard apk (go-apk strict subset, melange -rN)",
+  "family": "distro",
+  "spec": [
+   "https://github.com/chainguard-dev/melange/blob/main/docs/BUILD-FILE.md",
+   "https://github.com/chainguard-dev/go-apk/blob/main/pkg/apk/version.go"
+  ],
+  "ecosystems": [
+   "wolfi",
+   "chainguard",
+   "docker hardened images",
+   "cleanstart"
+  ],
+  "purlTypes": [
+   "apk"
+  ],
+  "ordering": "wolfi",
+  "orderingFidelity": "approximate",
+  "recencyOnly": false,
+  "prerelease": "One optional _alpha|_beta|_pre|_rc suffix (+ number); sorts below the release (none is ranked above rc).",
+  "buildMetadata": "None; ~hash is rejected by go-apk.",
+  "epoch": "None. melange 'epoch' is the apk -rN revision, not an RPM/dpkg epoch.",
+  "postRelease": "One optional _cvs|_svn|_git|_hg|_p suffix (+ number) after the pre suffix; cvs < svn < git < hg < p.",
+  "yankedDeprecated": "No in-band flag. Rolling repository index; superseded builds are removed; advisories are published as OSV records with fixed X-rN.",
+  "stableRule": "Version must match the go-apk regex ^[0-9]+(\\.[0-9]+)*[a-z]?((_alpha|_beta|_pre|_rc)[0-9]*)?((_cvs|_svn|_git|_hg|_p)[0-9]*)?(-r[0-9]+)?$ (else unparseable). UNSTABLE iff it has _(alpha|beta|pre|rc)\\d* or _(git|hg|cvs|svn)\\d*. -rN (melange epoch / security rebuild), _p<N> and a trailing letter are STABLE.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "_(alpha|beta|pre|rc)\\d*",
+    "examples": [
+     "1.0.0_rc1-r0",
+     "2.0.0_beta3-r2"
+    ]
+   },
+   {
+    "kind": "git-snapshot",
+    "syntax": "_(git|hg|cvs|svn)\\d*",
+    "examples": [
+     "0_git20240101-r0",
+     "1.0_git20240101-r0"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "_alpha/_beta/_pre/_rc suffix",
+   "buildMetadata": "none",
+   "epoch": "none (melange epoch == -rN)",
+   "postRelease": "_p<N>, _git<date>, etc."
+  },
+  "conventions": [
+   "package.epoch N in melange renders as <name>-<version>-rN.apk; monotonically increasing from 0.",
+   "Snapshot pkgver <last>_git<YYYYMMDD>, and 0_git<YYYYMMDD> for projects with no release (seen in 2 of 120 sampled Wolfi packages).",
+   "Version streams are separate package names (php-8.1, php-8.2); apk add foo=~4.5.6 is a dependency-expression prefix match, not a version syntax.",
+   "go-apk treats 1.0 == 1.0-r0 and 1.01 == 1.1; C apk-tools does not."
+  ],
+  "knownGaps": [
+   "OSV does not state which comparator Wolfi/Chainguard consumers use; C apk-tools semantics differ on 1.0 vs 1.0-r0, leading zeros, ~hash and repeated suffixes.",
+   "Docker Hardened Images and CleanStart are mapped here by assumption.",
+   "Only a 120-package sample of Wolfi definitions was read."
+  ],
+  "vectorSchemes": [
+   "wolfi"
+  ]
+ },
+ {
+  "id": "conda",
+  "name": "conda VersionOrder",
+  "family": "qualifier",
+  "spec": [
+   "https://github.com/conda/conda/blob/main/conda/models/version.py",
+   "https://github.com/conda/rattler"
+  ],
+  "ecosystems": [
+   "conda",
+   "conda-forge",
+   "anaconda",
+   "mamba",
+   "pixi"
+  ],
+  "purlTypes": [
+   "conda?"
+  ],
+  "ordering": "conda",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "No formal syntax: any letter component such as `a`, `b`, `rc`, `alpha`, `beta` (`1.0a1`, `1.2.beta3`) sorts below the release because strings sort below ints; `dev` sorts below everything at its position.",
+  "buildMetadata": "`+local` is compared like extra components only when the main versions are equal; an alphabetic local sorts BELOW the plain version (`1.0+abc < 1.0`), a numeric one above; not a stability signal by itself.",
+  "epoch": "`N!` prefix, default 0, same idea as PEP 440.",
+  "postRelease": "String `post` is greater than any other string at its position (`1.1.post1 > 1.1`); stable.",
+  "yankedDeprecated": "No yank in the version. Channel mechanisms (repodata `removed`, repodata patches, anaconda.org `broken` label) exist but were not verified.",
+  "stableRule": "Stable iff no component string other than `post` is present, no `dev`, and no `+local`; bare tags (e.g. `1.1.parallel`) are undecidable from the string, so treat as unstable only if a known pre-release word.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "component string a|alpha|b|beta|c|rc|pre|preview with optional digits",
+    "examples": [
+     "1.0a1",
+     "2.3.5rc3",
+     "1.2.beta3"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "component string `dev` with optional digits",
+    "examples": [
+     "1.0dev42",
+     "2.3.5.dev12"
+    ]
+   },
+   {
+    "kind": "local-version",
+    "syntax": "\\+[a-z0-9_.]+",
+    "examples": [
+     "1.0+cuda118"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "Letters inside components, ordered as case-insensitive strings below ints.",
+   "buildMetadata": "`+local`, compared (unlike SemVer); conda's separate build string/number is not part of the version.",
+   "epoch": "`N!` prefix, same as PEP 440.",
+   "postRelease": "`post` string, above everything at its position."
+  },
+  "conventions": [
+   "`-` is accepted and converted to `_` when the version has no underscore, so `1.0-SNAPSHOT` is a valid tag version.",
+   "`1.0rc1 < 1.0.dev1` (dev after a dot is a new component), opposite to PEP 440.",
+   "Letter-suffix versions (openssl `1.0.1a`) sort below `1.0.1`; trailing `_` (`1.0.1_`) is the documented workaround and sorts lowest.",
+   "A component starting with a letter gets an implicit leading 0 (`1.1.a1 == 1.1.0a1`); `1.1 == 1.1.0`."
+  ],
+  "knownGaps": [
+   "Ground truth is py-rattler cross-checked with the VersionOrder docstring ladder, not conda's own Python.",
+   "Stability of bare tags is undecidable from the string.",
+   "Registry-level removal mechanisms not verified."
+  ],
+  "vectorSchemes": [
+   "conda"
+  ]
+ },
+ {
+  "id": "coursier",
+  "name": "Coursier / sbt version ordering",
+  "family": "qualifier",
+  "spec": [
+   "https://github.com/coursier/coursier/blob/main/modules/core/shared/src/main/scala/coursier/core/Version.scala"
+  ],
+  "ecosystems": [
+   "sbt",
+   "coursier",
+   "mill",
+   "scala-cli",
+   "bloop"
+  ],
+  "purlTypes": [
+   "maven?"
+  ],
+  "ordering": "custom:coursier",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Tag levels: dev -6 < unknown -5 < alpha -4 < beta -3 < rc/cr -2 < snapshot -1 < ga/final/empty 0 < sp/bin 1; unknown tags are BELOW alpha (pre-release), unlike Maven.",
+  "buildMetadata": "`+...` is parsed as BuildMetadata and ignored in comparison (SemVer-aware); `1.0+build.5 == 1.0`.",
+  "epoch": "",
+  "postRelease": "`sp` and `bin` tags sort above the release.",
+  "yankedDeprecated": "None in the version scheme; resolution uses Maven/Ivy repositories, which have no yank.",
+  "stableRule": "Unstable iff any tag has level < 0 (dev, unknown tag, alpha, beta, rc, snapshot); tags ga/final/sp/bin and `+build` metadata are stable.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "tag alpha|a|beta|b|rc|cr, or any unknown tag (level < 0)",
+    "examples": [
+     "2.13.0-RC1",
+     "2.13.0-M5"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "tag `snapshot`",
+    "examples": [
+     "1.0-SNAPSHOT"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "tag `dev` (lowest)",
+    "examples": [
+     "1.0-dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "Hyphen tags with fixed levels; unknown tags rank below alpha.",
+   "buildMetadata": "`+...` parsed and ignored, like SemVer.",
+   "epoch": "None.",
+   "postRelease": "`sp`/`bin` tags."
+  },
+  "conventions": [
+   "Used by sbt >= 1.3, Scala CLI, Mill; same family as Maven GenericVersion but with its own tag levels.",
+   "Scala binary-version suffix `_2.13` is part of the artifactId, not the version; Scala milestones `2.13.0-M5` are an unknown tag (below alpha) and still precede RC1.",
+   "`.x`/`.*`/`.+` are treated as max for ranges; `min`/`max` words are special items."
+  ],
+  "knownGaps": [
+   "Coined ordering id `custom:coursier`; run via deprecated coursier.core.Version in coursier-core 2.1.26 (the replacement coursier.version.Version was not run).",
+   "Disagrees with Maven on unknown qualifiers (below release here, above in Maven), dev rank and build metadata.",
+   "Older sbt (< 1.3) uses Ivy ordering, see the ivy entry."
+  ],
+  "vectorSchemes": [
+   "coursier"
+  ]
+ },
+ {
+  "id": "gradle",
+  "name": "Gradle version ordering",
+  "family": "qualifier",
+  "spec": [
+   "https://docs.gradle.org/current/userguide/dependency_versions.html",
+   "https://github.com/gradle/gradle/blob/master/platforms/software/dependency-management/src/main/java/org/gradle/api/internal/artifacts/ivyservice/ivyresolve/strategy/StaticVersionComparator.java"
+  ],
+  "ecosystems": [
+   "gradle",
+   "ivy",
+   "ant"
+  ],
+  "purlTypes": [
+   "maven?"
+  ],
+  "ordering": "gradle",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "No pre-release syntax: split on `. - _ +` and digit/letter transitions; `dev` is lowest, unknown strings (ASCII, case-sensitive) next, then rc < snapshot < final < ga < release < sp; any version with an extra string part is BELOW the bare version.",
+  "buildMetadata": "None: `+` is a separator, so `1.0+build` has a lower string part and sorts BELOW 1.0.",
+  "epoch": "",
+  "postRelease": "`sp` ranks highest among string parts, but `1.0-sp1 < 1.0` because an extra non-numeric part is lower than no part.",
+  "yankedDeprecated": "None in the version scheme; Gradle component `status` (integration for -SNAPSHOT, release otherwise, default scheme integration < milestone < release) comes from metadata, not a yank flag.",
+  "stableRule": "Same qualifier word list as maven: unstable iff -SNAPSHOT (status integration), timestamped snapshot, or a conventional pre-release word (alpha, beta, milestone, m, rc, dev, ea, preview, nightly); final/ga/release/sp are stable.",
+  "unstableMarkers": [
+   {
+    "kind": "snapshot",
+    "syntax": "-SNAPSHOT suffix or -\\d{8}\\.\\d{6}-\\d+$",
+    "examples": [
+     "1.0-SNAPSHOT"
+    ]
+   },
+   {
+    "kind": "prerelease",
+    "syntax": "alpha|beta|milestone|m\\d|rc string part",
+    "examples": [
+     "1.0-rc1",
+     "1.0-RC-1",
+     "1.0-M1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "string part `dev` (lowest special word)",
+    "examples": [
+     "1.0-dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "Any extra string part; only dev/rc/snapshot/final/ga/release/sp carry fixed ranks.",
+   "buildMetadata": "None; `+` is just a separator.",
+   "epoch": "None.",
+   "postRelease": "`sp` (only relative to other string parts)."
+  },
+  "conventions": [
+   "Trailing zero is significant: `1.0 < 1.0.0`.",
+   "Special words are case-insensitive but unknown strings compare case-sensitively (`1.A < 1.B < 1.a`).",
+   "Comparing two different-case spellings of one special word returns 0 immediately: `1.0-RC1 == 1.0-rc9`.",
+   "Dynamic versions `1.+`, `latest.integration`, `latest.release`."
+  ],
+  "knownGaps": [
+   "Gradle docs say sp/final/ga/release are 'higher than any other string part' but versus a bare version they sort lower (verified by running the real source).",
+   "Differs from Maven on `1.0 == 1.0.0`, `-final`, `-sp1`, `+build`, `dev` rank; Maven docs note `[1.0,2.0)` is interpreted differently in Gradle.",
+   "Stability classes are convention; Gradle itself only exposes status."
+  ],
+  "vectorSchemes": [
+   "gradle"
+  ]
+ },
+ {
+  "id": "ivy",
+  "name": "Apache Ivy latest-revision",
+  "family": "qualifier",
+  "spec": [
+   "https://ant.apache.org/ivy/history/latest-milestone/settings/latest-strategies.html",
+   "https://github.com/apache/ant-ivy/blob/master/src/java/org/apache/ivy/plugins/latest/LatestRevisionStrategy.java"
+  ],
+  "ecosystems": [
+   "ivy",
+   "ant"
+  ],
+  "purlTypes": [],
+  "ordering": "custom:ivy",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "No syntax: parts split on `. _ - +` and letter/digit boundaries; only `dev` (-1), `rc` (1) and `final` (2) are special; unknown strings (0) sort lexically, `1.0-dev1 < 1.0-alpha1 < 1.0-rc1 < 1.0`.",
+  "buildMetadata": "None: `+` is a separator and the following word is an ordinary string part.",
+  "epoch": "",
+  "postRelease": "None; `sp`, `ga`, `snapshot` and `release` are not special, and `1.0-final < 1.0`.",
+  "yankedDeprecated": "None in the version scheme; Ivy descriptors carry a `status` (integration/milestone/release) used by latest.<status> selectors.",
+  "stableRule": "No engine-level stable flag; apply the maven word list (snapshot, alpha, beta, rc, milestone, dev) to string parts; descriptor status `release` is the registry-level signal.",
+  "unstableMarkers": [
+   {
+    "kind": "snapshot",
+    "syntax": "-SNAPSHOT string part (not special in Ivy ordering)",
+    "examples": [
+     "1.0-SNAPSHOT"
+    ]
+   },
+   {
+    "kind": "prerelease",
+    "syntax": "dev|alpha|beta|rc|milestone string part",
+    "examples": [
+     "1.0-rc1",
+     "1.0-dev1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "Any extra string part; dev < unknown < rc < final.",
+   "buildMetadata": "None.",
+   "epoch": "None.",
+   "postRelease": "None."
+  },
+  "conventions": [
+   "Algorithm is inspired by PHP version_compare; 1.0 < 1.0.0 (extra numeric part is higher).",
+   "`1.0-RC1 == 1.0-rc2` short-circuit (same code lineage as Gradle).",
+   "Custom special words can be configured per Ivy settings; defaults used here."
+  ],
+  "knownGaps": [
+   "Coined ordering id `custom:ivy` because no listed id fits (closest is gradle: same dev/rc/final lineage but Gradle adds snapshot/ga/release/sp).",
+   "No purl type known for Ivy modules; they are Maven-layout artifacts.",
+   "Ivy descriptor `status` semantics were not verified beyond the Gradle docs."
+  ],
+  "vectorSchemes": [
+   "ivy"
+  ]
+ },
+ {
+  "id": "maven",
+  "name": "Maven ComparableVersion",
+  "family": "qualifier",
+  "spec": [
+   "https://maven.apache.org/pom.html#version-order-specification",
+   "https://github.com/apache/maven/blob/maven-3.9.x/maven-artifact/src/main/java/org/apache/maven/artifact/versioning/ComparableVersion.java"
+  ],
+  "ecosystems": [
+   "maven",
+   "java",
+   "jvm",
+   "kotlin",
+   "scala",
+   "clojars",
+   "clojure",
+   "leiningen",
+   "groovy",
+   "android",
+   "maven-central",
+   "sbt",
+   "coursier",
+   "mill",
+   "scala-cli",
+   "bloop"
+  ],
+  "purlTypes": [
+   "maven?"
+  ],
+  "ordering": "maven",
+  "orderingFidelity": "approximate",
+  "recencyOnly": false,
+  "prerelease": "Qualifiers alpha < beta < milestone < rc (= cr) < snapshot, all below the release; a/b/m are shorthand only when directly followed by a digit; case-insensitive.",
+  "buildMetadata": "None: `+` is an ordinary character folded into a qualifier string (`1.0+build.5` sorts after 1.0); not a stability signal.",
+  "epoch": "",
+  "postRelease": "`sp` (service pack) and a numeric sublist `1.0-1` sort after the release; `ga`, `final`, `release` equal the bare release.",
+  "yankedDeprecated": "None on Maven Central (components are not removed or modified; no deprecated/deleted flag). Closest: POM `distributionManagement/relocation`.",
+  "stableRule": "Unstable iff a token matches (?i)(^|[.\\-_])(alpha|beta|milestone|rc|cr|snapshot|a\\d|b\\d|m\\d), or `-YYYYMMDD.HHMMSS-N` timestamped snapshot, or by convention dev/ea/preview/pre/nightly/canary; stable otherwise (ga, final, release, sp, -N, jre, android, incubating).",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "alpha|beta|milestone|rc|cr, or a|b|m followed by a digit, as a qualifier token",
+    "examples": [
+     "1.0-alpha-1",
+     "1.0-RC1",
+     "1.0-M1"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "-SNAPSHOT suffix (case-insensitive) or timestamped -\\d{8}\\.\\d{6}-\\d+$ (sorts AFTER the release)",
+    "examples": [
+     "1.0-SNAPSHOT",
+     "1.0-20240101.123456-1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "conventional unknown qualifier dev/ea/preview/pre (sorts AFTER the release in Maven)",
+    "examples": [
+     "1.0-dev",
+     "1.0-ea",
+     "1.0-preview"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "conventional unknown qualifier nightly/canary",
+    "examples": [
+     "1.0-nightly",
+     "1.0-nightly-20240101"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "Fixed-rank qualifiers alpha/beta/milestone/rc/snapshot; SemVer 2.0.0 precedence is explicitly not followed.",
+   "buildMetadata": "None; `+` is part of a qualifier string.",
+   "epoch": "None.",
+   "postRelease": "`sp`, `ga`/`final`/`release` (equal to bare), numeric sublist `-1`."
+  },
+  "conventions": [
+   "Trailing zeros and ga/final/release are trimmed so `1 == 1.0 == 1.0.0 == 1.0-ga`.",
+   "`.qualifier = -qualifier < -number < .number`; list/sublist nesting is created by `-` and by letter/digit transitions.",
+   "Unknown qualifiers sort after `sp`, lexically; so `1.0-dev`, `1.0-ea`, `1.0-nightly` are NEWER than 1.0 although semantically pre-releases.",
+   "Timestamped snapshot `1.0-20240101.123456-1` is a numeric sublist and sorts after release 1.0.",
+   "Version ranges `[1.0,2.0)` include `2.0-rc1`; LATEST/RELEASE are meta-versions, not versions (`ComparableVersion(\"RELEASE\")` equals 0).",
+   "Scala `_2.13` artifact suffix is part of the artifactId, not the version; Guava-style `-jre`/`-android` flavours are stable."
+  ],
+  "knownGaps": [
+   "Three comparators exist: maven-artifact ComparableVersion 3.x (primary here), Maven 4 master ComparableVersion (differs on ~0.1% of realistic pairs, e.g. `2.0-1` vs `2-3`, and gives `1-sp-1 > 1-ga-1` contrary to the published spec) and maven-resolver GenericVersion (treats `1.0-1 == 1.0.1`, `1-1 == 1.1`, and orders timestamped snapshots after 1.0.1).",
+   "Stability of unknown qualifiers (dev, ea, preview, nightly) is convention, not spec; `incubating` treated as stable.",
+   "No registry yank/deprecation flag; Clojars policy not checked."
+  ],
+  "vectorSchemes": [
+   "maven"
+  ]
+ },
+ {
+  "id": "pep440",
+  "name": "PEP 440 (PyPI, pip)",
+  "family": "qualifier",
+  "spec": [
+   "https://packaging.python.org/en/latest/specifications/version-specifiers/",
+   "https://peps.python.org/pep-0440/",
+   "https://github.com/pypa/packaging/blob/main/src/packaging/version.py"
+  ],
+  "ecosystems": [
+   "pypi",
+   "pip",
+   "python",
+   "pep440",
+   "uv",
+   "poetry"
+  ],
+  "purlTypes": [
+   "pypi?"
+  ],
+  "ordering": "pep440",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Normalised `aN`, `bN`, `rcN` (spellings alpha, beta, c, pre, preview accepted, separators . - _ optional) and `.devN`; all sort before the final, with `.devN` below `aN` below `bN` below `rcN` below the final.",
+  "buildMetadata": "`+label` is a local version: it IS compared (sorts after the same public version; numeric segments above alphabetic), PyPI rejects uploads containing it, so treat it as a non-public/unstable signal.",
+  "epoch": "`N!` prefix, integer, implicit 0; a higher epoch outranks every lower-epoch version (`1!1.0 > 2024.1`).",
+  "postRelease": "`.postN` (also `-N`, `rev`, `r`); sorts after the final and is stable.",
+  "yankedDeprecated": "PEP 592 yank is per file: `data-yanked` attribute in the simple HTML API, `files[].yanked` (bool or reason string) in the PEP 691 JSON API, `releases[v][i].yanked`/`yanked_reason` in the Warehouse JSON API. Project-level status (PEP 792) lives in simple API `project-status`.",
+  "stableRule": "Parse with PEP 440; stable iff pre is None and dev is None and local is None (post and epoch are fine); unparseable strings are skipped; skip yanked files unless exactly pinned.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "(a|b|rc)\\d+ after normalisation; raw [._-]?(alpha|a|beta|b|preview|pre|c|rc)[._-]?\\d*",
+    "examples": [
+     "1.0rc1",
+     "1.0a1",
+     "2.0.0-rc.1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "\\.dev\\d+ (raw [._-]?dev[._-]?\\d*), also on post and pre releases",
+    "examples": [
+     "1.0.dev1",
+     "1.0.post1.dev2"
+    ]
+   },
+   {
+    "kind": "local-version",
+    "syntax": "\\+[a-z0-9]+([._-][a-z0-9]+)*",
+    "examples": [
+     "1.0+abc",
+     "1.0.0-alpha+exp.sha.5114f85"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "Only aN/bN/rcN and .devN; arbitrary SemVer identifiers (`-alpha.beta`, `-x.7.z.92`) are invalid; `-rc.1` normalises to rc1.",
+   "buildMetadata": "Local version `+label`, but it participates in ordering unlike SemVer build metadata.",
+   "epoch": "No SemVer equivalent; epoch `N!` overrides all other components.",
+   "postRelease": "No SemVer equivalent; `.postN` sorts after the final."
+  },
+  "conventions": [
+   "Trailing zeros are insignificant (`1.0 == 1.0.0`); `v` prefix, case and the separators `. - _` normalise away.",
+   "`1.0-1` is a post-release (stable, newer than 1.0), not a prerelease.",
+   "Alternate spellings (alpha, beta, c, pre, preview, rev, r) normalise to a, b, rc, post.",
+   "Dev releases of pre/post releases exist (`1.0a1.dev1`, `1.0.post1.dev1`).",
+   "Specifier semantics exclude pre-releases unless asked (`>=1.0` skips `1.1a1`); `>V` excludes post-releases of V.",
+   "CalVer (`2024.1.15`) is valid."
+  ],
+  "knownGaps": [
+   "Yanked cannot be derived from the string; the consumer must carry the registry flag.",
+   "Local versions are classed unstable by policy; `packaging.is_prerelease` is False for them.",
+   "Legacy non-conforming strings (`1.0-SNAPSHOT`, `1.0.RELEASE`) are unparseable since packaging 22.0; old PyPI data may contain them.",
+   "conda uses a different comparator (see conda entry)."
+  ],
+  "vectorSchemes": [
+   "pep440"
+  ]
+ },
+ {
+  "id": "rubygems",
+  "name": "RubyGems Gem::Version",
+  "family": "qualifier",
+  "spec": [
+   "https://guides.rubygems.org/specification-reference/",
+   "https://github.com/rubygems/rubygems/blob/master/lib/rubygems/version.rb"
+  ],
+  "ecosystems": [
+   "rubygems",
+   "gem",
+   "ruby",
+   "bundler"
+  ],
+  "purlTypes": [
+   "gem?"
+  ],
+  "ordering": "rubygems",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Any ASCII letter in the version makes it a prerelease (`1.0.0.pre`, `.rc1`, `.beta.2`); letter segments compare below numeric ones, so a prerelease sorts below its release, ordered alphabetically (case-sensitive) among letter words.",
+  "buildMetadata": "None: `+` is invalid and raises; a `-` is rewritten to `.pre.`, so `1.0.0-rc1` becomes `1.0.0.pre.rc1` (a prerelease).",
+  "epoch": "",
+  "postRelease": "None: `post` is just a letter so `1.0.0.post1` is a PRERELEASE and sorts BELOW 1.0.0.",
+  "yankedDeprecated": "Yank = DELETE /api/v1/gems/yank; the version vanishes from /api/v1/versions and /info, GET /api/v2/rubygems/<g>/versions/<v> returns 404, and the compact index /versions file gets an append-only `<gem> -<version> <md5>` line (leading `-`). JSON `yanked` boolean exists on /api/v1/gems/<g>.json.",
+  "stableRule": "Stable iff Gem::Version.new(v).prerelease? is false, i.e. no ASCII letter anywhere in the string and no `-`; strip the platform suffix first; skip versions marked yanked.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "[a-zA-Z] anywhere in the version, or `-` (rewritten to .pre.)",
+    "examples": [
+     "1.0.0.pre",
+     "1.0.0.rc1",
+     "1.0.0-rc1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "letter segment `dev` (no special rank, alphabetical)",
+    "examples": [
+     "2.0.0.dev"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "letter segment `snapshot`",
+    "examples": [
+     "1.0.0.snapshot"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "letter segment `nightly`",
+    "examples": [
+     "1.0.0.nightly.20240101"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "Any letter-bearing segment; `-` becomes `.pre.`; no phase semantics (alphabetical).",
+   "buildMetadata": "None (`+` invalid).",
+   "epoch": "None.",
+   "postRelease": "None; `post` is a prerelease letter."
+  },
+  "conventions": [
+   "Trailing zeros are ignored, also before the first letter (`1.a == 1.0.a == 1.0.0.a`).",
+   "Platform is a separate field (`name-version-platform.gem`; compact index writes VERSION-PLATFORM split at the first dash): x86_64-linux, arm64-darwin, java, x64-mingw-ucrt, x86-mswin32-60, etc.; never part of the Gem::Version.",
+   "Feeding `1.3.1-java` to Gem::Version yields prerelease `1.3.1.pre.java`; `1.0.0-x86_64-linux` raises.",
+   "Prerelease word order is alphabetical (alpha < beta < dev < post < pre < rc), so `dev` builds outrank `beta`.",
+   "Empty/nil version is `0`; blank whitespace is stripped; Rational Versioning (3 integers) is recommended."
+  ],
+  "knownGaps": [
+   "Reason tokens (dev, snapshot, nightly, milestone) are assigned from the letter text in vectors; RubyGems only knows prerelease.",
+   "Whether rubygems.org permits re-pushing a yanked version number was not verified.",
+   "Run on Ruby 4.0.7 / RubyGems 4.0.20 only; the sort_key fast path was not diffed against older releases."
+  ],
+  "vectorSchemes": [
+   "rubygems"
+  ]
+ },
+ {
+  "id": "apple",
+  "name": "Apple OS versions and build numbers (macOS, iOS, bundles)",
+  "family": "recency",
+  "spec": [
+   "https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleversion",
+   "https://lowendmac.com/2025/how-to-read-and-interpret-apple-os-build-numbers/"
+  ],
+  "ecosystems": [
+   "apple",
+   "cocoapods-bundle",
+   "ios",
+   "ipados",
+   "macos",
+   "swift"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "dotted-int",
+  "orderingFidelity": "approximate",
+  "recencyOnly": "partial",
+  "prerelease": "build number ending in a lowercase letter (23D5033f) = developer beta; labels \"beta\"/\"RC\" in marketing text",
+  "buildMetadata": "build number in parentheses",
+  "epoch": "",
+  "postRelease": "Rapid Security Response suffix (a) has no tuple",
+  "yankedDeprecated": "Apple withdraws/replaces builds; no flag",
+  "stableRule": "marketing X.Y[.Z] tuples are comparable within one platform; stable if build number has no trailing lowercase letter and no beta/RC label; never compare across platforms",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "^\\d+[A-Z]\\d{3,}[a-z]$",
+    "examples": [
+     "23D5033f",
+     "22C5142f"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "lowercase build suffix",
+   "buildMetadata": "build number",
+   "epoch": "none",
+   "postRelease": "(a) RSR"
+  },
+  "conventions": [
+   "Build number NNLnnnn: train digits, capital letter = minor train, sequence",
+   "Old majors get security updates that are newer by date than the latest major"
+  ],
+  "knownGaps": [
+   "No first-party doc for the build-number structure was retrievable; relies on community explanations (explicitly informal).",
+   "Cross-platform marketing numbering (iOS vs macOS vs watchOS) is not unified; do not compare across platforms."
+  ],
+  "vectorSchemes": [
+   "apple"
+  ]
+ },
+ {
+  "id": "backport-branches",
+  "name": "Where \"highest number wins\" or \"newest date wins\" gives the WRONG latest (LTS lines, back-port point releases, floating majors, 0.x carets)",
+  "family": "recency",
+  "spec": [
+   "https://pypi.org/pypi/{ruff,django,certifi,black,pip,Twisted,homeassistant}/json",
+   "https://semver.org",
+   "https://docs.npmjs.com/cli/v10/commands/npm-dist-tag"
+  ],
+  "ecosystems": [
+   "all",
+   "docker",
+   "github",
+   "github-actions",
+   "java",
+   "linux",
+   "nodejs",
+   "npm",
+   "openssl",
+   "pypi",
+   "python"
+  ],
+  "purlTypes": [],
+  "ordering": "none",
+  "orderingFidelity": "none",
+  "recencyOnly": "partial",
+  "prerelease": "defer to the underlying scheme",
+  "buildMetadata": "defer",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "defer",
+  "stableRule": "meta-rule: true latest = max stable tuple per the underlying scheme; never newest-by-date; old-line point release = line key lower than the max line key; flags/dist-tags/channels decide stability where the string is plain",
+  "unstableMarkers": [
+   {
+    "kind": "floating-tag",
+    "syntax": "caret/tilde on 0.x pins the minor: ^0.15.10 resolves to 0.15.22",
+    "examples": [
+     "^0.15.10"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "n/a",
+   "buildMetadata": "n/a",
+   "epoch": "n/a",
+   "postRelease": "n/a"
+  },
+  "conventions": [
+   "META scheme, not a real version format: ordering \"none\" means defer to the scheme of the package",
+   "Real inversions: Django 190/382, Node 465/875; ruff 1/429 (no 0.15.x vs 0.17.x inversion)"
+  ],
+  "knownGaps": [
+   "Only PyPI datasets have per-file upload time; GitHub published_at can be bulk-edited (actions/checkout released six majors at once).",
+   "Docker Hub last_updated is mutable."
+  ],
+  "vectorSchemes": [
+   "backport-branches"
+  ]
+ },
+ {
+  "id": "browser-extension",
+  "name": "Browser extension manifest versions (Chrome, Edge, Firefox)",
+  "family": "recency",
+  "spec": [
+   "https://developer.chrome.com/docs/extensions/reference/manifest/version",
+   "https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/version"
+  ],
+  "ecosystems": [
+   "browser-extension",
+   "chrome",
+   "chrome-extension",
+   "edge",
+   "firefox",
+   "webstore"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "dotted-int",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "none in `version`; use `version_name` or a separate listing/channel; legacy Firefox toolkit format allows pre/a/b/rc",
+  "buildMetadata": "4th integer by convention",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "store delist/block (Chrome Web Store, AMO), browser blocklist by id+version range; no yank flag",
+  "stableRule": "no string rule: a version is stable unless the store channel/listing or version_name says otherwise; validity: 1-4 integers, each 0-65535 (Chrome), no leading zeros, not all zero",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "legacy Firefox: ^\\d+(\\.\\d+)*(pre|a|b|rc)\\d*$; Chrome: version_name text",
+    "examples": [
+     "1.0b2",
+     "1.0pre1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "none",
+   "buildMetadata": "4th integer",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Fields capped at 65535 on Chrome so YYYYMMDD cannot be one field",
+   "Update manifest picks the highest numeric version",
+   "Each store keeps its own counter"
+  ],
+  "knownGaps": [
+   "No pre-release representation, so stability must come from the store channel or version_name.",
+   "Overflow of 65535 for CalVer/date fields on Chrome.",
+   "AMO's nine-digit allowance is from MDN prose only."
+  ],
+  "vectorSchemes": [
+   "browser-extension"
+  ]
+ },
+ {
+  "id": "calver",
+  "name": "CalVer and date-based versions (calver.org)",
+  "family": "recency",
+  "spec": [
+   "https://calver.org/",
+   "https://peps.python.org/pep-0440/",
+   "https://semver.org/"
+  ],
+  "ecosystems": [
+   "calver",
+   "android",
+   "docker",
+   "generic",
+   "github",
+   "homeassistant",
+   "jetbrains",
+   "npm",
+   "pypi",
+   "ubuntu",
+   "unity"
+  ],
+  "purlTypes": [
+   "pypi",
+   "npm",
+   "generic?"
+  ],
+  "ordering": "calver",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "PEP 440 aN/bN/rcN/.devN or -rcN modifier on a CalVer base; yt-dlp style YYYY.M.D.HHMMSS.dev0",
+  "buildMetadata": "rare +hash",
+  "epoch": "PEP 440 N! after a scheme switch",
+  "postRelease": ".postN or same-day counter (.1)",
+  "yankedDeprecated": "registry-specific (PyPI yank etc.)",
+  "stableRule": "numeric tuple with no pre/dev part; CalVer shape itself is not unstable; parse integers (2024.02.02 -> 2024.2.2), never compare strings; detect CalVer with calver-detection.json",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "2024.1.0rc1",
+     "2024.1.0.dev1"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "-nightly.<date> modifier",
+    "examples": [
+     "2025.2.0-nightly.20250101"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "\\.dev\\d+$",
+    "examples": [
+     "2026.9.27.232945.dev0"
+    ]
+   },
+   {
+    "kind": "prerelease",
+    "syntax": "(a|b|rc)\\d+$|-rc\\d+$",
+    "examples": [
+     "2024.1.0rc1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "modifier",
+   "buildMetadata": "rare",
+   "epoch": "PEP 440 epoch",
+   "postRelease": "micro counter"
+  },
+  "conventions": [
+   "Calendar segments YYYY, YY, 0Y, M, 0M, W, 0W, D, 0D plus MAJOR/MINOR/MICRO counters.",
+   "Zero-padded months (22.04) are invalid SemVer.",
+   "tzdata style YYYYa..z letter suffix.",
+   "Major is a year, not a breaking-change signal; SemVer ranges (^) are meaningless",
+   "Letter-year tzdata 2024b; ISO date versions (2026-10-01); YYYYMMDD single field",
+   "Zero padding (0M/0D) normalised away by PEP 440, illegal in SemVer"
+  ],
+  "knownGaps": [
+   "No reference implementation; ordering derived from common practice.",
+   "Shape alone cannot tell black 24.2.0 or pip 24.0 from a SemVer major; see index.md detector.",
+   "Rule B depends on release dates; for registries without dates (Maven Central indexes do, some do not) the YY form is unresolvable.",
+   "Calendar semantics (week numbers 0W, YYYY.WW) were not sampled with real packages.",
+   "80%/20-version/3-year thresholds were tuned on 22 PyPI/npm/CPython/Node datasets, not a large corpus."
+  ],
+  "vectorSchemes": [
+   "calver"
+  ]
+ },
+ {
+  "id": "chocolatey",
+  "name": "Chocolatey packages (NuGet versions)",
+  "family": "recency",
+  "spec": [
+   "https://docs.chocolatey.org/en-us/create/create-packages/",
+   "https://learn.microsoft.com/en-us/nuget/concepts/package-versioning"
+  ],
+  "ecosystems": [
+   "choco",
+   "chocolatey",
+   "nuget-choco"
+  ],
+  "purlTypes": [
+   "chocolatey?"
+  ],
+  "ordering": "semver-nuget",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "dash suffix (-beta, -rc1, -pre20240101); hidden unless `choco --pre`",
+  "buildMetadata": "`+` metadata accepted by recent NuGet, ignored",
+  "epoch": "",
+  "postRelease": "4th numeric segment = package fix (or date)",
+  "yankedDeprecated": "unlist; community-repo moderation rejection/deprecation (deprecation flag unverified)",
+  "stableRule": "no dash pre-release label; up to 4 numeric segments (4th = package fix); ordering NuGet-style, labelled sorts below unlabelled",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-[0-9A-Za-z.-]+(?:\\+.*)?$",
+    "examples": [
+     "1.0.0-beta",
+     "1.2.3-pre20240101"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "-nightly",
+    "examples": [
+     "1.2.3-nightly20240101"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "-(dev|ci)",
+    "examples": [
+     "1.2.3-ci.457"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "ignored",
+   "epoch": "none",
+   "postRelease": "4th segment"
+  },
+  "conventions": [
+   "4th segment for package fixes must be used consistently",
+   "Sibling packages <id>.install, <id>.portable, <id>-nightly"
+  ],
+  "knownGaps": [
+   "NuGet version reference page not fetched; label comparison rules for legacy NuGet were summarized from general knowledge.",
+   "No explicit channels beyond pre-release flag and sibling package IDs."
+  ],
+  "vectorSchemes": [
+   "chocolatey"
+  ]
+ },
+ {
+  "id": "db-majorminor",
+  "name": "Database majors: PostgreSQL, MySQL, MariaDB",
+  "family": "recency",
+  "spec": [
+   "https://www.postgresql.org/support/versioning/",
+   "https://dev.mysql.com/doc/refman/8.4/en/mysql-releases.html",
+   "https://mariadb.org/about/#maintenance-policy"
+  ],
+  "ecosystems": [
+   "generic",
+   "mariadb",
+   "mysql",
+   "postgres",
+   "postgresql"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "dotted-int",
+  "orderingFidelity": "approximate",
+  "recencyOnly": false,
+  "prerelease": "PostgreSQL attached alpha/beta/rc/devel (17beta1); MySQL -rc/-dmr",
+  "buildMetadata": "distro suffix (-0ubuntu0.22.04.1, -MariaDB)",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "rare out-of-cycle re-release; no flag",
+  "stableRule": "no attached alpha|beta|rc|devel|dmr token; LTS vs Innovation (MySQL 8.4 vs 9.x) and MariaDB LTS series are NOT in the string, so highest-wins can pick a short-support track",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "^\\d+(\\.\\d+)?(alpha|beta|rc)\\d*$",
+    "examples": [
+     "17beta1",
+     "17rc1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "devel$",
+    "examples": [
+     "18devel"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "attached word",
+   "buildMetadata": "distro suffix",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "PostgreSQL: major = first number from 10, first two numbers before (9.6)",
+   "MySQL LTS/Innovation tracks",
+   "Five-year PG support window"
+  ],
+  "knownGaps": [
+   "LTS membership for MariaDB is policy text only; not machine-derivable from version.",
+   "No upstream machine-readable stability flag for MySQL series (use endoflife.date)."
+  ],
+  "vectorSchemes": [
+   "db-majorminor"
+  ]
+ },
+ {
+  "id": "docker",
+  "name": "Docker / OCI image tags",
+  "family": "recency",
+  "spec": [
+   "https://github.com/opencontainers/distribution-spec/blob/main/spec.md",
+   "https://github.com/opencontainers/image-spec/blob/main/annotations.md",
+   "https://docs.renovatebot.com/modules/versioning/docker/",
+   "https://docs.docker.com/reference/cli/docker/image/tag/",
+   "https://hub.docker.com/v2/repositories/library/nginx/tags"
+  ],
+  "ecosystems": [
+   "docker",
+   "ecr",
+   "ghcr",
+   "oci",
+   "quay"
+  ],
+  "purlTypes": [
+   "docker",
+   "oci"
+  ],
+  "ordering": "dotted-int",
+  "orderingFidelity": "approximate",
+  "recencyOnly": "partial",
+  "prerelease": "attached aN/bN/rcN or -rc/-beta/-alpha/-pre/-dev/-nightly/-canary/-edge/-snapshot token in the tag; no ordering rule",
+  "buildMetadata": "`+` is not in the tag alphabet; use `_`/`-` or the org.opencontainers.image.version annotation",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "no yank in OCI; registries delete tags/manifests; Docker Hub `tag_status` active|inactive; vulnerable images are usually rebuilt under the same tag, so pin by digest",
+  "stableRule": "stable only if the tag is a fully specified numeric core (>= the image's most specific segment count, e.g. X.Y.Z) with no pre-release token; compare cores only within an identical flavour suffix (text after first `-`); floating aliases (latest, stable, mainline, lts, X, X.Y, codenames), branch/sha/pr tags and digests are NOT pinned versions",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "(?i)(?:^|[-._])(?:rc|alpha|beta|pre|preview|ea|insiders?|next)(?:[-._]?\\d+)?(?:$|[-._])|^\\d+(?:\\.\\d+)*(?:a|b|rc)\\d+",
+    "examples": [
+     "3.16.0a1-slim-trixie",
+     "v1.2.3-rc1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "(?i)(?:^|[-._])(?:dev|test)(?:[-._]?\\d+)?(?:$|[-._])",
+    "examples": [
+     "1.2.3-dev"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "(?i)^(?:sha-)?[0-9a-f]{7,40}$|^pr-\\d+$|snapshot",
+    "examples": [
+     "sha-3f2a9c1",
+     "pr-1234"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "(?i)nightly",
+    "examples": [
+     "nightly",
+     "nightly-20240101"
+    ]
+   },
+   {
+    "kind": "edge",
+    "syntax": "(?i)^(?:edge|unstable)$",
+    "examples": [
+     "edge"
+    ]
+   },
+   {
+    "kind": "canary",
+    "syntax": "(?i)canary",
+    "examples": [
+     "canary"
+    ]
+   },
+   {
+    "kind": "branch-ref",
+    "syntax": "^(?:main|master|develop|trunk)$",
+    "examples": [
+     "main"
+    ]
+   },
+   {
+    "kind": "floating-tag",
+    "syntax": "^(?:latest|stable|mainline|lts|current)$|^\\d+(?:\\.\\d+)?(?:-.+)?$ (partial core)",
+    "examples": [
+     "latest",
+     "1.31",
+     "3.12-slim-bookworm"
+    ]
+   },
+   {
+    "kind": "digest",
+    "syntax": "^(?:.+@)?sha256:[0-9a-f]{64}$",
+    "examples": [
+     "sha256:59a9ae22b893..."
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "attached letters or hyphen token; unordered",
+   "buildMetadata": "annotation only",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Flavour suffixes (-alpine3.19, -slim, -bookworm, -perl) partition tags into independent version lines",
+   "Cascading aliases: 1.31.8, 1.31, 1, mainline, latest share one digest",
+   "Docker Hub last_updated is the last push (rebuilds), not the release date: nginx 1.28.0 shows 2025-12-09, later than 1.29.0 (2025-08-13)",
+   "Date tags (20240101, 20240101.1) are CalVer-shaped and carry no stability information",
+   "nginx even minor = stable line, odd minor = mainline; both vendor-supported"
+  ],
+  "knownGaps": [
+   "No normative version grammar; every image author is free to invent one. Flavour/core split is a heuristic and fails for tags like 2024.1-r2 or alpine-3.19-1.2.3 (version after the flavour).",
+   "last_updated on Docker Hub is the last push, so rebuilds make an old version look newest; the OCI created annotation is optional.",
+   "Anonymous Docker Hub paging stops at 1000 results: observed count: 1381 for nginx, page 11+ returned \"pagination offset too large for anonymous requests; sign in to page further\". A complete list needs authentication or ",
+   "GHCR/Quay/ECR use the same OCI grammar; ECR additionally supports tag immutability as a repository setting (can't be assumed).",
+   "Whether mainline/odd-minor products are \"stable\" is vendor policy (nginx treats mainline as production-ready)."
+  ],
+  "vectorSchemes": [
+   "docker"
+  ]
+ },
+ {
+  "id": "git-ref",
+  "name": "Git refs (branches, commit SHAs, git-describe strings)",
+  "family": "recency",
+  "spec": [
+   "https://git-scm.com/docs/git-check-ref-format",
+   "https://git-scm.com/docs/git-describe",
+   "https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions#using-third-party-actions"
+  ],
+  "ecosystems": [
+   "git",
+   "github-ref",
+   "gitlab-ref",
+   "gitref",
+   "oss-fuzz"
+  ],
+  "purlTypes": [
+   "github",
+   "gitlab?",
+   "generic?"
+  ],
+  "ordering": "none",
+  "orderingFidelity": "none",
+  "recencyOnly": true,
+  "prerelease": "none; tag names with -rc1 by convention",
+  "buildMetadata": "git describe suffix -N-gSHA means N commits after the tag (development snapshot)",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "none; force-push, branch/tag deletion",
+  "stableRule": "only refs/tags/<SemVer-like tag> without pre-release part; branches, HEAD, PR refs, commit SHAs and git-describe strings are never stable releases (resolve branch vs tag first: a branch may be named like a version)",
+  "unstableMarkers": [
+   {
+    "kind": "branch-ref",
+    "syntax": "^(?:refs/(?:heads|remotes|pull)/.+|HEAD|main|master|develop|trunk|dev|next)$",
+    "examples": [
+     "main",
+     "refs/heads/release/1.2",
+     "refs/heads/v1.2.3"
+    ]
+   },
+   {
+    "kind": "digest",
+    "syntax": "^[0-9a-f]{7,40}$",
+    "examples": [
+     "3f2a9c1"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "-\\d+-g[0-9a-f]{7,}(?:-dirty)?$",
+    "examples": [
+     "v1.2.3-5-g3f2a9c1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "none",
+   "buildMetadata": "git describe suffix",
+   "epoch": "none",
+   "postRelease": "git describe N-after-tag"
+  },
+  "conventions": [
+   "Moving refs used as dependency specifiers (go get @main, uses: o/r@main)",
+   "Order only by commit ancestry or commit date; commit dates can be skewed by rebases/cherry-picks"
+  ],
+  "knownGaps": [
+   "Branch vs tag ambiguity needs the remote ref listing; a bare string cannot be classified reliably.",
+   "Commit dates can be authored out of order (rebases, cherry-picks, clock skew), so recency-by-date is itself noisy.",
+   "Abbreviated SHAs are ambiguous in large repos."
+  ],
+  "vectorSchemes": [
+   "git-ref"
+  ]
+ },
+ {
+  "id": "github-release",
+  "name": "GitHub tags, Releases and GitHub Actions refs",
+  "family": "recency",
+  "spec": [
+   "https://docs.github.com/en/rest/releases/releases",
+   "https://github.com/actions/toolkit/blob/main/docs/action-versioning.md",
+   "https://api.github.com/repos/actions/checkout/tags"
+  ],
+  "ecosystems": [
+   "github",
+   "github-actions",
+   "github-release"
+  ],
+  "purlTypes": [
+   "github"
+  ],
+  "ordering": "semver",
+  "orderingFidelity": "approximate",
+  "recencyOnly": "partial",
+  "prerelease": "Release `prerelease: true` flag (authoritative) and/or SemVer pre-release suffix in the tag",
+  "buildMetadata": "`+build` accepted in tag names, ignored",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "no yank; maintainers delete Release/tag, flip `prerelease`, or force-move tags; draft releases are unpublished (exclude)",
+  "stableRule": "Release `prerelease == false` AND `draft == false` AND tag (prefix-stripped) is SemVer without a pre-release part; order by SemVer of the stripped tag, never by published_at; floating major tags (v4, v1.2) and branch/nightly/latest tags are not pinned versions",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "Release.prerelease==true | (?i)(^|[-._/])(alpha|beta|rc|pre|preview)([-._]?\\d+)?($|[-._/])",
+    "examples": [
+     "v6-beta",
+     "v2.0.0-rc.1"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "(?i)^(nightly|continuous)([-._]?[\\d-]+)?$",
+    "examples": [
+     "nightly",
+     "nightly-2024-01-01"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "^v0\\.0\\.0-\\d{14}-[0-9a-f]{12}$",
+    "examples": [
+     "v0.0.0-20240101120000-abcdef123456"
+    ]
+   },
+   {
+    "kind": "branch-ref",
+    "syntax": "^(?:refs/heads/)?(?:main|master|develop)$",
+    "examples": [
+     "main"
+    ]
+   },
+   {
+    "kind": "floating-tag",
+    "syntax": "^v?\\d+(?:\\.\\d+)?$ when full vX.Y.Z tags also exist, or ^latest$",
+    "examples": [
+     "v7",
+     "v4",
+     "latest"
+    ]
+   },
+   {
+    "kind": "digest",
+    "syntax": "^[0-9a-f]{40}$",
+    "examples": [
+     "3d3c42e5aac5f2f0a7d1b6c9e4f8a0b1c2d3e4f5"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "Release flag + suffix",
+   "buildMetadata": "ignored",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Floating major tags (v1, v4) force-moved to the newest release of the line; back-port releases (v4.4.0 after v7.0.0) are normal",
+   "GitHub /releases/latest sorts by created_at (commit date), not version; actions/checkout published v2.8.0 last on 2026-07-20 while latest is v7.0.1",
+   "Monorepo prefixes (cli-v2.1.0, @scope/pkg@1.2.3); date-named releases (release-2024-01)",
+   "Pin actions by 40-hex commit SHA: immutable, unordered"
+  ],
+  "knownGaps": [
+   "A repository may tag unrelated things (docs-v2, go/v1) so prefix stripping must be per-repo; false positives are possible.",
+   "created_at (commit date) is stable but can be earlier than the previous release when a back-port branch is cut from old commits; sorting by it can still mis-order close releases.",
+   "Tag API lists tags by ref name, not date; fetch Releases for dates.",
+   "Draft/prerelease flags only exist for Releases, not bare tags. A bare tag v2.0.0-rc.1 is detected by name only."
+  ],
+  "vectorSchemes": [
+   "github-release"
+  ]
+ },
+ {
+  "id": "go-toolchain",
+  "name": "Go toolchain versions (go1.27.3, go1.27rc3) and module pseudo-versions",
+  "family": "recency",
+  "spec": [
+   "https://go.dev/doc/toolchain",
+   "https://go.dev/dl/?mode=json&include=all",
+   "https://proxy.golang.org/golang.org/toolchain/@v/v0.0.1-go1.27.3.linux-amd64.info",
+   "https://go.dev/ref/mod#versions"
+  ],
+  "ecosystems": [
+   "go",
+   "go-toolchain",
+   "golang",
+   "gomod"
+  ],
+  "purlTypes": [
+   "golang"
+  ],
+  "ordering": "custom:go-toolchain",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "goX.YrcN / goX.YbetaN attached; go.dev/dl `stable: false`",
+  "buildMetadata": "module +incompatible",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "modules: go.mod `retract`; toolchain: none",
+  "stableRule": "go.dev/dl JSON `stable == true` (excludes rc/beta); order 1.21 < 1.21rc1 < 1.21rc2 < 1.21.0 < 1.21.1 (bare language version lowest); module pseudo-versions are snapshots",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "^go\\d+\\.\\d+(rc|beta)\\d+$",
+    "examples": [
+     "go1.27rc3"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "-\\d{14}-[0-9a-f]{12}$",
+    "examples": [
+     "v0.0.0-20240101120000-abcdef123456"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "^devel |^gotip$",
+    "examples": [
+     "gotip"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "rc/beta attached",
+   "buildMetadata": "+incompatible",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Language version (1.21) != toolchain (go1.21.0)",
+   "Two newest major lines supported; both released simultaneously",
+   "Pseudo-versions for untagged commits"
+  ],
+  "knownGaps": [
+   "dl JSON has no dates; dates come from the module proxy .info Time for golang.org/toolchain (sampled for 6 versions).",
+   "Pre-1.21 numbering (go1.20 first release) needs special-casing."
+  ],
+  "vectorSchemes": [
+   "go-toolchain"
+  ]
+ },
+ {
+  "id": "java",
+  "name": "Java / OpenJDK version strings (JEP 223), EA builds, legacy 1.8.0_xxx",
+  "family": "recency",
+  "spec": [
+   "https://openjdk.org/jeps/223",
+   "https://openjdk.org/jeps/322",
+   "https://api.adoptium.net/"
+  ],
+  "ecosystems": [
+   "java",
+   "jdk",
+   "maven-jdk",
+   "openjdk",
+   "temurin"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "custom:jep223",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "-ea (any -PRE per JEP 223) sorts below the same VNUM",
+  "buildMetadata": "+BUILD counts in comparison (unlike SemVer); -OPT may not",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "superseded by quarterly update; no flag",
+  "stableRule": "no -PRE (-ea) and no -SNAPSHOT/-internal; compare VNUM element-wise, then PRE (below none), then BUILD numerically; LTS is vendor policy (-LTS in OPT is informational)",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-ea(\\+\\d+)?",
+    "examples": [
+     "22-ea+36",
+     "9-ea+19"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "-(SNAPSHOT|internal)",
+    "examples": [
+     "17.0.9-SNAPSHOT"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "-ea",
+   "buildMetadata": "BUILD counts",
+   "epoch": "none",
+   "postRelease": "update number (legacy _392)"
+  },
+  "conventions": [
+   "Quarterly update releases for every supported line",
+   "Legacy 1.8.0_392-b08 / 8u392",
+   "LTS every two years (vendor-defined)"
+  ],
+  "knownGaps": [
+   "JEP 322 text and Adoptium API not fetched; cadence is stated from knowledge.",
+   "The JEP page uses $SECURITY, not $PATCH; $PATCH fourth element is described as free for downstream."
+  ],
+  "vectorSchemes": [
+   "java"
+  ]
+ },
+ {
+  "id": "jetbrains",
+  "name": "JetBrains Marketplace plugins and IDE build numbers",
+  "family": "recency",
+  "spec": [
+   "https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html",
+   "https://plugins.jetbrains.com/docs/marketplace/custom-release-channels.html",
+   "https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html"
+  ],
+  "ecosystems": [
+   "intellij",
+   "jetbrains",
+   "jetbrains-plugin"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "semver",
+  "orderingFidelity": "exact",
+  "recencyOnly": "partial",
+  "prerelease": "upload channel other than Stable (eap, beta, alpha, nightly) and/or SemVer pre-release suffix",
+  "buildMetadata": "SemVer + (rare)",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Marketplace `isHidden` / delist; no consumer-visible yank flag",
+  "stableRule": "plugin update uploaded to the default (empty) Stable channel with no SemVer pre-release part; IDE build numbers (243.12818.47) compare as numeric tuples; EAP/SNAPSHOT builds excluded",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-(eap|alpha|beta|rc)(\\.\\d+)?$ or channel != Stable",
+    "examples": [
+     "1.2.3-eap.4"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "-nightly|\\d{8}$ or nightly channel",
+    "examples": [
+     "1.2.3-nightly"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "(?i)SNAPSHOT",
+    "examples": [
+     "243.SNAPSHOT",
+     "LATEST-EAP-SNAPSHOT"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "channel + suffix",
+   "buildMetadata": "SemVer +",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "since-build/until-build compatibility ranges with .* wildcard",
+   "IDE marketing versions are CalVer (2024.1.2) alongside build numbers",
+   "Channels are opt-in custom repositories"
+  ],
+  "knownGaps": [
+   "Public listing of channel per version needs the Marketplace API (not fetched here).",
+   "Nightly channel naming is user-defined (docs list eap/alpha/beta only)."
+  ],
+  "vectorSchemes": [
+   "jetbrains"
+  ]
+ },
+ {
+  "id": "letter-suffix",
+  "name": "Letter-suffix and encoded schemes: zlib, libpng, curl, bash, sqlite",
+  "family": "recency",
+  "spec": [
+   "https://www.sqlite.org/c3ref/c_source_id.html",
+   "https://zlib.net/",
+   "http://www.libpng.org/pub/png/libpng.html",
+   "https://curl.se/docs/releases.html",
+   "https://ftp.gnu.org/gnu/bash/"
+  ],
+  "ecosystems": [
+   "bash",
+   "curl",
+   "generic",
+   "github",
+   "libpng",
+   "sqlite",
+   "zlib"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "letter-suffix",
+  "orderingFidelity": "approximate",
+  "recencyOnly": false,
+  "prerelease": "libpng attached beta/rc (1.6.44beta01); bash -alpha/-beta/-rc; curl rc- tag prefix; zlib .f dev snapshot",
+  "buildMetadata": "bash (1) build counter; zlib -motley",
+  "epoch": "",
+  "postRelease": "openssl-style letters (not in this group); bash patchlevel is part of the tuple",
+  "yankedDeprecated": "none",
+  "stableRule": "parse numeric tuple; stable if no pre-release word; sqlite integer X*1000000+Y*1000+Z maps 1:1 to X.Y.Z",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "(alpha|beta|rc)\\d*",
+    "examples": [
+     "1.6.44beta01",
+     "5.3-rc1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "\\.f$|-motley",
+    "examples": [
+     "1.2.11.f"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "sqlite-snapshot-YYYYMMDDHHMM",
+    "examples": [
+     "sqlite-snapshot-202401151200"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "attached/hyphen word",
+   "buildMetadata": "suffix",
+   "epoch": "none",
+   "postRelease": "per project"
+  },
+  "conventions": [
+   "Integer encoding of dotted versions (sqlite 3045000)",
+   "Underscore tags (curl-8_23_0)",
+   "Patchlevel counters outside the release number (bash)"
+  ],
+  "knownGaps": [
+   "No single machine-readable spec for zlib/libpng/bash numbering; rules inferred from release pages and file names (only the sqlite integer rule was verified from the spec page).",
+   "Distro-patched versions (e.g. bash 5.1-6ubuntu1) are separate."
+  ],
+  "vectorSchemes": [
+   "letter-suffix"
+  ]
+ },
+ {
+  "id": "linux-kernel",
+  "name": "Linux kernel (mainline, stable, longterm, -rc, linux-next)",
+  "family": "recency",
+  "spec": [
+   "https://docs.kernel.org/process/2.Process.html",
+   "https://www.kernel.org/releases.json",
+   "https://www.kernel.org/category/releases.html"
+  ],
+  "ecosystems": [
+   "kernel",
+   "linux",
+   "linux-kernel"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "semver-loose",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "-rcN sorts before X.Y; next-YYYYMMDD is linux-next snapshot",
+  "buildMetadata": "distro/ABI suffix (-45-generic), -rtN",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "superseded by next .Z; releases.json `iseol`",
+  "stableRule": "no -rc/next-/-dirty suffix; mainline X.Y, stable X.Y.Z, longterm X.Y.Z; tree (mainline|stable|longterm) is not in the string (releases.json moniker); pre-2.6 odd minors are development",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-rc\\d+$",
+    "examples": [
+     "7.4-rc1"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "^next-\\d{8}$",
+    "examples": [
+     "next-20261022"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "-dirty$",
+    "examples": [
+     "6.12.114-dirty"
+    ]
+   },
+   {
+    "kind": "odd-minor-unstable",
+    "syntax": "^2\\.(3|5)\\.\\d+$ (pre-2.6 only)",
+    "examples": [
+     "2.5.75"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "-rcN",
+   "buildMetadata": "distro suffix",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Three parallel trees; longterm point releases often newer by date than mainline",
+   "Distro kernels (5.14.0-427.el9) are a different axis from upstream"
+  ],
+  "knownGaps": [
+   "Which branch is longterm is only in kernel.org metadata, not in the version string.",
+   "Distro versions need distro-specific comparison (RPM/dpkg)."
+  ],
+  "vectorSchemes": [
+   "linux-kernel"
+  ]
+ },
+ {
+  "id": "nodejs",
+  "name": "Node.js runtime (even/odd lines, LTS codenames, nightly/rc/v8-canary/test dists)",
+  "family": "recency",
+  "spec": [
+   "https://github.com/nodejs/Release/blob/main/README.md",
+   "https://nodejs.org/dist/index.json",
+   "https://nodejs.org/download/{nightly,rc,v8-canary,test}/index.json"
+  ],
+  "ecosystems": [
+   "node",
+   "nodejs",
+   "runtime-node"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "semver",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "-rc.N; separate dist directories: nightly (-nightlyYYYYMMDD<sha>), v8-canary, test",
+  "buildMetadata": "none",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "superseded; `security: true` marks security releases",
+  "stableRule": "from nodejs.org/dist/index.json only (the release dist); max SemVer for latest; recommended = max among entries with `lts != false`; rc/nightly/v8-canary/test come from other dist dirs",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-rc\\.\\d+$",
+    "examples": [
+     "v26.4.0-rc.0"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "-nightly\\d{8}[0-9a-f]+$",
+    "examples": [
+     "v27.0.0-nightly20261022fd20448111"
+    ]
+   },
+   {
+    "kind": "canary",
+    "syntax": "-v8-canary\\d+[0-9a-f]+$",
+    "examples": [
+     "v27.0.0-v8-canary2026102205fece4d56"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "-test\\d+[0-9a-f]+$",
+    "examples": [
+     "v27.0.0-test202610201b5fc1479a85aa6174c67e239fad81da92a25b0a"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "LTS is a per-line codename (lts field) not in the string",
+   "Even/odd rule until Node 26; from 27 annual October branch, Alpha phase, every line LTS",
+   "LTS point releases routinely newer by date than newest Current (465/875 inversions)"
+  ],
+  "knownGaps": [
+   "LTS promotion occurs in October; a snapshot taken before that shows the new line as Current.",
+   "lts can only be read from index.json (or endoflife.date), not from the string."
+  ],
+  "vectorSchemes": [
+   "nodejs"
+  ]
+ },
+ {
+  "id": "npm-dist-tag",
+  "name": "npm dist-tags as a channel signal (SemVer versions with unstable channels)",
+  "family": "recency",
+  "spec": [
+   "https://docs.npmjs.com/cli/v10/commands/npm-dist-tag",
+   "https://semver.org",
+   "https://registry.npmjs.org/react"
+  ],
+  "ecosystems": [
+   "npm",
+   "pnpm",
+   "yarn"
+  ],
+  "purlTypes": [
+   "npm"
+  ],
+  "ordering": "semver",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "SemVer pre-release part plus dist-tag membership (canary, next, experimental, nightly, beta, rc, alpha, insiders, dev)",
+  "buildMetadata": "ignored (SemVer)",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "`npm deprecate` sets `deprecated` on the packument version; `npm unpublish` within limits; no yank",
+  "stableRule": "no SemVer pre-release part AND not only reachable via a non-latest unstable dist-tag; \"recommended latest\" = the `latest` dist-tag; never pick by publish time; 0.0.0-experimental-<sha>-<date> sorts lowest yet is newest",
+  "unstableMarkers": [
+   {
+    "kind": "canary",
+    "syntax": "-(canary|experimental)",
+    "examples": [
+     "19.3.0-canary-9ffcb463-20261021",
+     "0.0.0-experimental-9ffcb463-20261021"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "-dev\\.\\d+",
+    "examples": [
+     "7.1.0-dev.20261022.1"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "-(nightly|insiders)",
+    "examples": [
+     "4.6.2-insiders.20220225"
+    ]
+   },
+   {
+    "kind": "prerelease",
+    "syntax": "-(alpha|beta|rc|preview)",
+    "examples": [
+     "19.0.0-rc.1",
+     "16.3.0-preview.10"
+    ]
+   },
+   {
+    "kind": "floating-tag",
+    "syntax": "dist-tag names (latest, next, canary, backport)",
+    "examples": [
+     "latest"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "identical",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Per-line dist-tags (backport, next-14, v3-latest): `backport` = last published back-port, not the best old-line version",
+   "Date/sha prerelease identifiers: 19.3.0-canary-<sha8>-<yyyymmdd>"
+  ],
+  "knownGaps": [
+   "Dist-tags are mutable; a snapshot is needed to classify.",
+   "The packument time map has a modified/created pair and per-version times; unpublished versions drop out.",
+   "A publisher may tag latest on an old line (rare)."
+  ],
+  "vectorSchemes": [
+   "npm-dist-tag"
+  ]
+ },
+ {
+  "id": "openssl",
+  "name": "OpenSSL (letter-suffix patch releases <= 1.1.1; SemVer-style from 3.0)",
+  "family": "recency",
+  "spec": [
+   "https://openssl-library.org/policies/releasestrat",
+   "https://api.github.com/repos/openssl/openssl/releases"
+  ],
+  "ecosystems": [
+   "generic",
+   "github",
+   "openssl"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "letter-suffix",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "-alphaN/-betaN (3.0+ and pre-1.1.0 -betaN/-preN); GitHub `prerelease: true`",
+  "buildMetadata": "distro suffix (1.1.1k-fips)",
+  "epoch": "",
+  "postRelease": "trailing letters for <= 1.1.1 (1.1.1w > 1.1.1), compare (length, lexical): z < za",
+  "yankedDeprecated": "none; fixed in next patch; EOL on policy page",
+  "stableRule": "no -alpha/-beta/-dev; for <= 1.1.1 trailing letters are post-release (stable); true latest = max tuple, not newest by date (multiple lines release same day)",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-(alpha|beta|pre)\\d+$",
+    "examples": [
+     "4.1.0-beta2",
+     "1.0.2-beta3"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "-dev$",
+    "examples": [
+     "3.6.0-dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical from 3.0",
+   "buildMetadata": "distro suffix",
+   "epoch": "none",
+   "postRelease": "letter suffix <= 1.1.1"
+  },
+  "conventions": [
+   "LTS lines (1.1.1, 3.0, 3.5) shipped concurrently with non-LTS lines",
+   "Tags OpenSSL_1_1_1w and openssl-3.5.9"
+  ],
+  "knownGaps": [
+   "Policy page is a point-in-time document; dates for non-LTS support windows change.",
+   "Letter-suffix collision with generic parsers: 1.1.1w misparsed as prerelease by naive PEP 440/semver libs."
+  ],
+  "vectorSchemes": [
+   "openssl"
+  ]
+ },
+ {
+  "id": "php",
+  "name": "PHP (and the version_compare special-form ordering)",
+  "family": "recency",
+  "spec": [
+   "https://www.php.net/manual/en/function.version-compare.php",
+   "https://www.php.net/supported-versions.php"
+  ],
+  "ecosystems": [
+   "composer",
+   "packagist",
+   "php"
+  ],
+  "purlTypes": [
+   "composer",
+   "generic?"
+  ],
+  "ordering": "custom:php-version-compare",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "attached alphaN/betaN/RCN (no hyphen); -dev",
+  "buildMetadata": "distro suffix",
+  "epoch": "",
+  "postRelease": "`pl`/`p` ranks above the bare release",
+  "yankedDeprecated": "none; Composer `abandoned` is package-level",
+  "stableRule": "no dev/alpha/beta/RC token; order per version_compare: unknown < dev < alpha=a < beta=b < RC=rc < # < pl=p after canonicalising (_ - + -> ., dots between digit/non-digit)",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "(alpha|beta|RC|rc)\\d*$",
+    "examples": [
+     "8.4.0RC1",
+     "8.4.0beta2"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "(-dev|^dev-)",
+    "examples": [
+     "8.5.0-dev",
+     "dev-main"
+    ]
+   },
+   {
+    "kind": "branch-ref",
+    "syntax": "^dev-.+|\\.x-dev$",
+    "examples": [
+     "dev-main",
+     "8.x-dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "attached word",
+   "buildMetadata": "distro suffix",
+   "epoch": "none",
+   "postRelease": "pl"
+  },
+  "conventions": [
+   "Branch support table: 2 years active + 2 years security-only",
+   "Composer stability flags (@dev, @alpha, @beta, @RC, stable)"
+  ],
+  "knownGaps": [
+   "version_compare rules apply to PHP semantics; other tools (Composer) have parser differences.",
+   "Docker php:8.4-fpm-alpine tags follow the docker scheme."
+  ],
+  "vectorSchemes": [
+   "php"
+  ]
+ },
+ {
+  "id": "python-runtime",
+  "name": "CPython interpreter releases (not PyPI packages)",
+  "family": "recency",
+  "spec": [
+   "https://peps.python.org/pep-0440/",
+   "https://peps.python.org/pep-0602/",
+   "https://endoflife.date/api/python.json",
+   "https://www.python.org/api/v2/downloads/release/"
+  ],
+  "ecosystems": [
+   "cpython",
+   "pyenv",
+   "python",
+   "python-runtime"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "pep440",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "aN/bN/rcN attached; python.org API `pre_release: true`; .devN",
+  "buildMetadata": "local `+` label (3.13.0+ = modified checkout)",
+  "epoch": "PEP 440 N! (not used by CPython)",
+  "postRelease": ".postN",
+  "yankedDeprecated": "not applicable to interpreter downloads",
+  "stableRule": "python.org API `pre_release == false` (no aN/bN/rcN/.devN); true latest = max tuple, ignore date (a newer alpha can post-date a final; old-line security releases are newer than newer minors)",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "(a|b|rc)\\d+$",
+    "examples": [
+     "3.16.0a1",
+     "3.15.0rc3"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "\\.dev\\d+$|-dev$",
+    "examples": [
+     "3.17.0.dev1",
+     "3.14-dev"
+    ]
+   },
+   {
+    "kind": "snapshot",
+    "syntax": "\\+$",
+    "examples": [
+     "3.13.0+"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "aN/bN/rcN",
+   "buildMetadata": "local label",
+   "epoch": "N!",
+   "postRelease": ".postN"
+  },
+  "conventions": [
+   "Annual October cadence; 5-year support per minor (2 bugfix + 3 security)",
+   "PyPy uses its own 7.3.x with pypy3.10-7.3.17 identifiers"
+  ],
+  "knownGaps": [
+   "PEP 602 and the python.org API behavior beyond the data observed were not re-fetched.",
+   "The is_latest flag on python.org may lag."
+  ],
+  "vectorSchemes": [
+   "python-runtime"
+  ]
+ },
+ {
+  "id": "rust-toolchain",
+  "name": "Rust toolchain channels (stable / beta / nightly / dated nightly)",
+  "family": "recency",
+  "spec": [
+   "https://rust-lang.github.io/rustup/concepts/channels.html",
+   "https://static.rust-lang.org/dist/channel-rust-stable.toml"
+  ],
+  "ecosystems": [
+   "rust",
+   "rust-toolchain",
+   "rustc",
+   "rustup"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "semver",
+  "orderingFidelity": "approximate",
+  "recencyOnly": "partial",
+  "prerelease": "beta channel 1.N.0-beta.K; nightly 1.N.0-nightly",
+  "buildMetadata": "(hash date) in --version",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "none for toolchains; crates.io has yank (other scheme)",
+  "stableRule": "channel `stable` manifest only; beta/nightly and nightly-YYYY-MM-DD are unstable; nightlies share one version string so only the date orders them",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-beta\\.\\d+",
+    "examples": [
+     "1.100.0-beta.7"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "^nightly(-\\d{4}-\\d{2}-\\d{2})?$|-nightly",
+    "examples": [
+     "nightly-2026-10-22",
+     "1.101.0-nightly"
+    ]
+   },
+   {
+    "kind": "floating-tag",
+    "syntax": "^(stable|beta|nightly)(-[a-z0-9_-]+)?$",
+    "examples": [
+     "stable"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "beta/nightly channels",
+   "buildMetadata": "commit hash date",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Channel names and dated toolchains; rust-toolchain.toml",
+   "Six-week trains, no back-port lines"
+  ],
+  "knownGaps": [
+   "Nightly rustc strings share a version; hash+date needed.",
+   "MSRV (minimum supported Rust version) fields in crates are separate."
+  ],
+  "vectorSchemes": [
+   "rust-toolchain"
+  ]
+ },
+ {
+  "id": "scoop",
+  "name": "Scoop manifests",
+  "family": "recency",
+  "spec": [
+   "https://github.com/ScoopInstaller/Scoop/blob/master/lib/versions.ps1",
+   "https://github.com/ScoopInstaller/Scoop/wiki/App-Manifests"
+  ],
+  "ecosystems": [
+   "scoop"
+  ],
+  "purlTypes": [],
+  "ordering": "custom:scoop-compare-version",
+  "orderingFidelity": "approximate",
+  "recencyOnly": "partial",
+  "prerelease": "words alpha|beta|rc|pre in a part sort lower than the bare number",
+  "buildMetadata": "`+x` is rewritten to `-x` and treated as POST-release (greater than base)",
+  "epoch": "",
+  "postRelease": "`+N` suffix",
+  "yankedDeprecated": "bucket maintainers delete/edit manifest; no flag",
+  "stableRule": "no flag; unstable if a part matches alpha|beta|rc|pre or the version is `nightly`/`nightly-YYYYMMDD`; unstable builds usually live in separate apps/buckets (nightly bucket, firefox-nightly)",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "(alpha|beta|rc|pre)",
+    "examples": [
+     "1.2.3-beta.2"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "^nightly(-\\d{8})?$",
+    "examples": [
+     "nightly",
+     "nightly-20240115"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "(?i)dev",
+    "examples": [
+     "1.2.3-dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "alpha|beta|rc|pre sort lower",
+   "buildMetadata": "`+` = post-release (opposite of SemVer)",
+   "epoch": "none",
+   "postRelease": "`+N`"
+  },
+  "conventions": [
+   "`nightly` versions compare equal unless UPDATE_NIGHTLY is set, then by trailing yyyyMMdd",
+   "Versioned app aliases (python27, openjdk17) in versions bucket"
+  ],
+  "knownGaps": [
+   "Behaviour taken from source at fetch time; the + post-release rule was introduced via Scoop PR #3721 per code comment.",
+   "No machine-readable stability field in manifests."
+  ],
+  "vectorSchemes": [
+   "scoop"
+  ]
+ },
+ {
+  "id": "ubuntu",
+  "name": "Ubuntu releases (YY.MM CalVer with .N point releases and LTS)",
+  "family": "recency",
+  "spec": [
+   "https://wiki.ubuntu.com/Releases",
+   "https://calver.org/",
+   "https://ubuntu.com/about/release-cycle"
+  ],
+  "ecosystems": [
+   "docker-ubuntu",
+   "ubuntu",
+   "ubuntu-release"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "calver",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "-beta/-daily/devel in image or tag names",
+  "buildMetadata": "image date suffix (24.04-20241001)",
+  "epoch": "",
+  "postRelease": ".N point release (22.04.5)",
+  "yankedDeprecated": "EOL dates; no yank",
+  "stableRule": "YY.MM[.N] without beta/daily/devel; LTS iff YY even and MM == 04; interim releases have ~9 months support; codenames/rolling/devel are floating aliases",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-(beta|alpha)$",
+    "examples": [
+     "24.04-beta"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "-daily$",
+    "examples": [
+     "26.04-daily"
+    ]
+   },
+   {
+    "kind": "floating-tag",
+    "syntax": "^(devel|rolling|latest|[a-z]+)$ (codenames)",
+    "examples": [
+     "noble",
+     "rolling"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "beta/daily",
+   "buildMetadata": "image date",
+   "epoch": "none",
+   "postRelease": ".N point release"
+  },
+  "conventions": [
+   "LTS derivable from the string (even YY + .04)",
+   "Point releases are respins of the same series"
+  ],
+  "knownGaps": [
+   "Support-length facts beyond the wiki quotes are from the release-cycle page, not fetched in this run."
+  ],
+  "vectorSchemes": [
+   "ubuntu"
+  ]
+ },
+ {
+  "id": "unity",
+  "name": "Unity editor versions (2022.3.10f1, 6000.0.23f1)",
+  "family": "recency",
+  "spec": [
+   "https://docs.renovatebot.com/modules/versioning/unity3d/",
+   "https://discussions.unity.com/t/what-does-the-f-in-unity-5-1-2f1-mean/593192"
+  ],
+  "ecosystems": [
+   "unity",
+   "unity3d",
+   "upm-editor"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "custom:unity-stream",
+  "orderingFidelity": "approximate",
+  "recencyOnly": false,
+  "prerelease": "stream letters a (alpha) and b (beta)",
+  "buildMetadata": "trailing hash (316c1fd686f6) and China suffix c1 ignored",
+  "epoch": "",
+  "postRelease": "p (patch) after f",
+  "yankedDeprecated": "Unity Hub withdrawal; no flag",
+  "stableRule": "stream letter f (final) or p (patch); a/b unstable; LTS = last cycle of a year, not in the string (highest year.minor may be a Tech stream)",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "^\\d+\\.\\d+\\.\\d+[ab]\\d+",
+    "examples": [
+     "2023.3.0a17",
+     "2023.3.0b4"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "letters a/b",
+   "buildMetadata": "hash/c1",
+   "epoch": "none",
+   "postRelease": "p"
+  },
+  "conventions": [
+   "Year-based major (Unity 6 is 6000.0)",
+   "Letter+counter stream suffix a<b<f<p"
+  ],
+  "knownGaps": [
+   "No first-party documentation retrievable; relies on Renovate's docs and community statements.",
+   "c1 China suffix and p semantics are from memory/community."
+  ],
+  "vectorSchemes": [
+   "unity"
+  ]
+ },
+ {
+  "id": "vscode",
+  "name": "VS Code Marketplace and Open VSX extensions",
+  "family": "recency",
+  "spec": [
+   "https://code.visualstudio.com/api/working-with-extensions/publishing-extension#prerelease-extensions",
+   "https://open-vsx.org/api/ms-python/python",
+   "https://github.com/eclipse/openvsx/issues"
+  ],
+  "ecosystems": [
+   "openvsx",
+   "vsce",
+   "vscode",
+   "vscode-marketplace"
+  ],
+  "purlTypes": [
+   "vscode-extension?"
+  ],
+  "ordering": "semver",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "separate boolean: Marketplace version property `Microsoft.VisualStudio.Code.PreRelease == \"true\"`, Open VSX `preRelease: true`; semver pre-release tags are not supported in the string; odd minor is a weak hint",
+  "buildMetadata": "not allowed on the Marketplace; some extensions embed a date/build id in PATCH (2026.11.2026102101)",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "publisher unpublish/delete; Marketplace removal for malware; Open VSX `deprecated` on the extension; no per-version yank flag",
+  "stableRule": "filter out versions whose PreRelease property/preRelease field is true, then take max(major.minor.patch triple); use odd-minor only as a fallback when no flag is available (99/1005 ms-python.python versions disagree with the flag)",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "version property Microsoft.VisualStudio.Code.PreRelease == \"true\" | openvsx preRelease == true",
+    "examples": [
+     "2026.11.2026102101",
+     "2026.2.2026031101"
+    ]
+   },
+   {
+    "kind": "odd-minor-unstable",
+    "syntax": "^\\d+\\.\\d*[13579]\\.\\d+$ (heuristic only)",
+    "examples": [
+     "0.3.1",
+     "2026.9.2026100801"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "-dev$ (Open VSX accepts semver suffixes)",
+    "examples": [
+     "2024.23.0-dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "flag, not string",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Two parallel channels (release even minor, pre-release odd minor) in one version space; pre-release users get whichever is higher",
+   "Per-targetPlatform artifacts (linux-x64, darwin-arm64, web) share a version string",
+   "preview:true is a badge, not a pre-release"
+  ],
+  "knownGaps": [
+   "Open VSX historically lacked a --pre-release flag in the ovsx CLI; flags are populated from the VSIX manifest where present (unverified in this research beyond the API field).",
+   "The odd/even convention is a recommendation; many extensions ignore it (measured ~10% mismatch).",
+   "Version triple limits are not documented numerically."
+  ],
+  "vectorSchemes": [
+   "vscode"
+  ]
+ },
+ {
+  "id": "windows-version",
+  "name": "Windows file versions (a.b.c.d), MSI ProductVersion, OS build numbers, KB ids",
+  "family": "recency",
+  "spec": [
+   "https://learn.microsoft.com/en-us/windows/win32/menurc/versioninfo-resource",
+   "https://learn.microsoft.com/en-us/windows/win32/msi/productversion"
+  ],
+  "ecosystems": [
+   "kb",
+   "msi",
+   "nuget-windows",
+   "windows",
+   "windows-update"
+  ],
+  "purlTypes": [
+   "generic?"
+  ],
+  "ordering": "dotted-int",
+  "orderingFidelity": "approximate",
+  "recencyOnly": "partial",
+  "prerelease": "VS_FF_PRERELEASE flag in VS_FIXEDFILEINFO; \"RC2\"/\"beta\" in FileVersion string; Insider channel is metadata",
+  "buildMetadata": "4th word / UBR; MSI ignores the 4th field",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Windows Update supersede/expire (KB marked superseded); no version yank",
+  "stableRule": "numeric 4-tuple (files, OS builds) or 3-tuple (MSI: 255.255.65535) with no VS_FF_PRERELEASE flag and no RC/beta text; KB ids are identifiers not versions (order by release date/supersedence)",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "VS_FF_PRERELEASE flag or (?i)(rc|beta|preview) in FileVersion string",
+    "examples": [
+     "5.00.RC2"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "flag",
+   "buildMetadata": "4th field ignored by MSI",
+   "epoch": "none",
+   "postRelease": "UBR"
+  },
+  "conventions": [
+   "16-bit fields; MSI major/minor max 255, build max 65535",
+   "Servicing branches (19045, 22631) supported in parallel; newer UBR on the older branch is common",
+   "KB numbers are update ids"
+  ],
+  "knownGaps": [
+   "Does not cover the MSIX/AppX 4-part version rules or .NET AssemblyVersion/InformationalVersion.",
+   "OS build/UBR scheme taken from common knowledge; not fetched."
+  ],
+  "vectorSchemes": [
+   "windows-version"
+  ]
+ },
+ {
+  "id": "winget",
+  "name": "Windows Package Manager (winget) PackageVersion",
+  "family": "recency",
+  "spec": [
+   "https://github.com/microsoft/winget-pkgs/blob/master/doc/manifest/schema/1.12.0/version.md",
+   "https://learn.microsoft.com/en-us/windows/package-manager/package/manifest",
+   "https://github.com/microsoft/winget-cli/blob/master/src/AppInstallerSharedLib/Versions.cpp"
+  ],
+  "ecosystems": [
+   "windows-package-manager",
+   "winget",
+   "winget-pkgs"
+  ],
+  "purlTypes": [
+   "winget?"
+  ],
+  "ordering": "custom:winget-parts",
+  "orderingFidelity": "approximate",
+  "recencyOnly": "partial",
+  "prerelease": "none; any non-numeric tail in a dot-part sorts BELOW the bare number (1.2.3-beta < 1.2.3)",
+  "buildMetadata": "none; `+x` tail also sorts below the bare number (differs from SemVer)",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "manifest PR removed/reverted in winget-pkgs; no yank flag",
+  "stableRule": "no formal rule; treat a version as unstable if any dot-part has a text tail matching alpha|beta|rc|pre|preview|dev|nightly|canary|insiders|snapshot; insider builds are usually a separate PackageIdentifier; `Latest`/`Unknown` are placeholders, not versions",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "(?i)(alpha|beta|rc|pre|preview|insiders?)",
+    "examples": [
+     "1.2.3-beta",
+     "5.0.0-preview.2"
+    ]
+   },
+   {
+    "kind": "nightly",
+    "syntax": "(?i)nightly",
+    "examples": [
+     "1.2.3-nightly"
+    ]
+   },
+   {
+    "kind": "floating-tag",
+    "syntax": "^Latest$",
+    "examples": [
+     "Latest"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "tail sorts lower; no concept",
+   "buildMetadata": "tail sorts lower",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Comparer (winget-cli Versions.cpp): split on \".\", Integer + Other per part, trailing zero parts dropped, \"Latest\" > all, \"Unknown\" < all, leading non-digits trimmed",
+   "Version should equal Add/Remove Programs DisplayVersion, not the marketing version"
+  ],
+  "knownGaps": [
+   "Comparer details read from source at fetch time (winget-cli master); behaviour can change between releases.",
+   "Cross-source comparison (store vs winget community) uses the same comparer but versions may be differently formatted."
+  ],
+  "vectorSchemes": [
+   "winget"
+  ]
+ },
+ {
+  "id": "bioconductor",
+  "name": "Bioconductor (R x.y.z with parity)",
+  "family": "semver",
+  "spec": [
+   "https://contributions.bioconductor.org/versionnum.html",
+   "https://bioconductor.org/about/removed-packages/"
+  ],
+  "ecosystems": [
+   "bioconductor"
+  ],
+  "purlTypes": [
+   "bioconductor?"
+  ],
+  "ordering": "cran",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "No syntax; odd middle number y means devel branch, even y means release branch (0.99.z for new packages).",
+  "buildMetadata": "No build metadata.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Packages are deprecated in release N and removed in N+1 (removed-packages page); no per-version flag.",
+  "stableRule": "Stable iff the version parses and y (second component) is even.",
+  "unstableMarkers": [
+   {
+    "kind": "odd-minor-unstable",
+    "syntax": "x.y.z with y odd",
+    "examples": [
+     "1.3.4",
+     "0.99.0",
+     "1.99.5"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "odd y (devel)",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "x.99.z is bumped to (x+1).0.z at release.",
+   "Versions are scoped per Bioconductor release (3.20, 3.21...)."
+  ],
+  "knownGaps": [
+   "Annotation/experiment packages may use other patterns.",
+   "Release numbering of Bioconductor itself not covered by the rules page."
+  ],
+  "vectorSchemes": [
+   "bioconductor"
+  ]
+ },
+ {
+  "id": "cargo",
+  "name": "Cargo / crates.io (Rust semver crate)",
+  "family": "semver",
+  "spec": [
+   "https://doc.rust-lang.org/cargo/reference/manifest.html#the-version-field",
+   "https://doc.rust-lang.org/cargo/reference/registry-index.html",
+   "https://github.com/dtolnay/semver"
+  ],
+  "ecosystems": [
+   "cargo",
+   "crates.io"
+  ],
+  "purlTypes": [
+   "cargo"
+  ],
+  "ordering": "semver-cargo",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "SemVer -<ident>(.<ident>)*; lower than the release; requirements exclude pre-releases unless the requirement itself names one on the same X.Y.Z.",
+  "buildMetadata": "+meta accepted; the semver crate Ord DOES compare it as a final tiebreak (1.0.0 < 1.0.0+9 < 1.0.0+a); Cargo ignores it for matching; the index forbids two versions differing only by build. Not a stability signal.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Registry index field yanked:true per version (cargo yank / --undo); yanked versions are skipped for new resolution but lockfiles and downloads still work. No per-version deprecation flag.",
+  "stableRule": "Stable iff no pre-release part and not yanked. 0.y.z is stable.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-alpha",
+     "1.0.0-rc.1",
+     "1.0.0-beta+exp"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "same syntax; compared by the crate, ignored by Cargo matching; -sys crates use it for bundled C library version",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "0.y.z compatibility boundary is the left-most non-zero component.",
+   "Caret is the default operator; bare * is rejected by crates.io.",
+   "rust_version (MSRV) field in the index."
+  ],
+  "knownGaps": [
+   "crates.io publish-time rejection text for build metadata was not located.",
+   "Build-metadata ordering in the crate differs from semver.org."
+  ],
+  "vectorSchemes": [
+   "cargo"
+  ]
+ },
+ {
+  "id": "clojars",
+  "name": "Clojars / Leiningen / tools.deps (Maven order)",
+  "family": "semver",
+  "spec": [
+   "https://maven.apache.org/pom.html#version-order-specification",
+   "https://github.com/clojars/clojars-web/wiki/About",
+   "https://maven.apache.org/resolver/"
+  ],
+  "ecosystems": [
+   "clojars",
+   "clojure"
+  ],
+  "purlTypes": [
+   "maven"
+  ],
+  "ordering": "maven",
+  "orderingFidelity": "approximate",
+  "recencyOnly": false,
+  "prerelease": "Qualifier after -: alpha < beta < milestone < rc=cr < snapshot < release(=final=ga) < sp; unknown qualifiers (dev, nightly, foo) sort ABOVE the release.",
+  "buildMetadata": "No build-metadata concept; +x is an unknown qualifier that sorts above the release.",
+  "epoch": "",
+  "postRelease": "-sp<N> and numeric sub-lists (1.0-1) are post-releases.",
+  "yankedDeprecated": "None: Clojars releases are immutable and deletion is discouraged and by caretaker request. No flag.",
+  "stableRule": "Stable iff no qualifier among alpha/beta/milestone/rc/cr/snapshot/dev/nightly/pre/preview and no timestamped snapshot form. Unknown qualifiers cannot be detected by ordering and need name matching.",
+  "unstableMarkers": [
+   {
+    "kind": "snapshot",
+    "syntax": "-SNAPSHOT (case-insensitive) or -YYYYMMDD.HHMMSS-N",
+    "examples": [
+     "1.0-SNAPSHOT",
+     "1.0-20240101.123456-1"
+    ]
+   },
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0-alpha-1",
+     "1.0-RC1",
+     "1.0-m1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "qualifier after -",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "sp / numeric sub-list"
+  },
+  "conventions": [
+   "Tokenizer splits on . - _ and digit/letter transitions; trailing 0/final/ga/release trimmed.",
+   "Hyphen starts a sub-list, dot continues the list.",
+   "SNAPSHOT deploys are mutable; releases immutable."
+  ],
+  "knownGaps": [
+   "Maven ComparableVersion and Maven Resolver GenericVersion disagree (1.0-1 vs 1.0.1); vectors use the Resolver.",
+   "Clojars SNAPSHOT page not fetched."
+  ],
+  "vectorSchemes": [
+   "clojars"
+  ]
+ },
+ {
+  "id": "cocoapods",
+  "name": "CocoaPods (Pod::Version)",
+  "family": "semver",
+  "spec": [
+   "https://github.com/CocoaPods/Core/blob/master/lib/cocoapods-core/version.rb",
+   "https://guides.cocoapods.org/syntax/podspec.html"
+  ],
+  "ecosystems": [
+   "cocoapods"
+  ],
+  "purlTypes": [
+   "cocoapods"
+  ],
+  "ordering": "rubygems",
+  "orderingFidelity": "approximate",
+  "recencyOnly": false,
+  "prerelease": "RubyGems segments: a letter segment (1.0.0.beta2, 1.0.0a) or semver-style -id (1.0.0-rc.1) sorts below the release; prerelease? is true for any letter or hyphen.",
+  "buildMetadata": "+meta accepted and stripped before segment compare, but <=> falls back to a full-string tiebreak; not a stability signal.",
+  "epoch": "",
+  "postRelease": "An extra numeric segment (1.0.0.1) is above 1.0.0.",
+  "yankedDeprecated": "Podspec spec.deprecated = true and spec.deprecated_in_favor_of (package-level). Trunk specs cannot be deleted.",
+  "stableRule": "Stable iff, after removing +meta, the string has no letter and no hyphen. Note 1.1.1a and 1.0.0-1 count as pre-release.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "any [a-zA-Z-] in the version minus +meta",
+    "examples": [
+     "1.0.0-beta.1",
+     "1.0.0.rc1",
+     "1.0.0a"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "letter segment or -id",
+   "buildMetadata": "+meta, stripped for order",
+   "epoch": "none",
+   "postRelease": "extra numeric segment"
+  },
+  "conventions": [
+   "Any number of segments; ~> 1.0 means >=1.0 <2.0.",
+   "Podfile can depend on :git/:tag/:branch/:commit instead of versions."
+  ],
+  "knownGaps": [
+   "1.0.0-1 is prerelease? but sorts above 1.0.0.",
+   "== ignores +meta while <=> breaks ties by string; rubygems id is approximate for Pod::Version hyphen forms."
+  ],
+  "vectorSchemes": [
+   "cocoapods"
+  ]
+ },
+ {
+  "id": "composer",
+  "name": "Composer / Packagist",
+  "family": "semver",
+  "spec": [
+   "https://getcomposer.org/doc/articles/versions.md",
+   "https://getcomposer.org/doc/04-schema.md",
+   "https://github.com/composer/semver"
+  ],
+  "ecosystems": [
+   "composer",
+   "packagist"
+  ],
+  "purlTypes": [
+   "composer"
+  ],
+  "ordering": "composer",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Words after the numeric core: -dev < -alpha[N] (a) < -beta[N] (b) < -RC[N] < release; spellings normalized (rc.1 -> RC1).",
+  "buildMetadata": "+build is stripped by normalize; not a stability signal.",
+  "epoch": "",
+  "postRelease": "-patch[N] / -p[N] / -pl[N] sorts ABOVE the release and is stable.",
+  "yankedDeprecated": "Package-level abandoned (true or replacement name) in composer.json/Packagist. No per-version yank flag found.",
+  "stableRule": "Stable iff parseStability(normalized) is 'stable' (no dev/alpha/beta/RC word, not a dev-* or N.x-dev branch). patch/p/pl suffixes are stable. Always normalize before comparing.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-(alpha|a|beta|b|RC)[.]?N",
+    "examples": [
+     "1.0.0-beta2",
+     "1.0.0-RC1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "-dev suffix",
+    "examples": [
+     "1.0.0-dev"
+    ]
+   },
+   {
+    "kind": "branch-ref",
+    "syntax": "dev-<branch> or N.x-dev",
+    "examples": [
+     "dev-main",
+     "1.x-dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "alpha/beta/RC/dev words",
+   "buildMetadata": "stripped",
+   "epoch": "none",
+   "postRelease": "patch/p/pl suffix (no SemVer equivalent)"
+  },
+  "conventions": [
+   "Branch versions dev-<name> and numeric branches N.x-dev; extra.branch-alias maps a branch to a version.",
+   "minimum-stability (default stable) and prefer-stable filter by stability; per-requirement @dev flags.",
+   "Up to 4 numeric parts; v prefix removed."
+  ],
+  "knownGaps": [
+   "Comparator in composer/semver does not normalize (1.0.0 < 1.0.0.0).",
+   "parseStability('master') says stable; treat bare master as a branch."
+  ],
+  "vectorSchemes": [
+   "composer"
+  ]
+ },
+ {
+  "id": "conan",
+  "name": "Conan 2 (ConanCenter)",
+  "family": "semver",
+  "spec": [
+   "https://docs.conan.io/2/tutorial/versioning/version_ranges.html",
+   "https://docs.conan.io/2/reference/conanfile/attributes.html",
+   "https://github.com/conan-io/conan/blob/develop2/conan/internal/model/version.py"
+  ],
+  "ecosystems": [
+   "conan",
+   "conancenter"
+  ],
+  "purlTypes": [
+   "conan"
+  ],
+  "ordering": "conan",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Text after the first - (before +): lower than the same core; ranges exclude pre-releases unless include_prerelease or resolve_prereleases=True.",
+  "buildMetadata": "+build after the last +; compared among non-pre-releases; not a stability signal.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Recipe attribute deprecated (warning); packages removed with conan remove. No yank flag.",
+  "stableRule": "Stable iff the part after the first - (before +) is empty. Letter patches like 1.1.1w and PEP 440 forms like 1.0.0.dev1 are NOT pre-releases to Conan.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-alpha",
+     "1.0.0-rc.1",
+     "1.2.3-nightly.20240101"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "after first -",
+   "buildMetadata": "after last +, compared",
+   "epoch": "none",
+   "postRelease": "extra segments / letters"
+  },
+  "conventions": [
+   "Any number of segments and lowercase letters; trailing zeros ignored.",
+   "Recipe and package revisions (RREV/PREV) order builds of one version.",
+   "ConanCenter uses cci.YYYYMMDD for unreleased upstreams."
+  ],
+  "knownGaps": [
+   "Mixed digit/letter patches give a non-transitive order (1.1.1a vs 1.1.9 vs 1.1.10).",
+   "Version() accepts any string; 'no digits' is treated as unparseable downstream."
+  ],
+  "vectorSchemes": [
+   "conan"
+  ]
+ },
+ {
+  "id": "cpan",
+  "name": "CPAN (decimal and dotted version.pm)",
+  "family": "semver",
+  "spec": [
+   "https://perldoc.perl.org/version",
+   "https://metacpan.org/pod/CPAN::Meta::Spec#Version-Formats",
+   "https://pause.perl.org/pause/query?ACTION=pause_operating_model"
+  ],
+  "ecosystems": [
+   "cpan"
+  ],
+  "purlTypes": [
+   "cpan"
+  ],
+  "ordering": "cpan",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Underscore in the version (1.02_03, v1.2.3_4) marks an alpha/developer release; version.pm 0.9934 ignores it for comparison; PAUSE does not index developer releases (also -TRIAL dist suffix).",
+  "buildMetadata": "No build metadata.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "No per-version flag found; deletion moves a release to BackPAN. MetaCPAN deprecation key not verified.",
+  "stableRule": "Stable iff the version has no underscore (is_alpha false) and the distribution is not -TRIAL / release_status stable.",
+  "unstableMarkers": [
+   {
+    "kind": "dev",
+    "syntax": "underscore inside the version, or -TRIAL[N] in the distribution name",
+    "examples": [
+     "1.02_03",
+     "v1.2.3_4"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "underscore / TRIAL",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Decimal 1.02 is v1.20.0 (groups of three digits), dotted needs a v or two dots; so 1.10 < 1.2 < 1.9.",
+   "Moving from decimal to dotted can go backwards (1.23 = v1.230.0)."
+  ],
+  "knownGaps": [
+   "Older docs say alpha sorts below the plain version; installed 0.9934 does not.",
+   "Deprecation mechanics unverified."
+  ],
+  "vectorSchemes": [
+   "cpan"
+  ]
+ },
+ {
+  "id": "cran",
+  "name": "CRAN (R package_version)",
+  "family": "semver",
+  "spec": [
+   "https://cran.r-project.org/doc/manuals/r-release/R-exts.html#The-DESCRIPTION-file",
+   "https://github.com/wch/r-source/blob/trunk/src/main/util.c",
+   "https://r-pkgs.org/lifecycle.html"
+  ],
+  "ecosystems": [
+   "cran"
+  ],
+  "purlTypes": [
+   "cran"
+  ],
+  "ordering": "cran",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "None in the format; development versions use a 4th component starting at 9000 by convention (1.2.3.9000, sorts above 1.2.3).",
+  "buildMetadata": "No build metadata.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Packages are archived wholesale (moved to Archive/, all versions still downloadable); no per-version flag.",
+  "stableRule": "Stable iff the version parses and the 4th component is below 9000 (convention).",
+  "unstableMarkers": [
+   {
+    "kind": "dev",
+    "syntax": "x.y.z.9000 (4th component >= 9000)",
+    "examples": [
+     "1.2.3.9000",
+     "0.0.0.9000"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "none (.9000 convention)",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "'.' and '-' are equivalent separators (1.2-3 == 1.2.3); trailing zeros ignored.",
+   "At least two components for package_version; components are integers (0.9 < 0.75)."
+  ],
+  "knownGaps": [
+   "R not installed; ordering from a port of util.c.",
+   "CRAN does not enforce the .9000 convention."
+  ],
+  "vectorSchemes": [
+   "cran"
+  ]
+ },
+ {
+  "id": "go",
+  "name": "Go modules (MVS, pseudo-versions)",
+  "family": "semver",
+  "spec": [
+   "https://go.dev/ref/mod#versions",
+   "https://go.dev/ref/mod#pseudo-versions",
+   "https://pkg.go.dev/golang.org/x/mod/semver"
+  ],
+  "ecosystems": [
+   "golang",
+   "go",
+   "gomod"
+  ],
+  "purlTypes": [
+   "golang"
+  ],
+  "ordering": "semver-go",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "vX.Y.Z-<pre>; lower than the release. Pseudo-versions (vX.0.0-yyyymmddhhmmss-sha, vX.Y.Z-pre.0.ts-sha, vX.Y.(Z+1)-0.ts-sha) are pre-releases that sort above their base and below the next tag.",
+  "buildMetadata": "+meta ignored in compare; +incompatible marks a v2+ tag without go.mod and is a normal release; not a stability signal.",
+  "epoch": "Major version path suffix /vN plays the epoch role.",
+  "postRelease": "",
+  "yankedDeprecated": "go.mod retract directive (read from the module's latest version) hides versions from list/latest; '// Deprecated:' comment before module deprecates the whole module. Not in the version string.",
+  "stableRule": "Stable iff valid vX.Y.Z[+meta] with no pre-release part (pseudo-versions are pre-releases) and not retracted. v0.x is stable here even though go.dev calls it 'unstable' compatibility-wise. @latest prefers highest release, then pre-release, then pseudo-version.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "v1.0.0-rc.1"
+    ]
+   },
+   {
+    "kind": "pseudo-version",
+    "syntax": "v<X>.<Y>.<Z>-(pre.)?0.<14 digits>-<sha> or v<X>.0.0-<14 digits>-<sha>",
+    "examples": [
+     "v0.0.0-20191109021931-daa7c04131f5",
+     "v1.2.4-0.20191109021931-daa7c04131f5"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical; pseudo-version is a pre-release encoding a commit",
+   "buildMetadata": "ignored; reused for +incompatible",
+   "epoch": "path suffix /vN",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Mandatory lowercase v prefix; x/mod/semver also accepts v1 and v1.2 shorthands.",
+   "Module path must end /vN for N>=2.",
+   "Minimal version selection: highest of required minimums, never newest."
+  ],
+  "knownGaps": [
+   "IsPseudoVersion regex reconstructed from behaviour plus docs.",
+   "v1.2.3-20191109021931-sha is NOT a pseudo-version despite the lookalike."
+  ],
+  "vectorSchemes": [
+   "go"
+  ]
+ },
+ {
+  "id": "hackage",
+  "name": "Hackage (PVP / Cabal Version)",
+  "family": "semver",
+  "spec": [
+   "https://pvp.haskell.org/",
+   "https://cabal.readthedocs.io/en/stable/cabal-package-description-file.html",
+   "https://hackage.haskell.org/api"
+  ],
+  "ecosystems": [
+   "hackage",
+   "ghc"
+  ],
+  "purlTypes": [
+   "hackage"
+  ],
+  "ordering": "hackage",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "None; version tags are unsupported. Pre-release-like states are package candidates, not version strings.",
+  "buildMetadata": "No build metadata.",
+  "epoch": "",
+  "postRelease": "None; extra components are patch-like.",
+  "yankedDeprecated": "Registry: preferred-versions (normal / unpreferred / deprecated) and package-level deprecated flag via /package/:p/preferred and /deprecated.",
+  "stableRule": "Every parseable N(.N)* version is a normal release; exclude versions the registry lists as deprecated or unpreferred.",
+  "unstableMarkers": [],
+  "semverEquivalents": {
+   "prerelease": "none",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Component list ordering: 1 < 1.0 < 1.0.0 (no zero padding).",
+   "Major version is the first TWO components A.B.",
+   "^>= operator and mandatory upper bounds."
+  ],
+  "knownGaps": [
+   "Leading zeros in components unverified.",
+   "Exact JSON shape of deprecated/unpreferred lists not fetched."
+  ],
+  "vectorSchemes": [
+   "hackage"
+  ]
+ },
+ {
+  "id": "helm",
+  "name": "Helm charts (Chart.yaml version)",
+  "family": "semver",
+  "spec": [
+   "https://helm.sh/docs/topics/charts/#charts-and-versioning",
+   "https://github.com/Masterminds/semver",
+   "https://helm.sh/docs/helm/helm_search_repo/"
+  ],
+  "ecosystems": [
+   "helm"
+  ],
+  "purlTypes": [
+   "helm?"
+  ],
+  "ordering": "semver-loose",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "SemVer -<pre>; lower than the release; hidden unless --devel (equivalent to >0.0.0-0) or the constraint names a pre-release.",
+  "buildMetadata": "+meta allowed (1.2.3-alpha.1+ef365), ignored in compare; replaced by _ in OCI tags; not a stability signal.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Chart.yaml deprecated: true (and the same flag in the repo index.yaml entry). No yank.",
+  "stableRule": "Stable iff the lenient semver.NewVersion parse has no pre-release part. appVersion is free text and irrelevant.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-rc.1",
+     "1.0.0-alpha.1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "identical, ignored",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Lenient parse accepts v prefix, 1.0 and 1 and leading zeros.",
+   "Two version axes: chart version and appVersion.",
+   "OCI tags replace + with _."
+  ],
+  "knownGaps": [
+   "Docs say not enforced strictly and not updated for Helm 4."
+  ],
+  "vectorSchemes": [
+   "helm"
+  ]
+ },
+ {
+  "id": "hex",
+  "name": "Hex (Elixir Version)",
+  "family": "semver",
+  "spec": [
+   "https://elixir.hexdocs.pm/Version.html",
+   "https://hex.pm/docs/publish",
+   "https://hex.hexdocs.pm/Mix.Tasks.Hex.Retire.html"
+  ],
+  "ecosystems": [
+   "hex"
+  ],
+  "purlTypes": [
+   "hex"
+  ],
+  "ordering": "semver-hex",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Strict SemVer -<pre>; lower than the release; integer ids < string ids.",
+  "buildMetadata": "+build accepted and ignored in compare (compare returns :eq); not a stability signal.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "mix hex.retire PACKAGE VERSION REASON (renamed, deprecated, security, invalid, other) sets retirement metadata on the release; still resolvable. mix hex.publish --revert within one hour removes.",
+  "stableRule": "Stable iff no pre-release part. Hex runs requirements with allow_pre false, so pre-releases only match when the requirement names one.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-rc.1",
+     "1.0.0-dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "identical, ignored",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "~> pessimistic operator (~> 2.0 = >=2.0.0 and <3.0.0).",
+   "All three numeric parts are required.",
+   "Retirement reasons are informational; resolution is not blocked."
+  ],
+  "knownGaps": [
+   "Whether hex.pm accepts build metadata at publish time was not verified."
+  ],
+  "vectorSchemes": [
+   "hex"
+  ]
+ },
+ {
+  "id": "julia",
+  "name": "Julia VersionNumber / Pkg registry",
+  "family": "semver",
+  "spec": [
+   "https://docs.julialang.org/en/v1/manual/strings/#man-version-number-literals",
+   "https://github.com/JuliaLang/julia/blob/master/base/version.jl",
+   "https://pkgdocs.julialang.org/v1/compatibility/"
+  ],
+  "ecosystems": [
+   "julia"
+  ],
+  "purlTypes": [
+   "julia?"
+  ],
+  "ordering": "julia",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "-<ident>(.<ident>)* (hyphen optional if the first id starts with a letter); lower than the release; a bare trailing - is the lowest pre-release.",
+  "buildMetadata": "+build exists and IS compared (1.0.0 < 1.0.0+1 < 1.0.0+a); trailing + is a supremum sentinel; not a stability signal.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Registry Versions.toml yanked = true per version. No deprecation flag found.",
+  "stableRule": "Stable iff the parsed prerelease tuple is empty and the version is not yanked. Pkg compat itself ignores pre-release and build.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.12.0-beta2",
+     "1.11.0-rc1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "-DEV[.N]",
+    "examples": [
+     "1.12.0-DEV",
+     "1.12.0-DEV.1234"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "same (hyphen optional)",
+   "buildMetadata": "+id, compared",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Everything except the major is optional; v prefix optional and case-insensitive.",
+   "Compat: caret default, ^0.2.3 = [0.2.3,0.3.0).",
+   "Pkg compat bounds use major.minor.patch only."
+  ],
+  "knownGaps": [
+   "Ported from Julia source, not executed.",
+   "Registrator policy on pre-release publication not located."
+  ],
+  "vectorSchemes": [
+   "julia"
+  ]
+ },
+ {
+  "id": "luarocks",
+  "name": "LuaRocks rockspec versions",
+  "family": "semver",
+  "spec": [
+   "https://github.com/luarocks/luarocks/blob/main/src/luarocks/core/vers.lua",
+   "https://github.com/luarocks/luarocks/tree/main/docs"
+  ],
+  "ecosystems": [
+   "luarocks"
+  ],
+  "purlTypes": [
+   "luarocks"
+  ],
+  "ordering": "luarocks",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Words alpha/beta/pre/rc get negative weights so they sort below the release; dev/scm/cvs get huge positive weights and sort above every release.",
+  "buildMetadata": "No build metadata; a + breaks the tokenizer.",
+  "epoch": "",
+  "postRelease": "Rockspec revision -N (packaging) compared last.",
+  "yankedDeprecated": "None found in the rockspec; luarocks.org management not examined.",
+  "stableRule": "Stable iff no alpha/beta/pre/rc word and not dev/scm/cvs. Revisions (-2) do not make it unstable.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "alpha|beta|pre|rc word",
+    "examples": [
+     "1.0-rc1-1",
+     "1.0beta-1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "dev|scm|cvs (VCS head)",
+    "examples": [
+     "scm-1",
+     "dev-1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "word token",
+   "buildMetadata": "none",
+   "epoch": "none",
+   "postRelease": "revision -N"
+  },
+  "conventions": [
+   "version-revision form; revision bumps for rockspec fixes.",
+   "scm/dev rocks build from source control.",
+   "== compares component count so 1.0 ~= 1.0.0 while < treats them equal."
+  ],
+  "knownGaps": [
+   "Leading v is not stripped (v1.0 sorts as 0.118.0).",
+   "Rockspec format doc not fetched.",
+   "Order is not consistent across lengths."
+  ],
+  "vectorSchemes": [
+   "luarocks"
+  ]
+ },
+ {
+  "id": "nuget",
+  "name": "NuGet (SemVer 2 + 4-part legacy)",
+  "family": "semver",
+  "spec": [
+   "https://learn.microsoft.com/en-us/nuget/concepts/package-versioning",
+   "https://www.nuget.org/packages/NuGet.Versioning"
+  ],
+  "ecosystems": [
+   "nuget"
+  ],
+  "purlTypes": [
+   "nuget"
+  ],
+  "ordering": "semver-nuget",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Hyphen label after Major[.Minor[.Patch[.Revision]]]; any label is lower than the release; labels compared case-insensitively, numeric < alphanumeric.",
+  "buildMetadata": "+meta accepted (SemVer2), ignored in compare, normalized away; not a stability signal.",
+  "epoch": "",
+  "postRelease": "4th Revision numeric segment acts like a legacy post-release component (1.0.0.1 > 1.0.0).",
+  "yankedDeprecated": "nuget.org: unlist (listed=false; hidden from search, still restorable by exact version) and separate deprecation metadata (Legacy, Critical Bugs, Other + alternate package). Neither is in the version string.",
+  "stableRule": "Stable iff there is no hyphen label. Revision (4th part) and metadata do not make it unstable. Resolution picks stable only unless the range names a pre-release.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-beta",
+     "1.0.0-preview.1.23456.7",
+     "1.0.0-ci-20240101"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "hyphen label, case-insensitive",
+   "buildMetadata": "+meta, ignored",
+   "epoch": "none",
+   "postRelease": "4th Revision segment"
+  },
+  "conventions": [
+   "Missing parts are zero: 1, 1.0, 1.0.0 and 1.0.0.0 are equal; leading zeros normalized (01.0.0 -> 1.0.0).",
+   "Floating versions 1.* and 1.0.0-* ; lowest applicable version wins on restore.",
+   "Interval ranges [1.0,2.0)."
+  ],
+  "knownGaps": [
+   "Docs sentence about 'reverse alphabetical order' mis-describes the displayed descending list.",
+   "SemVer1 label rules only matter for old clients."
+  ],
+  "vectorSchemes": [
+   "nuget"
+  ]
+ },
+ {
+  "id": "opam",
+  "name": "opam (Debian-style)",
+  "family": "semver",
+  "spec": [
+   "https://opam.ocaml.org/doc/Manual.html",
+   "https://github.com/ocaml/opam/blob/master/src/core/opamVersionCompare.ml"
+  ],
+  "ecosystems": [
+   "opam"
+  ],
+  "purlTypes": [
+   "opam?"
+  ],
+  "ordering": "opam",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Convention only: ~suffix (1.0~beta) sorts before 1.0; opam has no pre-release syntax and -rc1 sorts ABOVE the release.",
+  "buildMetadata": "No build metadata; + suffix sorts after the base (variants such as 4.14.0+flambda) and is normally stable.",
+  "epoch": "",
+  "postRelease": "+suffix or -N revision (last - splits a Debian-style revision).",
+  "yankedDeprecated": "opam file flags: avoid-version (lowest solver priority) and deprecated (same plus message). Flags live in the package's opam file.",
+  "stableRule": "Stable iff there is no ~ in the version, it is not dev/master and has no +dev/+gitYYYY marker, and flags lack avoid-version/deprecated. Beware -rc and -beta forms sort above the release.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "~<ident>",
+    "examples": [
+     "1.0~beta",
+     "5.0.0~alpha1"
+    ]
+   },
+   {
+    "kind": "dev",
+    "syntax": "dev | master | +dev | ~dev | +git<date>",
+    "examples": [
+     "dev",
+     "1.0+dev"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "~suffix (convention)",
+   "buildMetadata": "+suffix sorts after",
+   "epoch": "none",
+   "postRelease": "+suffix or -N"
+  },
+  "conventions": [
+   "Alternating non-digit/digit run comparison; ~ < end < letters < other symbols.",
+   "Package identity is name.version; version is everything after the first dot of the directory name."
+  ],
+  "knownGaps": [
+   "Ported from OCaml source, not executed.",
+   "Pre-release classification is convention, not specified."
+  ],
+  "vectorSchemes": [
+   "opam"
+  ]
+ },
+ {
+  "id": "pub",
+  "name": "pub (Dart / Flutter)",
+  "family": "semver",
+  "spec": [
+   "https://dart.dev/tools/pub/versioning",
+   "https://github.com/dart-lang/pub_semver",
+   "https://dart.dev/tools/pub/publishing"
+  ],
+  "ecosystems": [
+   "pub"
+  ],
+  "purlTypes": [
+   "pub"
+  ],
+  "ordering": "semver-pub",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "SemVer -<pre>; lower than the release; pub prefers stable and ^X.Y.Z upper bound is <(X+1).0.0-0 so next-major pre-releases are excluded.",
+  "buildMetadata": "+build accepted and ORDERED after the plain release (1.0.0 < 1.0.0+1); Dart uses +N as a non-API-changing bump. Not a stability signal.",
+  "epoch": "",
+  "postRelease": "+N build suffix behaves like a post-release (pub ordering).",
+  "yankedDeprecated": "Per version retracted:true (pub.dev Admin, within 7 days; restorable). Package-level isDiscontinued (+replacedBy). Both are API/registry fields.",
+  "stableRule": "Stable iff no pre-release part and not retracted.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-dev.1",
+     "2.0.0-0",
+     "1.0.0-beta"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "+N, compared (differs from semver.org)",
+   "epoch": "none",
+   "postRelease": "+N build number"
+  },
+  "conventions": [
+   "0.x shifted one slot: 0.1.2 -> 0.2.0 is breaking; ^0.1.2 = >=0.1.2 <0.2.0.",
+   "SDK constraints use the same grammar."
+  ],
+  "knownGaps": [
+   "pub_semver accepts leading zeros (01.0.0, 1.0.0-01); pub.dev publish validation not tested.",
+   "How pub.dev computes 'latest' is documented only informally."
+  ],
+  "vectorSchemes": [
+   "pub"
+  ]
+ },
+ {
+  "id": "rebar3",
+  "name": "rebar3 (vendored ec_semver, Hex packages)",
+  "family": "semver",
+  "spec": [
+   "https://rebar3.org/docs/configuration/dependencies/",
+   "https://github.com/erlang/rebar3/blob/main/vendor/erlware_commons/src/ec_semver.erl",
+   "https://github.com/erlang/rebar3/blob/main/apps/rebar/src/rebar_semver.erl"
+  ],
+  "ecosystems": [
+   "rebar3",
+   "erlang"
+  ],
+  "purlTypes": [
+   "hex"
+  ],
+  "ordering": "rebar3",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "-<id>(.<id>)*; lower than the release; the FIRST id is compared as text even when numeric (-10 < -2), later numeric ids as integers.",
+  "buildMetadata": "+build accepted and compared as a final tiebreak; not a stability signal.",
+  "epoch": "",
+  "postRelease": "4th numeric part (minpatch).",
+  "yankedDeprecated": "Hex retirement (see hex); rebar3 sources read do not interpret it. Git deps use tag/branch/ref pins in rebar.lock.",
+  "stableRule": "Stable iff the parse succeeds and the pre-release list is empty. A bare Hex dependency ignores pre-releases; is_prerelease_or_build checks for - or + in the constraint.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-rc1",
+     "1.0.0-alpha.1"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical, first id text-compared",
+   "buildMetadata": "+build, compared",
+   "epoch": "none",
+   "postRelease": "4th numeric part"
+  },
+  "conventions": [
+   "Optional v prefix, 1 to 4 numeric parts, missing parts are zero.",
+   "Non-Hex deps: versions informational only."
+  ],
+  "knownGaps": [
+   "Executed parser accepted 1.0.0-x-y though the .peg looks stricter.",
+   "May use verl for some Hex paths; not confirmed."
+  ],
+  "vectorSchemes": [
+   "rebar3"
+  ]
+ },
+ {
+  "id": "semver",
+  "name": "SemVer 2.0.0 / npm node-semver",
+  "family": "semver",
+  "spec": [
+   "https://semver.org/spec/v2.0.0.html",
+   "https://github.com/npm/node-semver",
+   "https://docs.npmjs.com/cli/v10/commands/npm-dist-tag"
+  ],
+  "ecosystems": [
+   "npm",
+   "yarn",
+   "pnpm"
+  ],
+  "purlTypes": [
+   "npm"
+  ],
+  "ordering": "semver",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "Suffix -<ident>(.<ident>)*; any pre-release is lower than the same X.Y.Z release; numeric ids < alphanumeric ids, ASCII order, more ids is higher.",
+  "buildMetadata": "+<ident>(.<ident>)* exists, is ignored for precedence, is not a stability signal.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "npm: version.deprecated message in the packument (npm deprecate, ranges allowed); unpublish removes. dist-tags are aliases, not versions. SemVer itself defines nothing.",
+  "stableRule": "Stable iff the parsed version has no pre-release part (no hyphen before the first +). Build metadata and 0.y.z do not make it unstable. Strings that do not parse (latest, next, dist-tags) are not versions.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-rc.1",
+     "1.0.0-next.0",
+     "1.0.0-canary.3",
+     "1.0.0-nightly.20240101"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "identical, ignored in compare",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "npm strips a leading v or = and trims whitespace; loose mode accepts leading zeros.",
+   "Pre-releases only satisfy a range when a comparator has the same [major,minor,patch] and a pre-release, unless includePrerelease.",
+   "Caret on 0.x: ^0.2.3 means >=0.2.3 <0.3.0.",
+   "dist-tags (latest, next) are registry aliases rejected if they parse as a semver range."
+  ],
+  "knownGaps": [
+   "Stable filter is a consumer convention; semver.org does not define 'stable'.",
+   "sort() tie order for build-only differences is implementation behaviour."
+  ],
+  "vectorSchemes": [
+   "semver"
+  ]
+ },
+ {
+  "id": "swift",
+  "name": "SwiftPM (git tags / registry)",
+  "family": "semver",
+  "spec": [
+   "https://github.com/swiftlang/swift-tools-support-core/blob/main/Sources/TSCUtility/Version.swift",
+   "https://github.com/swiftlang/swift-package-manager/blob/main/Sources/Basics/Version%2BExtensions.swift",
+   "https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md"
+  ],
+  "ecosystems": [
+   "swift",
+   "swifturl"
+  ],
+  "purlTypes": [
+   "swift"
+  ],
+  "ordering": "semver-loose",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "SemVer -<ident>(.<ident>)* (empty ids tolerated); lower than the release; numeric ids via Int() < alphanumeric. Range bounds without a pre-release exclude pre-releases.",
+  "buildMetadata": "+meta accepted, ignored in compare and hash; not a stability signal.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "No flag for git tags. Registry (SE-0292) may list a release with a 410 Gone problem document ('removed from the registry'). No deprecation flag found.",
+  "stableRule": "Stable iff the tag parses (strip one leading lowercase v, allow 2-part) and has no pre-release identifiers. Branch/revision refs are not versions.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-rc.1",
+     "510.0.0-prerelease-2024-01-15"
+    ]
+   },
+   {
+    "kind": "branch-ref",
+    "syntax": ".branch(<name>) / .revision(<sha>)",
+    "examples": [
+     "main",
+     "release/1.0"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical (one hyphenated id is common: prerelease-2024-01-15)",
+   "buildMetadata": "identical, ignored",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Tags without and with v and 2-part tags collapse to one version; most specific tag kept.",
+   "Version-specific tags (@swift-5.9 suffix) override plain tags when present.",
+   "from: means up-to-next-major."
+  ],
+  "knownGaps": [
+   "Ported from Swift source, not executed in Swift.",
+   "Int() accepts leading zeros and a + sign."
+  ],
+  "vectorSchemes": [
+   "swift"
+  ]
+ },
+ {
+  "id": "terraform",
+  "name": "Terraform Registry (go-version)",
+  "family": "semver",
+  "spec": [
+   "https://developer.hashicorp.com/terraform/language/expressions/version-constraints",
+   "https://developer.hashicorp.com/terraform/registry/modules/publish",
+   "https://github.com/hashicorp/go-version"
+  ],
+  "ecosystems": [
+   "terraform"
+  ],
+  "purlTypes": [
+   "terraform?"
+  ],
+  "ordering": "semver-loose",
+  "orderingFidelity": "approximate",
+  "recencyOnly": false,
+  "prerelease": "SemVer-like -<pre> (hyphen optional in go-version); lower than the release; constraints other than = never match pre-releases.",
+  "buildMetadata": "+meta accepted, ignored; not a stability signal.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Module owner can remove one or all versions via the registry UI. No yank or deprecation flag in the docs read.",
+  "stableRule": "Stable iff go-version Prerelease() is empty. Pre-releases are selectable only with an exact = constraint.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.0.0-rc.1",
+     "1.0.0beta1",
+     "1.10.0-alpha20241023"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "ignored",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Release tags must be semver optionally prefixed v; other tags ignored.",
+   "~> allows only the right-most component to increment.",
+   "Any number of numeric segments and an optional v prefix."
+  ],
+  "knownGaps": [
+   "go-version orders 1.0.0-alpha.beta below 1.0.0-alpha (not total for such inputs).",
+   "Provider deprecation flags not found.",
+   "Behaviour is go-version v1.9.0."
+  ],
+  "vectorSchemes": [
+   "terraform"
+  ]
+ },
+ {
+  "id": "vcpkg",
+  "name": "vcpkg (version, version-semver, version-date, version-string)",
+  "family": "semver",
+  "spec": [
+   "https://learn.microsoft.com/en-us/vcpkg/users/versioning",
+   "https://learn.microsoft.com/en-us/vcpkg/reference/vcpkg-json",
+   "https://github.com/microsoft/vcpkg-tool/blob/main/src/vcpkg/versions.cpp"
+  ],
+  "ecosystems": [
+   "vcpkg"
+  ],
+  "purlTypes": [
+   "vcpkg?"
+  ],
+  "ordering": "vcpkg",
+  "orderingFidelity": "exact",
+  "recencyOnly": "partial",
+  "prerelease": "In relaxed/semver schemes -<ident>(.<ident>)*; lower than the release; shorter numeric section list is lower than longer (1.0 < 1.0.0).",
+  "buildMetadata": "+meta parsed, not compared (1.0.0+a and +b compare equal); not a stability signal.",
+  "epoch": "",
+  "postRelease": "port-version (#N / port-version field) is a packaging post-release compared after the upstream version.",
+  "yankedDeprecated": "None: ports are absent from the registry versions database; baselines set a floor. No yank or deprecation flag.",
+  "stableRule": "Stable iff scheme is version or version-semver with no pre-release part, or version-date. version-string is unorderable and its stability cannot be inferred.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "1.2.3.4.10-alpha1",
+     "2.0.1-rc5"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "identical",
+   "buildMetadata": "+meta ignored",
+   "epoch": "none",
+   "postRelease": "port-version (#N)"
+  },
+  "conventions": [
+   "Four schemes per manifest, never compared across schemes; version-string only supports equality.",
+   "Resolution picks the LOWEST version satisfying all version>= constraints; overrides pin exact versions.",
+   "version-date is YYYY-MM-DD(.N)* with no calendar validation."
+  ],
+  "knownGaps": [
+   "Docs disagree on whether relaxed version allows pre-release; source says yes.",
+   "Ported from C++, not executed.",
+   "2024-01-15 in relaxed version parses as a pre-release of 2024."
+  ],
+  "vectorSchemes": [
+   "vcpkg"
+  ]
+ },
+ {
+  "id": "zerover",
+  "name": "ZeroVer and unversioned refs",
+  "family": "semver",
+  "spec": [
+   "https://0ver.org/",
+   "https://semver.org/spec/v2.0.0.html#spec-item-4"
+  ],
+  "ecosystems": [
+   "zerover"
+  ],
+  "purlTypes": [],
+  "ordering": "semver",
+  "orderingFidelity": "exact",
+  "recencyOnly": false,
+  "prerelease": "As in SemVer when 0.y.z-<pre>; major stays 0.",
+  "buildMetadata": "As SemVer: ignored, not a stability signal.",
+  "epoch": "",
+  "postRelease": "",
+  "yankedDeprecated": "Host ecosystem's mechanism.",
+  "stableRule": "Same as the host scheme: stable iff no pre-release. 0.y.z is NOT unstable. HEAD, main, latest, nightly are refs, not versions.",
+  "unstableMarkers": [
+   {
+    "kind": "prerelease",
+    "syntax": "-<ident>(.<ident>)*",
+    "examples": [
+     "0.88.0-rc.6"
+    ]
+   },
+   {
+    "kind": "branch-ref",
+    "syntax": "HEAD | main | master",
+    "examples": [
+     "HEAD",
+     "main"
+    ]
+   },
+   {
+    "kind": "floating-tag",
+    "syntax": "latest | next | nightly",
+    "examples": [
+     "latest",
+     "nightly"
+    ]
+   }
+  ],
+  "semverEquivalents": {
+   "prerelease": "as SemVer",
+   "buildMetadata": "as SemVer",
+   "epoch": "none",
+   "postRelease": "none"
+  },
+  "conventions": [
+   "Detection is by history: major==0 for about 95 percent of at least 10 stable releases over at least 2 years.",
+   "Caret on 0.x treats the minor as the breaking slot in Cargo, npm, Julia and pub."
+  ],
+  "knownGaps": [
+   "No registry marks ZeroVer; purely heuristic.",
+   "Legacy shapes such as 0.9.8n need the host scheme's comparator."
+  ],
+  "vectorSchemes": [
+   "zerover"
+  ]
+ }
+]

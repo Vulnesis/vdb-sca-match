@@ -46,4 +46,28 @@ that showed the need.
   rules; see the tests in `match_test.go` and `versionrange_test.go`.
 
 Add the failing case as a test first, with the advisory id in its name.
+
+## Safe Harbour: version order, stability and the four outcomes
+
+`version/` also answers the questions Safe Harbour asks of a package's release history, for
+every ecosystem the platform knows (`version.SchemeFor`):
+
+- `Classify(ecosystem, v)`: is it a version of the scheme, and is it stable? A pre-release,
+  snapshot, nightly, milestone or other build is not (`prerelease`, `dev`, `snapshot`,
+  `nightly`, `milestone`, `git-snapshot`, `pseudo-version`, `branch-ref`, ...).
+- `Order(ecosystem, a, b)`: the scheme's own ordering (PEP 440 epochs, Debian tildes,
+  Maven qualifiers, RubyGems letters, Go pseudo-versions, and so on).
+- `Pick(ecosystem, running, clean)`: `latest` and `safest` (the highest stable release, not
+  the newest by date), `stable` (the stable release closest to `running`) and `rolling`
+  (every version from the most recent release day, pre-releases included). Release dates
+  decide only what the version string cannot order.
+- `EncodeRolling` / `DecodeRolling`: the comma-delimited form of a rolling set.
+
+Sixty-seven schemes are catalogued in `version/schemes.json` (embedded, `version.Catalogue`; Ivy and Coursier are folded into Gradle and Maven)
+with their sources, stable-release rules and known gaps; `docs/version-schemes.md` is generated
+from it (`go run ./version/cmd/gen-schemes-doc > docs/version-schemes.md`, checked by a test).
+Each scheme is held to golden vectors produced by its reference implementation wherever one
+could be run (`version/testdata/scheme_vectors.json`, `pick_vectors.json`); the few vectors an
+engine deliberately answers differently are listed with a reason in
+`version/testdata/known_divergences.json`. Add a failing vector first.
 <!-- ci-touch: 2026-08-24T20:54:39Z -->
