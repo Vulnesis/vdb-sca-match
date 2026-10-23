@@ -237,3 +237,45 @@ func TestRollingCodec(t *testing.T) {
 		t.Errorf("empty = %v %v", dec, err)
 	}
 }
+
+// Rolling is the safer rolling: the most recent release day with malware gone
+// (the caller drops it), but exposed releases stay. Latest, safest and stable
+// never see an exposed release.
+func TestRollingKeepsExposedReleasesOthersSkipThem(t *testing.T) {
+	c := cands(t,
+		"1.0.0", "2026-05-01T10:00:00Z",
+		"1.1.0", "2026-05-02T10:00:00Z",
+		"1.2.0", "2026-05-09T10:00:00Z",
+		"1.2.1", "2026-05-09T12:00:00Z",
+	)
+	c[0].Exposed = true // the running version is itself vulnerable
+	c[2].Exposed = true
+	c[3].Exposed = true
+	p := Pick("npm", "1.0.0", c)
+	if want := []string{"1.2.1", "1.2.0"}; !reflect.DeepEqual(p.Rolling, want) || p.RollingDate != "2026-05-09" {
+		t.Fatalf("rolling = %v on %q, want %v on 2026-05-09", p.Rolling, p.RollingDate, want)
+	}
+	if p.Latest != "1.1.0" || p.Safest != "1.1.0" || p.Stable != "1.1.0" {
+		t.Fatalf("clean picks drew on exposed releases: %+v", p)
+	}
+	if got := PickLatest("npm", c); got != "1.1.0" {
+		t.Fatalf("PickLatest = %q", got)
+	}
+	if got := PickStable("npm", "1.0.0", c); got != "1.1.0" {
+		t.Fatalf("PickStable = %q", got)
+	}
+	if got, _ := PickRolling("npm", c); !reflect.DeepEqual(got, []string{"1.2.1", "1.2.0"}) {
+		t.Fatalf("PickRolling = %v", got)
+	}
+}
+
+// When every release is exposed there is still a rolling set, and the clean
+// outcomes are empty with a reason.
+func TestRollingWhenNothingIsClean(t *testing.T) {
+	c := cands(t, "2.0.0", "2026-06-01T00:00:00Z")
+	c[0].Exposed = true
+	p := Pick("npm", "1.0.0", c)
+	if !reflect.DeepEqual(p.Rolling, []string{"2.0.0"}) || p.Latest != "" || p.Reasons["latest"] != "no-candidates" {
+		t.Fatalf("picks = %+v", p)
+	}
+}

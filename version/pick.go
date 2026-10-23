@@ -9,12 +9,17 @@ import (
 	"time"
 )
 
-// Candidate is one release of a package that has already passed the caller's
-// clean filter (no known vulnerability, exploit, malware or end-of-life).
+// Candidate is one release of a package. The caller has already removed every
+// release reported as malware: no outcome may ever be drawn from one.
 type Candidate struct {
 	Version string
 	// PublishedAtMs is the release time in Unix milliseconds, nil when unknown.
 	PublishedAtMs *int64
+	// Exposed marks a release with a known vulnerability, exploit or end of
+	// life. It is left out of latest, safest and stable, which are drawn from
+	// clean releases only, and kept for rolling, which is the most recent
+	// release day whatever its exposure.
+	Exposed bool
 }
 
 // Picks is the safe harbour outcome for one package.
@@ -32,8 +37,10 @@ type Picks struct {
 	Safest string
 	// Stable is the stable release closest to the running version.
 	Stable string
-	// Rolling is every distinct version published on the most recent release
-	// date, pre-releases included, highest first.
+	// Rolling is every distinct non-malware version published on the most
+	// recent release date, pre-releases and exposed releases included, highest
+	// first. It is the safer rolling: the freshest release day with malware
+	// removed, where a plain newest-release rule would take a malicious upload.
 	Rolling []string
 	// RollingDate is that date, as YYYY-MM-DD in UTC.
 	RollingDate string
@@ -57,14 +64,24 @@ type entry struct {
 }
 
 // Pick computes all outcomes. running may be empty. Candidates must already be
-// clean; duplicates by version string are merged, keeping the earliest date.
-func Pick(ecosystem, running string, clean []Candidate) Picks {
+// free of malware; latest, safest and stable skip the ones marked Exposed and
+// rolling keeps them. Duplicates by version string are merged, keeping the
+// earliest date.
+func Pick(ecosystem, running string, candidates []Candidate) Picks {
 	scheme := SchemeFor(ecosystem)
 	out := Picks{Scheme: scheme, Reasons: map[string]string{}}
-	entries := analyse(scheme, clean)
+	all := analyse(scheme, candidates)
+	out.Rolling, out.RollingDate = pickRolling(scheme, all)
+	if out.RollingDate == "" {
+		out.Reasons["rolling"] = "no-dates"
+	}
+	entries := cleanEntries(all)
 	if len(entries) == 0 {
-		for _, k := range []string{"latest", "safest", "stable", "rolling"} {
+		for _, k := range []string{"latest", "safest", "stable"} {
 			out.Reasons[k] = "no-candidates"
+		}
+		if len(all) == 0 {
+			out.Reasons["rolling"] = "no-candidates"
 		}
 		return out
 	}
@@ -85,25 +102,33 @@ func Pick(ecosystem, running string, clean []Candidate) Picks {
 			out.Reasons["stable"] = "only-prerelease"
 		}
 	}
-	out.Rolling, out.RollingDate = pickRolling(scheme, entries)
-	if out.RollingDate == "" {
-		out.Reasons["rolling"] = "no-dates"
+	return out
+}
+
+// cleanEntries drops the exposed releases: latest, safest and stable are drawn
+// from clean releases only.
+func cleanEntries(all []entry) []entry {
+	var out []entry
+	for _, e := range all {
+		if !e.Exposed {
+			out = append(out, e)
+		}
 	}
 	return out
 }
 
 // PickLatest returns the highest stable release (see Picks.Latest).
-func PickLatest(ecosystem string, clean []Candidate) string {
+func PickLatest(ecosystem string, candidates []Candidate) string {
 	scheme := SchemeFor(ecosystem)
-	entries := analyse(scheme, clean)
+	entries := cleanEntries(analyse(scheme, candidates))
 	return pickHighest(scheme, entries, packageOrderable(scheme, entries))
 }
 
 // PickStable returns the stable release closest to running, "" when there is
 // none or no running version.
-func PickStable(ecosystem, running string, clean []Candidate) string {
+func PickStable(ecosystem, running string, candidates []Candidate) string {
 	scheme := SchemeFor(ecosystem)
-	entries := analyse(scheme, clean)
+	entries := cleanEntries(analyse(scheme, candidates))
 	if running == "" {
 		return ""
 	}
@@ -111,10 +136,10 @@ func PickStable(ecosystem, running string, clean []Candidate) string {
 }
 
 // PickRolling returns the distinct versions published on the most recent
-// release date, highest first, and that date.
-func PickRolling(ecosystem string, clean []Candidate) ([]string, string) {
+// release date, highest first, and that date. Exposed releases count.
+func PickRolling(ecosystem string, candidates []Candidate) ([]string, string) {
 	scheme := SchemeFor(ecosystem)
-	return pickRolling(scheme, analyse(scheme, clean))
+	return pickRolling(scheme, analyse(scheme, candidates))
 }
 
 // PickRollingTarget resolves the rolling set to one fix target: the member

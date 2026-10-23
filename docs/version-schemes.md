@@ -14,10 +14,13 @@ come from, and where an engine knowingly differs from its reference implementati
 | `latest` | The highest stable release (pre-releases skipped). For a package whose versions cannot be ordered by number, the most recent stable release by date. |
 | `safest` | The highest stable release with no known vulnerability, exploit or malware report. |
 | `stable` | The stable release closest to the version you run, so the upgrade is as small as possible. |
-| `rolling` | Every version published on the most recent release day (UTC), pre-releases included. As a fix strategy, the member closest to the version you run. |
+| `rolling` | The safer rolling: every version published on the most recent release day (UTC) that is not malware, pre-releases and releases with known vulnerabilities included. As a fix strategy, the member closest to the version you run. |
 
-Every outcome is drawn from the clean versions only. `rolling` is a list; where a single string is
-needed it is joined with a comma, which no concrete version contains (`version.EncodeRolling`).
+Malware is removed before any outcome is chosen. `latest`, `safest` and `stable` are then drawn from the
+clean versions only (no known vulnerability, exploit or end of life). `rolling` is the exception: it is the
+freshest release day with only malware removed, so it tracks the newest code without ever taking a malicious
+upload. `rolling` is a list; where a single string is needed it is joined with a comma, which no concrete
+version contains (`version.EncodeRolling`).
 
 ## How a package is judged
 
