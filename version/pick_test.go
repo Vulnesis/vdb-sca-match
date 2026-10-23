@@ -279,3 +279,53 @@ func TestRollingWhenNothingIsClean(t *testing.T) {
 		t.Fatalf("picks = %+v", p)
 	}
 }
+
+// Rolling follows the same two steps as latest: version order, then date. A
+// point release on an old branch published after the highest version does not
+// move the rolling day.
+func TestRollingAnchorsOnTheHighestVersionThenItsDate(t *testing.T) {
+	c := cands(t,
+		"0.15.21", "2026-07-09T20:00:00Z",
+		"0.17.0", "2026-07-30T19:00:00Z",
+		"0.17.1rc1", "2026-07-30T22:00:00Z", // a pre-release counts
+		"0.15.22", "2026-08-02T10:00:00Z", // back-port, newest by date
+	)
+	c[1].Exposed = true // a vulnerable version still anchors rolling
+	got, day := PickRolling("pypi", c)
+	if want := []string{"0.17.1rc1", "0.17.0"}; day != "2026-07-30" || !reflect.DeepEqual(got, want) {
+		t.Fatalf("rolling = %v on %q, want %v on 2026-07-30", got, day, want)
+	}
+	p := Pick("pypi", "0.15.10", c)
+	if !reflect.DeepEqual(p.Rolling, []string{"0.17.1rc1", "0.17.0"}) || p.RollingDate != "2026-07-30" {
+		t.Fatalf("Pick rolling = %v on %q", p.Rolling, p.RollingDate)
+	}
+}
+
+// A package no scheme can order has no highest version, so the most recent day
+// stands, as it does for latest.
+func TestRollingFallsBackToTheNewestDayWhenUnorderable(t *testing.T) {
+	c := cands(t,
+		"stable", "2026-01-01T00:00:00Z",
+		"edge", "2026-03-01T00:00:00Z",
+		"nightly-20260302", "2026-03-02T00:00:00Z",
+	)
+	got, day := PickRolling("docker", c)
+	if day != "2026-03-02" || !reflect.DeepEqual(got, []string{"nightly-20260302"}) {
+		t.Fatalf("rolling = %v on %q", got, day)
+	}
+}
+
+// The highest version has no release date, so it cannot place a day: the highest
+// dated version does.
+func TestRollingSkipsAnUndatedHighestVersion(t *testing.T) {
+	c := cands(t,
+		"1.0.0", "2026-01-01T00:00:00Z",
+		"1.1.0", "2026-02-01T00:00:00Z",
+		"1.2.0", "",
+		"0.9.0", "2026-03-01T00:00:00Z",
+	)
+	got, day := PickRolling("npm", c)
+	if day != "2026-02-01" || !reflect.DeepEqual(got, []string{"1.1.0"}) {
+		t.Fatalf("rolling = %v on %q, want [1.1.0] on 2026-02-01", got, day)
+	}
+}

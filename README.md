@@ -59,8 +59,8 @@ every ecosystem the platform knows (`version.SchemeFor`):
   Maven qualifiers, RubyGems letters, Go pseudo-versions, and so on).
 - `Pick(ecosystem, running, candidates)`: candidates are free of malware. `latest` and `safest`
   (the highest clean stable release, not the newest by date), `stable` (the clean stable release
-  closest to `running`) and `rolling` (every version from the most recent release day,
-  pre-releases and exposed releases included, since only malware is excluded). A `Candidate`
+  closest to `running`) and `rolling` (every version from the release day of the highest version, or the most
+  recent day when versions cannot be ordered; pre-releases and exposed releases included, since only malware is excluded). A `Candidate`
   marked `Exposed` is skipped by the first three and kept by `rolling`. Release dates
   decide only what the version string cannot order.
 - `EncodeRolling` / `DecodeRolling`: the comma-delimited form of a rolling set.

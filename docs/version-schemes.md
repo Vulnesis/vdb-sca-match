@@ -14,7 +14,7 @@ come from, and where an engine knowingly differs from its reference implementati
 | `latest` | The highest stable release (pre-releases skipped). For a package whose versions cannot be ordered by number, the most recent stable release by date. |
 | `safest` | The highest stable release with no known vulnerability, exploit or malware report. |
 | `stable` | The stable release closest to the version you run, so the upgrade is as small as possible. |
-| `rolling` | The safer rolling: every version published on the most recent release day (UTC) that is not malware, pre-releases and releases with known vulnerabilities included. As a fix strategy, the member closest to the version you run. |
+| `rolling` | The safer rolling: every version that is not malware published on the release day (UTC) of the highest version, pre-releases and releases with known vulnerabilities included. Like `latest` it follows version order first and date second: a package whose versions cannot be ordered uses its most recent release day. As a fix strategy, the member closest to the version you run. |
 
 Malware is removed before any outcome is chosen. `latest`, `safest` and `stable` are then drawn from the
 clean versions only (no known vulnerability, exploit or end of life). `rolling` is the exception: it is the

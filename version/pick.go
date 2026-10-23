@@ -37,10 +37,12 @@ type Picks struct {
 	Safest string
 	// Stable is the stable release closest to the running version.
 	Stable string
-	// Rolling is every distinct non-malware version published on the most
-	// recent release date, pre-releases and exposed releases included, highest
-	// first. It is the safer rolling: the freshest release day with malware
-	// removed, where a plain newest-release rule would take a malicious upload.
+	// Rolling is every distinct non-malware version published on the release
+	// date of the highest version (the most recent date when the package cannot
+	// be ordered), pre-releases and exposed releases included, highest first. It
+	// is the safer rolling: the freshest release day with malware removed, found
+	// by version order and then date as latest is, so neither a malicious upload
+	// nor a back-port to an old branch sets the day.
 	Rolling []string
 	// RollingDate is that date, as YYYY-MM-DD in UTC.
 	RollingDate string
@@ -384,25 +386,54 @@ func highestOf(scheme string, versions []string) string {
 	return best
 }
 
+// pickRolling follows the same two steps as latest: the version order first,
+// the date second. When the scheme can order the package, the day is the release
+// day of the highest dated version (a pre-release or a vulnerable one counts;
+// malware never reaches here), so a point release on an old branch published
+// after it does not move the day. When the package cannot be ordered, the day is
+// the most recent one.
 func pickRolling(scheme string, entries []entry) ([]string, string) {
+	dayOf := func(e entry) string {
+		return time.UnixMilli(*e.PublishedAtMs).UTC().Format("2006-01-02")
+	}
+	orderable := packageOrderable(scheme, entries)
 	var latestDay string
+	var anchor *entry
 	days := map[string][]string{}
-	for _, e := range entries {
+	for i, e := range entries {
 		if e.PublishedAtMs == nil {
 			continue
 		}
-		day := time.UnixMilli(*e.PublishedAtMs).UTC().Format("2006-01-02")
+		day := dayOf(e)
 		days[day] = append(days[day], e.Version)
 		if day > latestDay {
 			latestDay = day
+		}
+		if orderable && e.info.Orderable && (anchor == nil || rollingBeats(scheme, e, *anchor)) {
+			anchor = &entries[i]
 		}
 	}
 	if latestDay == "" {
 		return nil, ""
 	}
+	if anchor != nil {
+		latestDay = dayOf(*anchor)
+	}
 	set := days[latestDay]
 	sort.SliceStable(set, func(i, j int) bool { return higher(scheme, set[i], set[j]) })
 	return set, latestDay
+}
+
+// rollingBeats reports whether a is above b in the scheme order; a tie goes to
+// the later release, then the greater string.
+func rollingBeats(scheme string, a, b entry) bool {
+	if c, ok := CompareScheme(scheme, a.Version, b.Version); ok && c != 0 {
+		return c > 0
+	}
+	if c := cmpDate(a.PublishedAtMs, b.PublishedAtMs); c != 0 {
+		return c > 0
+	}
+	return a.Version > b.Version
 }
 
 // ── rolling codec ───────────────────────────────────────────────────────────
