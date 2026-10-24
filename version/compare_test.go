@@ -182,3 +182,113 @@ func TestWithinNeverOrdersAnUnparseableBoundAsText(t *testing.T) {
 		t.Fatalf("a git commit bound is inconclusive, got (%v,%v)", in, ok)
 	}
 }
+
+// genericSegmentCorpus is the shared corpus for the ordering property tests:
+// numeric, alpha, empty, mixed, leading-zero, and int64-overflowing numeric
+// segments (parseNumeric returns ok=false for those, so the numeric path is skipped).
+func genericSegmentCorpus() []string {
+	return []string{
+		"", "0", "1", "2", "9", "10", "999",
+		"00", "01", "007",
+		"9223372036854775807",     // max int64
+		"9223372036854775808",     // max int64 + 1, overflows
+		"99999999999999999999999", // overflows int64
+		"a", "b", "z", "A", "B", "alpha", "beta", "rc", "RC",
+		"1a", "a1", "0a", "1a2", "12a34",
+	}
+}
+
+// TestCompareSegmentAntisymmetry checks the generic per-segment ordering is
+// reflexive, antisymmetric, and always in {-1,0,1}.
+func TestCompareSegmentAntisymmetry(t *testing.T) {
+	for _, a := range genericSegmentCorpus() {
+		if got := compareSegment(a, a); got != 0 {
+			t.Errorf("compareSegment(%q,%q)=%d, want 0", a, a, got)
+		}
+		for _, b := range genericSegmentCorpus() {
+			ab := compareSegment(a, b)
+			if ab < -1 || ab > 1 {
+				t.Errorf("compareSegment(%q,%q)=%d, want value in {-1,0,1}", a, b, ab)
+			}
+			if ab != -compareSegment(b, a) {
+				t.Errorf("compareSegment(%q,%q)=%d but compareSegment(%q,%q)=%d; not antisymmetric",
+					a, b, ab, b, a, compareSegment(b, a))
+			}
+		}
+	}
+}
+
+// genericVersionCorpus builds whole version strings from the segment corpus plus
+// compound versions of mixed lengths and kinds (including uneven lengths, which
+// exercise the empty-segment special cases).
+func genericVersionCorpus() []string {
+	versions := []string{""}
+	versions = append(versions, genericSegmentCorpus()...)
+	versions = append(versions,
+		"1.0", "1.0.0", "1.0.1", "2.0", "1.9", "0.0.0", "0.0.0.0.0",
+		"1.0-1", "1.0-2", "1.0.1-alpha", "1.0.1-alpha.1", "1.0.0-rc1",
+		"1.0.0+build", "1.0.0-alpha+001", "1.2.3.4",
+		"007.1", "99999999999999999999999.0", "1.alpha", "alpha.1",
+		"1.1a", "10.0", "9.0",
+	)
+	return versions
+}
+
+// segmentSequencesEqual reports whether two version strings split into segment
+// sequences that are elementwise equal under compareSegment (missing trailing
+// segments compare as ""), the condition compareGeneric's zero result encodes.
+func segmentSequencesEqual(a, b string) bool {
+	sa := splitVersion(a)
+	sb := splitVersion(b)
+	maxLen := len(sa)
+	if len(sb) > maxLen {
+		maxLen = len(sb)
+	}
+	for i := 0; i < maxLen; i++ {
+		var pa, pb string
+		if i < len(sa) {
+			pa = sa[i]
+		}
+		if i < len(sb) {
+			pb = sb[i]
+		}
+		if compareSegment(pa, pb) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// TestCompareGenericTotalOrder checks the generic fallback is a total preorder
+// over the corpus: always parseable, reflexive, antisymmetric, always in
+// {-1,0,1}, and a zero result means the split segment sequences are elementwise
+// equal under compareSegment.
+func TestCompareGenericTotalOrder(t *testing.T) {
+	for _, a := range genericVersionCorpus() {
+		if ab, ok := compareGeneric(a, a); !ok || ab != 0 {
+			t.Errorf("compareGeneric(%q,%q)=(%d,%v), want (0,true)", a, a, ab, ok)
+		}
+		for _, b := range genericVersionCorpus() {
+			ab, okAB := compareGeneric(a, b)
+			if !okAB {
+				t.Errorf("compareGeneric(%q,%q) ok=false, want true", a, b)
+				continue
+			}
+			if ab < -1 || ab > 1 {
+				t.Errorf("compareGeneric(%q,%q)=%d, want value in {-1,0,1}", a, b, ab)
+			}
+			ba, okBA := compareGeneric(b, a)
+			if !okBA {
+				t.Errorf("compareGeneric(%q,%q) ok=false, want true", b, a)
+				continue
+			}
+			if ab != -ba {
+				t.Errorf("compareGeneric(%q,%q)=%d but compareGeneric(%q,%q)=%d; not antisymmetric",
+					a, b, ab, b, a, ba)
+			}
+			if ab == 0 && !segmentSequencesEqual(a, b) {
+				t.Errorf("compareGeneric(%q,%q)=0 but segments differ under compareSegment", a, b)
+			}
+		}
+	}
+}
