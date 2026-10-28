@@ -70,11 +70,45 @@ func TestBuildPurl(t *testing.T) {
 	cases := []struct {
 		name, version, eco, want string
 	}{
+		// npm, pypi, golang basics
 		{"lodash", "4.17.21", "npm", "pkg:npm/lodash@4.17.21"},
-		{"@babel/core", "7.24.0", "npm", "pkg:npm/babel/core@7.24.0"},
-		{"org.apache.commons:commons-lang3", "3.14.0", "maven", "pkg:maven/org.apache.commons/commons-lang3@3.14.0"},
 		{"requests", "2.31.0", "pypi", "pkg:pypi/requests@2.31.0"},
 		{"github.com/pkg/errors", "0.9.1", "golang", "pkg:golang/github.com%2Fpkg%2Ferrors@0.9.1"},
+		{"github.com/pkg/errors", "0.9.1", "go", "pkg:golang/github.com%2Fpkg%2Ferrors@0.9.1"},
+		{"github.com/pkg/errors", "0.9.1", "GoLang", "pkg:golang/github.com%2Fpkg%2Ferrors@0.9.1"},
+
+		// npm scoped and unscoped fall-through
+		{"@babel/core", "7.24.0", "npm", "pkg:npm/babel/core@7.24.0"},
+		{"@babel", "7.24.0", "npm", "pkg:npm/@babel@7.24.0"},
+		{"lodash", "", "npm", "pkg:npm/lodash"},
+
+		// maven group:artifact and plain-name fall-through
+		{"org.apache.commons:commons-lang3", "3.14.0", "maven", "pkg:maven/org.apache.commons/commons-lang3@3.14.0"},
+		{"org.apache.commons:commons-lang3", "3.14.0", "java", "pkg:maven/org.apache.commons/commons-lang3@3.14.0"},
+		{"commons-lang3", "3.14.0", "maven", "pkg:maven/commons-lang3@3.14.0"},
+
+		// remaining alias pairs
+		{"serde", "1.0.197", "cargo", "pkg:cargo/serde@1.0.197"},
+		{"serde", "1.0.197", "rust", "pkg:cargo/serde@1.0.197"},
+		{"rails", "7.1.3", "gem", "pkg:gem/rails@7.1.3"},
+		{"rails", "7.1.3", "rubygems", "pkg:gem/rails@7.1.3"},
+		{"laravel/framework", "10.0.0", "composer", "pkg:composer/laravel%2Fframework@10.0.0"},
+		{"laravel/framework", "10.0.0", "php", "pkg:composer/laravel%2Fframework@10.0.0"},
+		{"http", "1.2.0", "pub", "pkg:pub/http@1.2.0"},
+		{"http", "1.2.0", "dart", "pkg:pub/http@1.2.0"},
+		{"phoenix", "1.7.0", "hex", "pkg:hex/phoenix@1.7.0"},
+		{"phoenix", "1.7.0", "elixir", "pkg:hex/phoenix@1.7.0"},
+		{"Newtonsoft.Json", "13.0.3", "nuget", "pkg:nuget/Newtonsoft.Json@13.0.3"},
+		{"Alamofire", "5.9.0", "swift", "pkg:swift/Alamofire@5.9.0"},
+		{"nginx-ingress", "1.0.0", "helm", "pkg:helm/nginx-ingress@1.0.0"},
+		{"numpy", "1.26.0", "conda", "pkg:conda/numpy@1.26.0"},
+
+		// clojure coordinates are maven purls
+		{"clj-time", "0.15.2", "clojars", "pkg:maven/clj-time@0.15.2"},
+		{"clj-time", "0.15.2", "clojure", "pkg:maven/clj-time@0.15.2"},
+
+		// an ecosystem with no alias is its own purl type (deb, apk, oci, ...)
+		{"unknown-pkg", "1.0.0", "notareco", "pkg:notareco/unknown-pkg@1.0.0"},
 	}
 	for _, tc := range cases {
 		if got := BuildPurl(tc.name, tc.version, tc.eco); got != tc.want {
