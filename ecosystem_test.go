@@ -60,7 +60,7 @@ func TestVersionRangeEcoClauses(t *testing.T) {
 	// alias (never a bare `a.`); args carry url patterns + vendor lists.
 	outer, inner, args := versionRangeEcoClauses("golang")
 	if !strings.Contains(outer, `LOWER(a."collectionURL") LIKE ANY($2::text[])`) ||
-		!strings.Contains(outer, `LOWER(a."vendor") = ANY($3::text[])`) {
+		!strings.Contains(outer, `LOWER(split_part(a."vendor", ':', 1)) = ANY($3::text[])`) {
 		t.Errorf("known eco outer predicate wrong: %q", outer)
 	}
 	if strings.Contains(inner, "a.\"") {
@@ -91,4 +91,21 @@ func contains(s []string, v string) bool {
 		}
 	}
 	return false
+}
+
+func TestNativeOnlyExcludesEveryRegistryAndDistro(t *testing.T) {
+	outer, inner, args := nativeOnlyClauses()
+	if !strings.Contains(outer, `a."collectionURL"`) || !strings.Contains(inner, `ai."collectionURL"`) || len(args) != 1 {
+		t.Fatalf("clauses = %q %q %v", outer, inner, args)
+	}
+	vendors := args[0].([]string)
+	for _, want := range []string{"npm", "pypi", "debian", "red hat", "alpine", "wolfi"} {
+		found := false
+		for _, v := range vendors {
+			found = found || v == want
+		}
+		if !found {
+			t.Errorf("vendor %q is not excluded", want)
+		}
+	}
 }

@@ -1,6 +1,9 @@
 package match
 
-import "strings"
+import (
+	"sort"
+	"strings"
+)
 
 // CanonicalEcosystem maps a PURL `type` to the ecosystem naming used by
 // PackageVersion.ecosystem and the vdb-manager importer (internal/db/ecosystem.go).
@@ -49,6 +52,17 @@ var ecosystemEvidence = map[string]struct {
 	"conan":     {urls: []string{"https://conan.io/center"}, vendors: []string{"conan"}},
 	"homebrew":  {urls: []string{"https://formulae.brew.sh"}, vendors: []string{"homebrew"}},
 	"alpine":    {urls: []string{"https://pkgs.alpinelinux.org"}, vendors: []string{"alpine"}},
+	// Distributions, for OS packages (DistroEcosystem). Their advisories carry
+	// the distribution's own versions, with backported fixes.
+	"debian":    {urls: []string{"https://packages.debian.org", "https://security-tracker.debian.org"}, vendors: []string{"debian"}},
+	"ubuntu":    {urls: []string{"https://launchpad.net", "https://ubuntu.com/security"}, vendors: []string{"ubuntu"}},
+	"redhat":    {urls: []string{"https://access.redhat.com", "https://catalog.redhat.com", "https://www.redhat.com"}, vendors: []string{"red hat", "redhat"}},
+	"rocky":     {urls: []string{"https://errata.rockylinux.org"}, vendors: []string{"rocky", "rocky linux"}},
+	"almalinux": {urls: []string{"https://errata.almalinux.org"}, vendors: []string{"almalinux"}},
+	"amazon":    {urls: []string{"https://alas.aws.amazon.com"}, vendors: []string{"amazon"}},
+	"suse":      {urls: []string{"https://www.suse.com", "https://packagehub.suse.com"}, vendors: []string{"suse"}},
+	"fedora":    {urls: []string{"https://bodhi.fedoraproject.org"}, vendors: []string{"fedora"}},
+	"wolfi":     {urls: []string{"https://wolfi.dev", "https://images.chainguard.dev"}, vendors: []string{"wolfi", "chainguard"}},
 }
 
 // EcosystemEvidence resolves a PURL `type` (or canonical ecosystem) to its
@@ -66,4 +80,19 @@ func EcosystemEvidence(eco string) (canonical string, registryURLs, vendors []st
 		return canonical, nil, nil, false
 	}
 	return canonical, ev.urls, ev.vendors, true
+}
+
+// nativeOnlyClauses keeps advisories that belong to no package registry and
+// no distribution: an empty collectionURL and a vendor that is not one of the
+// ecosystems above. Placeholders $2 for the vendors, as versionRangeEcoClauses.
+func nativeOnlyClauses() (outer, inner string, args []any) {
+	vendors := make([]string, 0, len(ecosystemEvidence)*2)
+	for _, ev := range ecosystemEvidence {
+		vendors = append(vendors, ev.vendors...)
+	}
+	sort.Strings(vendors)
+	outer = `(COALESCE(a."collectionURL", '') = '' AND LOWER(split_part(COALESCE(a."vendor", ''), ':', 1)) <> ALL($2::text[]))`
+	inner = `(COALESCE(ai."collectionURL", '') = '' AND LOWER(split_part(COALESCE(ai."vendor", ''), ':', 1)) <> ALL($2::text[]))`
+
+	return outer, inner, []any{vendors}
 }

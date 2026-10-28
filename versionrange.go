@@ -98,8 +98,10 @@ func versionRangeEcoClauses(eco string) (outer, inner string, args []any) {
 		for i, u := range urls {
 			patterns[i] = strings.ToLower(u) + "%"
 		}
-		outer = `(LOWER(a."collectionURL") LIKE ANY($2::text[]) OR LOWER(a."vendor") = ANY($3::text[]))`
-		inner = `(LOWER(ai."collectionURL") LIKE ANY($2::text[]) OR LOWER(ai."vendor") = ANY($3::text[]))`
+		// The vendor is compared up to its first colon: OSV distribution rows
+		// name it with the release, "Ubuntu:14.04:LTS" or "Debian:12".
+		outer = `(LOWER(a."collectionURL") LIKE ANY($2::text[]) OR LOWER(split_part(a."vendor", ':', 1)) = ANY($3::text[]))`
+		inner = `(LOWER(ai."collectionURL") LIKE ANY($2::text[]) OR LOWER(split_part(ai."vendor", ':', 1)) = ANY($3::text[]))`
 		return outer, inner, []any{patterns, vendors}
 	}
 	outer = `LOWER(a."collectionURL") LIKE '%' || LOWER($2) || '%'`
@@ -140,6 +142,9 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 	// unmapped ecosystem keeps the legacy substring gate so exotic ecosystems are
 	// not silently dropped.
 	outerEco, innerEco, ecoArgs := versionRangeEcoClauses(dep.Ecosystem)
+	if dep.NativeOnly && strings.TrimSpace(dep.Ecosystem) == "" {
+		outerEco, innerEco, ecoArgs = nativeOnlyClauses()
+	}
 	pypi := CanonicalEcosystem(dep.Ecosystem) == "pypi"
 	name := dep.Name
 	if pypi {
