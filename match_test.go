@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Vulnetix/vdb-sca-match/parse"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -377,6 +378,111 @@ func TestAppendMethod(t *testing.T) {
 	}
 	if got := appendMethod("purl,crit", "purl"); got != "purl,crit" {
 		t.Fatalf("append duplicate should be a no-op: %q", got)
+	}
+}
+
+// BuildPurl is documented as the inverse of ParsePurl, so every canonical PURL
+// shape must round-trip through ParsePurl: the ecosystem maps back through
+// ecosystemFromType, the fullName is percent-unescaped, and the version is kept.
+// For ecosystems BuildPurl normalizes the native name (npm @scope/pkg →
+// pkg:npm/scope/pkg, maven group:artifact → pkg:maven/group/artifact), we
+// assert the parse of the canonical PURL, not a round-trip of the original name.
+func TestParsePurl_RoundTrip(t *testing.T) {
+	cases := []struct {
+		purl, ecosystem, fullName, version string
+	}{
+		{"pkg:npm/scope/pkg@1.0.0", "npm", "scope/pkg", "1.0.0"},
+		{"pkg:npm/scope/pkg", "npm", "scope/pkg", ""},
+		{"pkg:npm/lodash@4.17.21", "npm", "lodash", "4.17.21"},
+		{"pkg:npm/lodash", "npm", "lodash", ""},
+		{"pkg:maven/org.apache.commons/commons-lang3@3.14.0", "maven", "org.apache.commons/commons-lang3", "3.14.0"},
+		{"pkg:maven/org.apache.commons/commons-lang3", "maven", "org.apache.commons/commons-lang3", ""},
+		{"pkg:pypi/requests@2.31.0", "pypi", "requests", "2.31.0"},
+		{"pkg:golang/github.com/pkg/errors@0.9.1", "golang", "github.com/pkg/errors", "0.9.1"},
+		{"pkg:golang/github.com%2Fcloudflare%2Fcircl@1.6.3", "golang", "github.com/cloudflare/circl", "1.6.3"},
+		{"pkg:cargo/serde@1.0.197", "cargo", "serde", "1.0.197"},
+	}
+	for _, tc := range cases {
+		eco, fullName, version := ParsePurl(tc.purl)
+		if eco != tc.ecosystem {
+			t.Errorf("ParsePurl(%q) ecosystem = %q, want %q", tc.purl, eco, tc.ecosystem)
+		}
+		if fullName != tc.fullName {
+			t.Errorf("ParsePurl(%q) fullName = %q, want %q", tc.purl, fullName, tc.fullName)
+		}
+		if version != tc.version {
+			t.Errorf("ParsePurl(%q) version = %q, want %q", tc.purl, version, tc.version)
+		}
+	}
+
+	// A full round trip using BuildPurl for the ecosystems whose native names
+	// are already in the canonical PURL form (not scoped npm or maven).
+	rt := []struct {
+		name, version, ecosystem string
+	}{
+		{"requests", "2.31.0", "pypi"},
+		{"github.com/pkg/errors", "0.9.1", "golang"},
+		{"serde", "1.0.197", "cargo"},
+		{"lodash", "4.17.21", "npm"},
+	}
+	for _, tc := range rt {
+		purl := parse.BuildPurl(tc.name, tc.version, tc.ecosystem)
+		if purl == "" {
+			t.Fatalf("BuildPurl(%q, %q, %q) = %q, want a non-empty PURL", tc.name, tc.version, tc.ecosystem, purl)
+		}
+		eco, fullName, version := ParsePurl(purl)
+		if eco != tc.ecosystem {
+			t.Errorf("ParsePurl(BuildPurl(%q,%q,%q)) ecosystem = %q, want %q", tc.name, tc.version, tc.ecosystem, eco, tc.ecosystem)
+		}
+		if fullName != tc.name {
+			t.Errorf("ParsePurl(BuildPurl(%q,%q,%q)) fullName = %q, want %q", tc.name, tc.version, tc.ecosystem, fullName, tc.name)
+		}
+		if version != tc.version {
+			t.Errorf("ParsePurl(BuildPurl(%q,%q,%q)) version = %q, want %q", tc.name, tc.version, tc.ecosystem, version, tc.version)
+		}
+	}
+}
+
+// ParsePurl must never panic and must be deterministic for arbitrary strings,
+// including the malformed shapes the spec allows (subpath and qualifiers trail
+// the version and are dropped before splitting).
+func TestParsePurl_NoPanicOnMalformedInput(t *testing.T) {
+	corpus := []string{
+		"",
+		"pkg:",
+		"pkg:npm",
+		"pkg:npm/",
+		"pkg:npm/name@",
+		"pkg:npm/name@1.0.0#subpath",
+		"pkg:npm/name@1.0.0?extension=tar.gz",
+		"pkg:npm/name@1.0.0#sub/path?extension=tar.gz",
+		"pkg:npm/%40scope%2Fpkg@1.0.0",
+		"pkg:golang/github.com%2Fcloudflare%2Fcircl@1.6.3",
+		"pkg:maven/org.apache.commons/commons-lang3@3.14.0",
+		"not-a-purl",
+		"pkg:unknown/name@1.0.0",
+		"pkg:npm/name@@",
+		"pkg:npm/name@1.0.0@2.0.0",
+		"pkg:npm/%zz",
+		"pkg:npm/name@1.0.0?extension=tar.gz&platform=linux",
+	}
+	for _, in := range corpus {
+		t.Run(in, func(t *testing.T) {
+			var eco, name, version string
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						t.Fatalf("ParsePurl(%q) panicked: %v", in, r)
+					}
+				}()
+				eco, name, version = ParsePurl(in)
+			}()
+			eco2, name2, version2 := ParsePurl(in)
+			if eco != eco2 || name != name2 || version != version2 {
+				t.Fatalf("ParsePurl(%q) is not deterministic: (%q,%q,%q) then (%q,%q,%q)",
+					in, eco, name, version, eco2, name2, version2)
+			}
+		})
 	}
 }
 
