@@ -55,3 +55,22 @@ func TestDistroSource(t *testing.T) {
 		t.Fatal("no qualifier, no source")
 	}
 }
+
+func TestSameBranch(t *testing.T) {
+	cases := []struct {
+		distro, installed, rng string
+		want                   bool
+	}{
+		{"alpine", "3.1.8-r0", "<3.3.3-r0", false},
+		{"alpine", "3.1.8-r0", "<3.1.9-r0", true},
+		{"debian", "1:2.41-12+deb13u4", "<2.41-12+deb13u5", true},
+		{"debian", "1:2.41-12+deb13u4", ">=0, <2.36-9+deb12u7", false},
+		{"alpine", "1.36.1-r7", "*", true},
+		{"alpine", "5-r0", "<6-r0", true},
+	}
+	for _, c := range cases {
+		if got := sameBranch(c.distro, c.installed, c.rng); got != c.want {
+			t.Errorf("sameBranch(%s, %s, %q) = %v, want %v", c.distro, c.installed, c.rng, got, c.want)
+		}
+	}
+}

@@ -142,6 +142,12 @@ func MatchOSPackage(ctx context.Context, q Querier, dep Dependency, distro, sour
 			if strings.Contains(m.Method, "wildcard") {
 				continue
 			}
+			// A distribution fixes each release branch separately: "< 3.3.3-r0"
+			// is the fix on the branch that ships OpenSSL 3.3 and says nothing
+			// about 3.1.8 on an older release.
+			if !sameBranch(distro, dep.Version, m.VulnerableRange) {
+				continue
+			}
 			if !have[m.CveID] {
 				have[m.CveID] = true
 				out = append(out, m)
@@ -238,4 +244,36 @@ func distroMentionsFor(ctx context.Context, q Querier, name, distro string, cves
 	}
 
 	return out, rows.Err()
+}
+
+var rangeBound = regexp.MustCompile(`<=?\s*([^\s,<>=]+)`)
+
+// sameBranch reports whether a range's upper bound is on the installed
+// version's upstream branch (major.minor). A range with no upper bound, or a
+// version with no minor, is taken as on the branch.
+func sameBranch(distro, installed, vulnerableRange string) bool {
+	m := rangeBound.FindAllStringSubmatch(vulnerableRange, -1)
+	if len(m) == 0 {
+		return true
+	}
+	have := branchOf(UpstreamVersion(distro, installed))
+	bound := branchOf(UpstreamVersion(distro, m[len(m)-1][1]))
+	if have == "" || bound == "" {
+		return true
+	}
+
+	return have == bound
+}
+
+func branchOf(v string) string {
+	parts := strings.SplitN(v, ".", 3)
+	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+		return ""
+	}
+	minor := parts[1]
+	if i := strings.IndexFunc(minor, func(r rune) bool { return r < '0' || r > '9' }); i >= 0 {
+		minor = minor[:i]
+	}
+
+	return parts[0] + "." + minor
 }
