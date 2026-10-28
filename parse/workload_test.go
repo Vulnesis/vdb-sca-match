@@ -146,6 +146,83 @@ func TestParseKubernetesWorkloadsDeployment(t *testing.T) {
 	}
 }
 
+func TestClassifyVolume(t *testing.T) {
+	cases := []struct {
+		name       string
+		vol        map[string]any
+		source     string
+		sourceName string
+	}{
+		{
+			name:       "persistentVolumeClaim",
+			vol:        map[string]any{"name": "cache", "persistentVolumeClaim": map[string]any{"claimName": "models-pvc"}},
+			source:     "pvc",
+			sourceName: "models-pvc",
+		},
+		{
+			name:       "configMap",
+			vol:        map[string]any{"name": "cfg", "configMap": map[string]any{"name": "app-config"}},
+			source:     "configMap",
+			sourceName: "app-config",
+		},
+		{
+			name:       "secret",
+			vol:        map[string]any{"name": "sec", "secret": map[string]any{"secretName": "hf-secret"}},
+			source:     "secret",
+			sourceName: "hf-secret",
+		},
+		{
+			name:       "hostPath",
+			vol:        map[string]any{"name": "host", "hostPath": map[string]any{"path": "/data"}},
+			source:     "hostPath",
+			sourceName: "/data",
+		},
+		{
+			name:   "emptyDir",
+			vol:    map[string]any{"name": "tmp", "emptyDir": map[string]any{}},
+			source: "emptyDir",
+		},
+		{
+			name:       "nfs",
+			vol:        map[string]any{"name": "nfs", "nfs": map[string]any{"server": "nfs.example.com", "path": "/data"}},
+			source:     "nfs",
+			sourceName: "nfs.example.com:/data",
+		},
+		{
+			name:       "nfs empty path",
+			vol:        map[string]any{"name": "nfs", "nfs": map[string]any{"server": "nfs.example.com"}},
+			source:     "nfs",
+			sourceName: "nfs.example.com",
+		},
+		{
+			name:       "csi",
+			vol:        map[string]any{"name": "csi", "csi": map[string]any{"driver": "secrets.example.com"}},
+			source:     "csi",
+			sourceName: "secrets.example.com",
+		},
+		{
+			name:       "image",
+			vol:        map[string]any{"name": "img", "image": map[string]any{"reference": "busybox:1.36"}},
+			source:     "image",
+			sourceName: "busybox:1.36",
+		},
+		{
+			name:   "unknown",
+			vol:    map[string]any{"name": "mystery"},
+			source: "unknown",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := classifyVolume(tc.vol)
+			if got.Source != tc.source || got.SourceName != tc.sourceName {
+				t.Errorf("classifyVolume(%v) = Source %q, SourceName %q; want %q, %q",
+					tc.vol, got.Source, got.SourceName, tc.source, tc.sourceName)
+			}
+		})
+	}
+}
+
 const crdYAML = `
 apiVersion: kubeflow.org/v1
 kind: PyTorchJob
