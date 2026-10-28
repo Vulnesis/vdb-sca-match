@@ -95,7 +95,7 @@ func TestRulesAreWellFormed(t *testing.T) {
 func knownFactGroup(g string) bool {
 	switch g {
 	case FactRepo, FactActionsPolicy, FactBranches, FactEnvironments, FactActionRefs, FactCodeOwners,
-		FactDeployKeys, FactWebhooks, FactCollaborators, FactOrg, FactRunnerGroups, FactSecurity:
+		FactDeployKeys, FactWebhooks, FactCollaborators, FactOrg, FactRunnerGroups, FactSecurity, FactRepoFiles, FactSecrets:
 		return true
 	}
 	return false

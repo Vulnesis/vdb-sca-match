@@ -1,0 +1,4 @@
+VNX-GH-021 critical .github/workflows/x.yml:12 .github/workflows/x.yml#bad/dump/exfiltration
+VNX-GH-021 critical .github/workflows/x.yml:14 .github/workflows/x.yml#bad/capture/exfiltration
+VNX-GH-021 critical .github/workflows/x.yml:18 .github/workflows/x.yml#bad/encoded/exfiltration
+VNX-GH-022 high .github/workflows/x.yml:19 .github/workflows/x.yml#bad/old-cache/privileged-cache

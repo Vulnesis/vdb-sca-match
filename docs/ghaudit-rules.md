@@ -28,6 +28,8 @@ Rules marked *needs* only run when those facts were collected (via the GitHub AP
 | [VNX-GH-018](#vnx-gh-018) | Comment-triggered workflow without an author check | high | CWE-862, CWE-863 | uses repo |
 | [VNX-GH-019](#vnx-gh-019) | Obfuscated action reference or expression | low | CWE-656 |  |
 | [VNX-GH-020](#vnx-gh-020) | Pull request head ref used as a branch or tag name without quoting | medium | CWE-88 |  |
+| [VNX-GH-021](#vnx-gh-021) | Secrets sent to an external host | critical | CWE-200, CWE-506 |  |
+| [VNX-GH-022](#vnx-gh-022) | Privileged job restores a cache keyed on contributor input | high | CWE-349, CWE-494 |  |
 
 ## Actions and images — `vulnetix gha actions`
 
@@ -60,13 +62,16 @@ Rules marked *needs* only run when those facts were collected (via the GitHub AP
 | [VNX-GH-210](#vnx-gh-210) | Fork pull request workflows run without approval | medium | CWE-862 | needs repo, actions_policy |
 | [VNX-GH-211](#vnx-gh-211) | Any action may run | low | CWE-829 | needs repo, actions_policy |
 | [VNX-GH-212](#vnx-gh-212) | Secret scanning or push protection disabled | medium | CWE-798 | needs repo, security_and_analysis |
-| [VNX-GH-213](#vnx-gh-213) | Dependabot security updates disabled | low | CWE-1104 | needs repo, security_and_analysis |
+| [VNX-GH-213](#vnx-gh-213) | Dependabot alerts or security updates disabled | low | CWE-1104 | needs repo, security_and_analysis |
 | [VNX-GH-214](#vnx-gh-214) | Environment secrets deployable without approval | high | CWE-284, CWE-862 | needs repo, environments |
-| [VNX-GH-215](#vnx-gh-215) | Deploy key with write access | medium | CWE-732 | needs deploy_keys |
+| [VNX-GH-215](#vnx-gh-215) | Deploy key with write access, or unused | medium | CWE-732 | needs deploy_keys |
 | [VNX-GH-216](#vnx-gh-216) | Webhook deliveries can be forged or intercepted | medium | CWE-345, CWE-295 | needs webhooks |
 | [VNX-GH-217](#vnx-gh-217) | Outside collaborator with admin access | medium | CWE-269 | needs collaborators |
 | [VNX-GH-218](#vnx-gh-218) | Signed commits not required | low | CWE-345 | needs repo, branches |
 | [VNX-GH-219](#vnx-gh-219) | Repository secret used by an untrusted-trigger workflow | high | CWE-200, CWE-668 | needs repo |
+| [VNX-GH-220](#vnx-gh-220) | Public repository has no private vulnerability reporting | low | CWE-1059 | needs repo, security_and_analysis |
+| [VNX-GH-221](#vnx-gh-221) | Security policy files missing | low | CWE-1059 | needs repo, repo_files |
+| [VNX-GH-222](#vnx-gh-222) | Actions secret not rotated in a year | low | CWE-324 | needs secrets |
 
 ## Organisation settings — `vulnetix gha org`
 
@@ -243,6 +248,22 @@ uses: owner/repo/./@ref and github['event']['issue']['title'] resolve to the sam
 Moving an untrusted value into env: fixes script injection, but `git checkout $BRANCH` still lets a branch named --upload-pack=... or -o... inject options. Branch names can start with a dash.
 
 **Remediation.** Quote the variable and end option parsing: git checkout -- "$BRANCH" (or git switch "refs/heads/$BRANCH").
+
+### VNX-GH-021
+
+**Secrets sent to an external host** — A step sends the secrets context, the environment, or an encoded secret over the network, or sends any secret to a request-capture host or raw IP.
+
+Token-theft campaigns add a step that dumps every secret (or the whole environment) and posts it to a server they control, often base64-encoded to slip past log masking, then remove the workflow. Authenticated calls that pass a single secret to an API are not reported; only bulk dumps, encoded secrets, and destinations with no legitimate use are.
+
+**Remediation.** Remove the step and treat every secret available to the workflow as compromised: rotate them, then review who added the change.
+
+### VNX-GH-022
+
+**Privileged job restores a cache keyed on contributor input** — In a pull_request_target, workflow_run or comment-triggered job, a cache key or the cached content is derived from the pull request.
+
+A key built from the head branch or head SHA lets a contributor choose which entry the privileged job restores; restoring a cache after checking out the pull request saves the contributor's files under a key later trusted runs restore.
+
+**Remediation.** Key caches only on base-branch content (hashFiles of the base checkout), and do not cache in a job that checked out untrusted code.
 
 ### VNX-GH-101
 
@@ -422,7 +443,7 @@ Push protection stops a credential before it reaches history; secret scanning fi
 
 ### VNX-GH-213
 
-**Dependabot security updates disabled** — Vulnerable dependencies, including pinned actions, are not raised as update pull requests.
+**Dependabot alerts or security updates disabled** — Vulnerable dependencies, including pinned actions, are not raised as update pull requests.
 
 SHA-pinned actions only stay safe if something updates them. Security updates open the fix as a pull request as soon as an advisory is published.
 
@@ -438,7 +459,7 @@ Environment secrets exist so that only gated jobs see them. An ungated environme
 
 ### VNX-GH-215
 
-**Deploy key with write access** — A deploy key can push to the repository.
+**Deploy key with write access, or unused** — A deploy key can push to the repository.
 
 Deploy keys are not tied to a user, do not expire, and are typically stored on build or deployment hosts. A write key there can push to unprotected branches and tags.
 
@@ -475,6 +496,30 @@ Commit author fields are free text. Without signature verification a commit can 
 Repository secrets are available to every job. When a pull_request_target, issue_comment or workflow_run workflow reads one, any flaw in that workflow exposes it; an environment secret would add a gate.
 
 **Remediation.** Move the secret to an environment with required reviewers, and reference it only from the job bound to that environment.
+
+### VNX-GH-220
+
+**Public repository has no private vulnerability reporting** — Researchers have no private channel to report a vulnerability.
+
+Without private vulnerability reporting, a researcher's only route is often a public issue, which discloses the flaw before a fix exists.
+
+**Remediation.** Enable private vulnerability reporting in the repository's security settings.
+
+### VNX-GH-221
+
+**Security policy files missing** — SECURITY.md, CODEOWNERS or a Dependabot configuration is absent.
+
+SECURITY.md is the reporting route, CODEOWNERS names who must review sensitive paths, and a Dependabot configuration keeps dependencies — including pinned actions — updated. Each missing file removes one of those controls.
+
+**Remediation.** Add the missing files; include a github-actions entry in dependabot.yml so action pins are kept current.
+
+### VNX-GH-222
+
+**Actions secret not rotated in a year** — A repository secret was last updated more than 365 days ago.
+
+A long-lived secret has had more time to be copied — into logs, forks, laptops — and its owner may have left. Rotation bounds how long a leaked copy stays useful.
+
+**Remediation.** Rotate the credential at its issuer and update the secret; prefer OIDC federation over stored cloud keys.
 
 ### VNX-GH-301
 

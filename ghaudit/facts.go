@@ -44,6 +44,8 @@ const (
 	FactOrg           = "org"
 	FactRunnerGroups  = "runner_groups"
 	FactSecurity      = "security_and_analysis"
+	FactRepoFiles     = "repo_files"
+	FactSecrets       = "secrets"
 )
 
 // RepoFacts is repository-level configuration.
@@ -79,6 +81,15 @@ type RepoFacts struct {
 	PushProtection       *bool `json:"pushProtection,omitempty"`
 	DependabotUpdates    *bool `json:"dependabotSecurityUpdates,omitempty"`
 	PrivateVulnReporting *bool `json:"privateVulnerabilityReporting,omitempty"`
+	DependabotAlerts     *bool `json:"dependabotAlerts,omitempty"`
+
+	// Repository files that are policy rather than code.
+	HasSecurityPolicy   *bool `json:"hasSecurityPolicy,omitempty"`
+	HasDependabotConfig *bool `json:"hasDependabotConfig,omitempty"`
+
+	// Secrets are repository-level Actions secrets with their age; only
+	// names and timestamps are ever read, never values.
+	Secrets []SecretFacts `json:"secrets,omitempty"`
 
 	// SecretNames are repository-level Actions secret names.
 	SecretNames []string `json:"secretNames,omitempty"`
@@ -86,6 +97,12 @@ type RepoFacts struct {
 
 // Public reports whether the repository is public.
 func (r *RepoFacts) Public() bool { return r != nil && r.Visibility == "public" }
+
+// SecretFacts is one Actions secret's metadata.
+type SecretFacts struct {
+	Name    string `json:"name"`
+	AgeDays int    `json:"ageDays"` // days since last update
+}
 
 // BranchFacts is the effective protection on one branch, merged from classic
 // branch protection and every active ruleset that targets it.
@@ -171,6 +188,8 @@ type DeployKeyFacts struct {
 	Title    string `json:"title"`
 	ReadOnly bool   `json:"readOnly"`
 	AgeDays  int    `json:"ageDays,omitempty"`
+	// IdleDays is days since last use; -1 when GitHub has no record of use.
+	IdleDays int `json:"idleDays"`
 }
 
 // WebhookFacts is one repository or organisation webhook.
@@ -180,6 +199,7 @@ type WebhookFacts struct {
 	Active      bool     `json:"active"`
 	HasSecret   bool     `json:"hasSecret"`
 	InsecureSSL bool     `json:"insecureSsl"`
+	Plaintext   bool     `json:"plaintext,omitempty"` // http:// delivery URL
 	Events      []string `json:"events,omitempty"`
 }
 

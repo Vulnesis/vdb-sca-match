@@ -363,7 +363,7 @@ var _ = register(&Rule{
 })
 
 var _ = register(&Rule{
-	ID: "VNX-GH-213", Name: "Dependabot security updates disabled", Task: TaskSettings,
+	ID: "VNX-GH-213", Name: "Dependabot alerts or security updates disabled", Task: TaskSettings,
 	Severity: Low, Confidence: ConfidenceHigh, CWE: []int{1104},
 	CWSS:        "CWSS:1.0/TI:M/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:M/DI:L/EX:L/EC:N/P:W",
 	Tags:        []string{"scm", "dependencies"},
@@ -373,10 +373,16 @@ var _ = register(&Rule{
 	Requires:    []string{FactRepo, FactSecurity},
 	check: func(c *Context) []*Finding {
 		r := c.Repo()
-		if r.DependabotUpdates == nil || *r.DependabotUpdates {
-			return nil
+		var out []*Finding
+		if r.DependabotAlerts != nil && !*r.DependabotAlerts {
+			fd := settingsFinding("security/dependabot-alerts", "settings/security_analysis", "Dependabot alerts are disabled, so known-vulnerable dependencies are not reported.")
+			fd.Severity = Medium
+			out = append(out, fd)
 		}
-		return []*Finding{settingsFinding("security/dependabot", "settings/security_analysis", "Dependabot security updates are disabled.")}
+		if r.DependabotUpdates != nil && !*r.DependabotUpdates {
+			out = append(out, settingsFinding("security/dependabot", "settings/security_analysis", "Dependabot security updates are disabled."))
+		}
+		return out
 	},
 })
 
@@ -419,7 +425,7 @@ var _ = register(&Rule{
 })
 
 var _ = register(&Rule{
-	ID: "VNX-GH-215", Name: "Deploy key with write access", Task: TaskSettings,
+	ID: "VNX-GH-215", Name: "Deploy key with write access, or unused", Task: TaskSettings,
 	Severity: Medium, Confidence: ConfidenceHigh, CWE: []int{732},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",
 	Tags:        []string{"scm", "credentials"},
@@ -430,12 +436,25 @@ var _ = register(&Rule{
 	check: func(c *Context) []*Finding {
 		var out []*Finding
 		for _, k := range c.Facts.DeployKeys {
+			idle := k.IdleDays > 90 || (k.IdleDays < 0 && k.AgeDays > 90)
+			if idle {
+				msg := fmt.Sprintf("Deploy key %q has not been used for %d days.", k.Title, k.IdleDays)
+				if k.IdleDays < 0 {
+					msg = fmt.Sprintf("Deploy key %q has never been used and is %d days old.", k.Title, k.AgeDays)
+				}
+				fd := settingsFinding(fmt.Sprintf("deploy-key:%d/idle", k.ID), "settings/keys", msg+" Unused credentials should be removed.")
+				fd.Severity = Low
+				out = append(out, fd)
+			}
 			if k.ReadOnly {
 				continue
 			}
 			fd := settingsFinding(fmt.Sprintf("deploy-key:%d", k.ID), "settings/keys", fmt.Sprintf("Deploy key %q has write access.", k.Title))
 			if k.AgeDays > 365 {
 				fd.adjust(1, fmt.Sprintf("key is %d days old", k.AgeDays))
+			}
+			if idle {
+				fd.adjust(1, "the key is not in use, so nobody would notice it being used")
 			}
 			out = append(out, fd)
 		}
@@ -456,11 +475,14 @@ func webhookFindings(hooks []WebhookFacts, prefix, settings string, scope string
 		if h.InsecureSSL {
 			why = append(why, "skips TLS certificate verification")
 		}
+		if h.Plaintext {
+			why = append(why, "delivers over plain http")
+		}
 		if len(why) == 0 {
 			continue
 		}
 		fd := &Finding{Subject: prefix + fmt.Sprintf("webhook:%d", h.ID), Location: Location{SettingsPath: settings, Scope: scope}, Message: fmt.Sprintf("Webhook to %s %s.", h.URL, strings.Join(why, " and "))}
-		if h.InsecureSSL {
+		if h.InsecureSSL || h.Plaintext {
 			fd.Severity = High
 		}
 		out = append(out, fd)
@@ -563,6 +585,82 @@ var _ = register(&Rule{
 					}
 				}
 			}
+		}
+		return out
+	},
+})
+
+var _ = register(&Rule{
+	ID: "VNX-GH-220", Name: "Public repository has no private vulnerability reporting", Task: TaskSettings,
+	Severity: Low, Confidence: ConfidenceHigh, CWE: []int{1059},
+	CWSS:        "CWSS:1.0/TI:L/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:M/DI:L/EX:L/EC:N/P:W",
+	Tags:        []string{"scm", "disclosure"},
+	Summary:     "Researchers have no private channel to report a vulnerability.",
+	Description: "Without private vulnerability reporting, a researcher's only route is often a public issue, which discloses the flaw before a fix exists.",
+	Remediation: "Enable private vulnerability reporting in the repository's security settings.",
+	Requires:    []string{FactRepo, FactSecurity},
+	check: func(c *Context) []*Finding {
+		r := c.Repo()
+		if !r.Public() || r.PrivateVulnReporting == nil || *r.PrivateVulnReporting {
+			return nil
+		}
+		return []*Finding{settingsFinding("security/private-reporting", "settings/security_analysis", "Private vulnerability reporting is disabled on this public repository.")}
+	},
+})
+
+var _ = register(&Rule{
+	ID: "VNX-GH-221", Name: "Security policy files missing", Task: TaskSettings,
+	Severity: Low, Confidence: ConfidenceHigh, CWE: []int{1059},
+	CWSS:        "CWSS:1.0/TI:L/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:L/DI:L/EX:L/EC:N/P:W",
+	Tags:        []string{"scm", "disclosure", "dependencies"},
+	Summary:     "SECURITY.md, CODEOWNERS or a Dependabot configuration is absent.",
+	Description: "SECURITY.md is the reporting route, CODEOWNERS names who must review sensitive paths, and a Dependabot configuration keeps dependencies — including pinned actions — updated. Each missing file removes one of those controls.",
+	Remediation: "Add the missing files; include a github-actions entry in dependabot.yml so action pins are kept current.",
+	Requires:    []string{FactRepo, FactRepoFiles},
+	check: func(c *Context) []*Finding {
+		r := c.Repo()
+		if r.Archived {
+			return nil
+		}
+		var missing []string
+		if r.HasSecurityPolicy != nil && !*r.HasSecurityPolicy {
+			missing = append(missing, "SECURITY.md")
+		}
+		if c.Facts.HasCodeOwners != nil && !*c.Facts.HasCodeOwners {
+			missing = append(missing, "CODEOWNERS")
+		}
+		if r.HasDependabotConfig != nil && !*r.HasDependabotConfig {
+			missing = append(missing, ".github/dependabot.yml")
+		}
+		if len(missing) == 0 {
+			return nil
+		}
+		fd := settingsFinding("files/security-policy", "", "Missing: "+strings.Join(missing, ", ")+".")
+		fd.Evidence = map[string]any{"missing": missing}
+		return []*Finding{fd}
+	},
+})
+
+var _ = register(&Rule{
+	ID: "VNX-GH-222", Name: "Actions secret not rotated in a year", Task: TaskSettings,
+	Severity: Low, Confidence: ConfidenceMedium, CWE: []int{324},
+	CWSS:        "CWSS:1.0/TI:M/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:M/DI:L/EX:L/EC:N/P:W",
+	Tags:        []string{"ci-cd", "github-actions", "secrets"},
+	Summary:     "A repository secret was last updated more than 365 days ago.",
+	Description: "A long-lived secret has had more time to be copied — into logs, forks, laptops — and its owner may have left. Rotation bounds how long a leaked copy stays useful.",
+	Remediation: "Rotate the credential at its issuer and update the secret; prefer OIDC federation over stored cloud keys.",
+	Requires:    []string{FactSecrets},
+	check: func(c *Context) []*Finding {
+		r := c.Repo()
+		if r == nil {
+			return nil
+		}
+		var out []*Finding
+		for _, s := range r.Secrets {
+			if s.AgeDays <= 365 {
+				continue
+			}
+			out = append(out, settingsFinding("secret:"+strings.ToLower(s.Name)+"/age", "settings/secrets/actions", fmt.Sprintf("Secret %s was last updated %d days ago.", s.Name, s.AgeDays)))
 		}
 		return out
 	},

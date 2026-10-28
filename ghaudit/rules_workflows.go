@@ -1129,6 +1129,24 @@ func selfHosted(labels []string) bool {
 
 var secretEchoRe = regexp.MustCompile(`(?i)\b(echo|printf|print|console\.log|write-host|cat)\b[^\n]*\$\{\{\s*secrets\.`)
 
+// reachesLog reports whether a print command's output goes to the job log:
+// not captured by $(...)/backticks, not piped on, not redirected to a file.
+func reachesLog(line string) bool {
+	i := secretEchoRe.FindStringIndex(line)
+	if i == nil {
+		return false
+	}
+	before, after := line[:i[0]], line[i[1]:]
+	if strings.Count(before, "$(")-strings.Count(before, ")") > 0 || strings.Count(before, "`")%2 == 1 {
+		return false
+	}
+	rest := after
+	if j := strings.Index(rest, "}}"); j >= 0 {
+		rest = rest[j+2:]
+	}
+	return !strings.ContainsAny(rest, "|>")
+}
+
 var ruleSecretEcho = register(&Rule{
 	ID: "VNX-GH-017", Name: "Secret printed to the job log", Task: TaskWorkflows,
 	Severity: Medium, Confidence: ConfidenceMedium, CWE: []int{532},
@@ -1146,7 +1164,7 @@ var ruleSecretEcho = register(&Rule{
 						continue
 					}
 					for i, line := range strings.Split(s.Run.Text, "\n") {
-						if !secretEchoRe.MatchString(line) {
+						if !secretEchoRe.MatchString(line) || !reachesLog(line) {
 							continue
 						}
 						p := f.Locate(s.Run.Pos.Line+boolInt(s.Run.Block)+i-1, strings.TrimSpace(line))
@@ -1309,6 +1327,150 @@ var ruleArgumentInjection = register(&Rule{
 							})
 						}
 					}
+				}
+			}
+		}
+		return out
+	},
+})
+
+var (
+	sendCmdRe = regexp.MustCompile(`(?i)\b(curl|wget|nc|ncat|socat|invoke-webrequest|invoke-restmethod|iwr|irm|http|httpie)\b`)
+	// captureHostRe matches hosts whose purpose is capturing requests, and
+	// raw IPv4 addresses: sending a secret there has no legitimate reading.
+	captureHostRe = regexp.MustCompile(`(?i)(webhook\.site|requestbin|pipedream\.net|ngrok(-free)?\.(io|app)|interact\.sh|oast\.(fun|me|pro|live|site|online)|burpcollaborator\.net|beeceptor\.com|hookbin\.com|requestcatcher\.com|trycloudflare\.com|https?://\d{1,3}(\.\d{1,3}){3})`)
+	envDumpRe     = regexp.MustCompile(`(?i)\b(printenv|env\b(\s*\|)|set\s*\|)|toJSON\(\s*(secrets|env)\s*\)|/proc/self/environ`)
+	encodeRe      = regexp.MustCompile(`(?i)\b(base64|xxd|openssl\s+enc|gzip)\b`)
+)
+
+var ruleExfil = register(&Rule{
+	ID: "VNX-GH-021", Name: "Secrets sent to an external host", Task: TaskWorkflows,
+	Severity: Critical, Confidence: ConfidenceHigh, CWE: []int{200, 506}, ATTACK: []string{"T1552.001", "T1567"},
+	CWSS:        "CWSS:1.0/TI:C/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:C/DI:H/EX:H/EC:N/P:W",
+	Tags:        []string{"ci-cd", "github-actions", "secrets", "exfiltration", "malicious"},
+	Summary:     "A step sends the secrets context, the environment, or an encoded secret over the network, or sends any secret to a request-capture host or raw IP.",
+	Description: "Token-theft campaigns add a step that dumps every secret (or the whole environment) and posts it to a server they control, often base64-encoded to slip past log masking, then remove the workflow. Authenticated calls that pass a single secret to an API are not reported; only bulk dumps, encoded secrets, and destinations with no legitimate use are.",
+	Remediation: "Remove the step and treat every secret available to the workflow as compromised: rotate them, then review who added the change.",
+	check: func(c *Context) []*Finding {
+		var out []*Finding
+		for _, f := range c.Files() {
+			for _, j := range f.Jobs {
+				for _, s := range j.Steps {
+					if s.Run == nil {
+						continue
+					}
+					secretVars := map[string]bool{}
+					for _, kvs := range [][]KV{f.Env, j.Env, s.Env} {
+						for _, kv := range kvs {
+							if strings.Contains(kv.Value.Text, "secrets.") || bulkSecretRe.MatchString(kv.Value.Text) {
+								secretVars[strings.ToUpper(kv.Key)] = true
+							}
+						}
+					}
+					text := s.Run.Text
+					lines := strings.Split(text, "\n")
+					hasSecret := func(l string) bool {
+						if strings.Contains(l, "secrets.") || bulkSecretRe.MatchString(l) {
+							return true
+						}
+						for _, v := range ShellVars(l) {
+							if secretVars[strings.ToUpper(v)] {
+								return true
+							}
+						}
+						return false
+					}
+					for i, line := range lines {
+						if !sendCmdRe.MatchString(line) {
+							continue
+						}
+						why := ""
+						switch {
+						case envDumpRe.MatchString(line):
+							why = "dumps the environment or every secret"
+						case hasSecret(line) && captureHostRe.MatchString(line):
+							why = "sends a secret to " + captureHostRe.FindString(line)
+						case hasSecret(line) && encodeRe.MatchString(line):
+							why = "encodes a secret and sends it"
+						case i > 0 && encodeRe.MatchString(lines[i-1]) && hasSecret(lines[i-1]) && strings.Contains(line, "$"):
+							why = "sends a secret encoded on the previous line"
+						default:
+							continue
+						}
+						p := f.Locate(s.Run.Pos.Line+boolInt(s.Run.Block)+i-1, strings.TrimSpace(line))
+						out = append(out, &Finding{
+							Subject:  subject(f, j.ID, stepKey(s), "exfiltration"),
+							Location: at(f, p, j, s),
+							Message:  fmt.Sprintf("Step %q %s over the network.", stepKey(s), why),
+						})
+						break
+					}
+				}
+			}
+		}
+		return out
+	},
+})
+
+var ruleCacheKey = register(&Rule{
+	ID: "VNX-GH-022", Name: "Privileged job restores a cache keyed on contributor input", Task: TaskWorkflows,
+	Severity: High, Confidence: ConfidenceMedium, CWE: []int{349, 494},
+	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",
+	Tags:        []string{"ci-cd", "github-actions", "cache-poisoning"},
+	Summary:     "In a pull_request_target, workflow_run or comment-triggered job, a cache key or the cached content is derived from the pull request.",
+	Description: "A key built from the head branch or head SHA lets a contributor choose which entry the privileged job restores; restoring a cache after checking out the pull request saves the contributor's files under a key later trusted runs restore.",
+	Remediation: "Key caches only on base-branch content (hashFiles of the base checkout), and do not cache in a job that checked out untrusted code.",
+	check: func(c *Context) []*Finding {
+		var out []*Finding
+		for _, f := range c.Workflows() {
+			trig, ok := privileged(f)
+			if !ok {
+				continue
+			}
+			for _, j := range f.Jobs {
+				untrusted := false
+				for _, s := range j.Steps {
+					if _, u := untrustedCheckout(s); u {
+						untrusted = true
+					}
+					if s.Uses == nil {
+						continue
+					}
+					u := ParseUses(s.Uses.Text)
+					isCache := u.Slug() == "actions/cache"
+					if key, ok := cacheSetupActions[u.Slug()]; ok && key != "" {
+						if v, ok := s.WithValue(key); ok && !strings.EqualFold(strings.TrimSpace(v.Text), "false") && strings.TrimSpace(v.Text) != "" {
+							isCache = true
+						}
+					}
+					if !isCache {
+						continue
+					}
+					key, _ := s.WithValue("key")
+					restore, _ := s.WithValue("restore-keys")
+					keyed := false
+					for _, e := range Expressions(key.Text + restore.Text) {
+						for _, ref := range ContextRefs(e.Body) {
+							if src, ok := ClassifyContext(ref); ok && src.Actor == "anyone" {
+								keyed = true
+							}
+							if strings.Contains(ref, "pull_request.head") || strings.Contains(ref, "workflow_run.head") || ref == "github.head_ref" {
+								keyed = true
+							}
+						}
+					}
+					if !keyed && !untrusted {
+						continue
+					}
+					why := "its key is derived from the pull request"
+					if !keyed {
+						why = "it runs after the pull request's code was checked out"
+					}
+					out = append(out, &Finding{
+						Subject:  subject(f, j.ID, stepKey(s), "privileged-cache"),
+						Location: at(f, s.Pos, j, s),
+						Message:  fmt.Sprintf("Step %q caches in a %s job and %s.", stepKey(s), trig, why),
+					})
 				}
 			}
 		}
