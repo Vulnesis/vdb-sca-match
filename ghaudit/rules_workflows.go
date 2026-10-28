@@ -774,11 +774,15 @@ var ruleExcessivePermissions = register(&Rule{
 					Location: Location{Path: f.Path, StartLine: p.Pos.Line, EndLine: p.Pos.Line, Snippet: strings.TrimSpace(f.Line(p.Pos.Line))},
 					Evidence: map[string]any{"write": writes, "level": map[bool]string{true: "workflow", false: "job"}[j == nil]},
 				}
+				grant := strings.Join(writes, ": write, ") + ": write"
+				if p.All == "write-all" {
+					grant = "write-all"
+				}
 				if j == nil {
-					fd.Message = fmt.Sprintf("The workflow grants %s to all %d jobs.", strings.Join(writes, ", "), len(f.Jobs))
+					fd.Message = fmt.Sprintf("The workflow grants %s to all %d jobs.", grant, len(f.Jobs))
 				} else {
 					fd.Location.Job = j.ID
-					fd.Message = fmt.Sprintf("Job %q grants %s.", j.ID, strings.Join(writes, ", "))
+					fd.Message = fmt.Sprintf("Job %q grants %s.", j.ID, grant)
 				}
 				if p.All == "write-all" {
 					fd.Severity = High
