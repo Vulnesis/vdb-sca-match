@@ -191,3 +191,20 @@ func TestParseCodeOwners(t *testing.T) {
 		t.Fatal("/.github/ with owners covers workflows")
 	}
 }
+
+// Files the caller already holds are not re-read, but their references are
+// resolved: a local checkout gets the same impostor and archive checks.
+func TestCollectResolvesCallerFiles(t *testing.T) {
+	g := baseRepo()
+	local := map[string][]byte{".github/workflows/l.yml": []byte("on: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: tagged/act@v2\n")}
+	col, err := Collect(context.Background(), g, CollectOptions{Repo: "acme/app", Files: local})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(col.Files) != 0 {
+		t.Fatalf("caller files must not be re-read: %v", col.Files)
+	}
+	if a := col.Facts.Actions["tagged/act@v2"]; a == nil || !a.RepoArchived {
+		t.Fatalf("caller file references must be resolved: %+v", col.Facts.Actions)
+	}
+}

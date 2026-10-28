@@ -28,6 +28,10 @@ type CollectOptions struct {
 	// Files are already in hand (a webhook payload's head, a local checkout):
 	// skip reading repository files.
 	SkipFiles bool
+	// Files, when set, are the caller's files: they are not read from the
+	// repository, but their uses: references are still resolved. Implies
+	// SkipFiles.
+	Files map[string][]byte
 	// MaxFiles caps workflow/action files read (default 60).
 	MaxFiles int
 	// MaxActionRefs caps distinct uses: references resolved (default 40;
@@ -90,6 +94,9 @@ func Collect(ctx context.Context, g Getter, opt CollectOptions) (*Collected, err
 	}
 	if opt.Now.IsZero() {
 		opt.Now = time.Now()
+	}
+	if opt.Files != nil {
+		opt.SkipFiles = true
 	}
 	c := &collector{ctx: ctx, g: g, opt: opt, out: &Collected{Files: map[string][]byte{}}, facts: &Facts{Collected: map[string]bool{}}}
 	c.out.Facts = c.facts
@@ -753,7 +760,11 @@ func (c *collector) actionRefs() {
 	}
 	seen := map[string]site{}
 	var order []string
-	for p, raw := range c.out.Files {
+	files := c.out.Files
+	if c.opt.Files != nil {
+		files = c.opt.Files
+	}
+	for p, raw := range files {
 		f, err := Parse(p, raw)
 		if err != nil {
 			continue
