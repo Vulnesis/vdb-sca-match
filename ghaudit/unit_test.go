@@ -131,8 +131,9 @@ func TestTaskFilter(t *testing.T) {
 }
 
 // TestSARIFIsValidAndClassified renders a real fixture, validates it with
-// the shared validator, and checks the decomposer files it as COMPLIANCE —
-// the category the platform's snapshot ingest and the website route on.
+// the shared validator, and checks the decomposer files it as IAC — the
+// category the Software Factory's event findings use, so a CLI snapshot and
+// an event finding land in the same lens.
 func TestSARIFIsValidAndClassified(t *testing.T) {
 	in := loadCase(t, "testdata/cases/workflow-misc")
 	rep := Evaluate(in)
@@ -146,8 +147,8 @@ func TestSARIFIsValidAndClassified(t *testing.T) {
 		t.Fatalf("SARIF invalid: %s", vr.String())
 	}
 	findings, sum := sarif.Decompose(parsed, sarif.DecomposeOptions{})
-	if sum.Category != sarif.CategoryCompliance {
-		t.Fatalf("category = %q (%s), want COMPLIANCE", sum.Category, sum.CategoryWhy)
+	if sum.Category != sarif.CategoryIAC {
+		t.Fatalf("category = %q (%s), want IAC", sum.Category, sum.CategoryWhy)
 	}
 	if len(findings) != len(rep.Findings) {
 		t.Fatalf("decomposed %d findings, report has %d", len(findings), len(rep.Findings))

@@ -175,6 +175,9 @@ var driverCategories = map[string]Category{
 	"pulumi": CategoryIAC, "crossguard": CategoryIAC, "pulumipolicy": CategoryIAC,
 	"pike": CategoryIAC, "regula": CategoryIAC, "fugueregula": CategoryIAC,
 	"kubescape": CategoryIAC, "tflint": CategoryIAC, "terraformdocs": CategoryIAC,
+	// ghaudit's own driver: GitHub workflow, action and settings posture,
+	// filed with the other misconfigurations.
+	"vulnetixgithub": CategoryIAC,
 
 	// ── Secrets ─────────────────────────────────────────────────────────────
 	"gitleaks": CategorySecrets, "trufflehog": CategorySecrets,
@@ -256,8 +259,6 @@ var driverCategories = map[string]Category{
 	"conftest": CategoryCompliance, "gatekeeper": CategoryCompliance,
 	"kyverno": CategoryCompliance, "mitresaf": CategoryCompliance,
 	"inspec": CategoryCompliance, "openscap": CategoryCompliance,
-	// ghaudit's own driver: GitHub workflow, action and settings posture.
-	"vulnetixgithub": CategoryCompliance,
 
 	// ── Mobile (MAST) ───────────────────────────────────────────────────────
 	"mobsf": CategoryMobile, "mobsfscan": CategoryMobile,

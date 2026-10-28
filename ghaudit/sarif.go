@@ -8,7 +8,8 @@ import (
 )
 
 // ToolName is the SARIF driver name, and the ScannerRun.toolName the
-// platform files these results under.
+// platform files these results under (category IAC, with the other
+// misconfigurations).
 const ToolName = "Vulnetix GitHub"
 
 // securitySeverity is GitHub code scanning's numeric scale, which the SARIF
@@ -66,7 +67,7 @@ func (rep *Report) SARIF(opt SARIFOptions) *sarif.Log {
 			"security-severity": securitySeverity(r.Severity),
 			"precision":         precision(r.Confidence),
 			"tags":              append(append([]string{}, r.Tags...), cwes...),
-			"vulnetix/kind":     "compliance",
+			"vulnetix/kind":     "iac",
 			"vulnetix/task":     string(r.Task),
 		}
 		if len(cwes) > 0 {
@@ -108,7 +109,7 @@ func (rep *Report) SARIF(opt SARIFOptions) *sarif.Log {
 			Properties: sarif.PropertyBag{
 				"severity":            string(f.Severity),
 				"security-severity":   securitySeverity(f.Severity),
-				"vulnetix/kind":       "compliance",
+				"vulnetix/kind":       "iac",
 				"vulnetix/subject":    f.Subject,
 				"vulnetix/confidence": string(f.Confidence),
 			},
