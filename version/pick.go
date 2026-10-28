@@ -37,6 +37,11 @@ type Picks struct {
 	Safest string
 	// Stable is the stable release closest to the running version.
 	Stable string
+	// Parity is the available release nearest to the running version by the
+	// scheme's full order: the lowest at or above it, else the highest below.
+	// It keeps behaviour as close to what runs today as the candidates allow,
+	// so exposed releases are eligible; it is not a safety pick.
+	Parity string
 	// Rolling is every distinct non-malware version published on the release
 	// date of the highest version (the most recent date when the package cannot
 	// be ordered), pre-releases and exposed releases included, highest first. It
@@ -76,6 +81,14 @@ func Pick(ecosystem, running string, candidates []Candidate) Picks {
 	out.Rolling, out.RollingDate = pickRolling(scheme, all)
 	if out.RollingDate == "" {
 		out.Reasons["rolling"] = "no-dates"
+	}
+	switch {
+	case running == "":
+		out.Reasons["parity"] = "no-running-version"
+	case len(all) == 0:
+		out.Reasons["parity"] = "no-candidates"
+	default:
+		out.Parity = pickParity(scheme, running, all)
 	}
 	entries := cleanEntries(all)
 	if len(entries) == 0 {
@@ -358,6 +371,66 @@ func pickClosest(scheme, running string, versions []string) string {
 		return highestOf(scheme, versions)
 	}
 	return best
+}
+
+// PickParity returns the candidate nearest to running (see Picks.Parity), ""
+// when there is no running version or no candidate.
+func PickParity(ecosystem, running string, candidates []Candidate) string {
+	if running == "" {
+		return ""
+	}
+	scheme := SchemeFor(ecosystem)
+	all := analyse(scheme, candidates)
+	if len(all) == 0 {
+		return ""
+	}
+	return pickParity(scheme, running, all)
+}
+
+// pickParity compares by the scheme's full order, revision included, because
+// a distribution's revisions are the point (1.36.1-r15 to 1.36.1-r29 is the
+// same upstream release rebuilt). Versions the scheme cannot order fall back to
+// the numeric-core nearest of pickClosest.
+func pickParity(scheme, running string, all []entry) string {
+	var above, below string
+	ordered := false
+	for _, e := range all {
+		c, ok := CompareScheme(scheme, e.Version, running)
+		if !ok {
+			continue
+		}
+		ordered = true
+		switch {
+		case c == 0:
+			return e.Version
+		case c > 0:
+			if above == "" || lower(scheme, e.Version, above) {
+				above = e.Version
+			}
+		default:
+			if below == "" || higher(scheme, e.Version, below) {
+				below = e.Version
+			}
+		}
+	}
+	if !ordered {
+		versions := make([]string, 0, len(all))
+		for _, e := range all {
+			versions = append(versions, e.Version)
+		}
+		return pickClosest(scheme, running, versions)
+	}
+	if above != "" {
+		return above
+	}
+	return below
+}
+
+func lower(scheme, a, b string) bool {
+	if c, ok := CompareScheme(scheme, a, b); ok && c != 0 {
+		return c < 0
+	}
+	return a < b
 }
 
 func lessKey(a, b [3]int) bool {

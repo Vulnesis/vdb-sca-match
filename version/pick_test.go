@@ -329,3 +329,50 @@ func TestRollingSkipsAnUndatedHighestVersion(t *testing.T) {
 		t.Fatalf("rolling = %v on %q, want [1.1.0] on 2026-02-01", got, day)
 	}
 }
+
+// Parity keeps a migrated package as close as possible to what runs today, by
+// the distribution's own order, revision included.
+func TestParity(t *testing.T) {
+	cases := []struct {
+		name, eco, running string
+		have               []string
+		want               string
+	}{
+		{"apk: the next rebuild of the same release", "alpine", "1.36.1-r15", []string{"1.36.1-r29", "1.36.1-r31", "1.37.0-r0"}, "1.36.1-r29"},
+		{"apk: an exact match wins", "alpine", "8.9.1-r1", []string{"8.9.1-r1", "8.11.0-r2"}, "8.9.1-r1"},
+		{"apk: nothing above, take the nearest below", "alpine", "3.12.8-r0", []string{"3.11.9-r0", "3.12.7-r0"}, "3.12.7-r0"},
+		{"deb: epoch and revision ordered", "debian", "1:2.39.2-1", []string{"1:2.39.2-1+deb12u1", "1:2.39.5-0+deb12u1", "2.45.0-1"}, "1:2.39.2-1+deb12u1"},
+		{"rpm: release compared", "redhat", "3.0.7-25.el9", []string{"3.0.7-27.el9", "3.0.7-28.el9", "3.2.2-6.el9"}, "3.0.7-27.el9"},
+		{"arch: pkgrel compared", "arch", "8.9.1-1", []string{"8.9.1-2", "8.10.0-1"}, "8.9.1-2"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var cs []Candidate
+			for _, v := range c.have {
+				cs = append(cs, Candidate{Version: v})
+			}
+			if got := PickParity(c.eco, c.running, cs); got != c.want {
+				t.Fatalf("PickParity(%s, %s) = %q, want %q", c.eco, c.running, got, c.want)
+			}
+			if got := Pick(c.eco, c.running, cs).Parity; got != c.want {
+				t.Fatalf("Pick(...).Parity = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestParityTakesExposedReleases(t *testing.T) {
+	cs := []Candidate{{Version: "1.36.1-r29", Exposed: true}, {Version: "1.36.1-r31"}}
+	if got := PickParity("alpine", "1.36.1-r15", cs); got != "1.36.1-r29" {
+		t.Fatalf("parity is not a safety pick; got %q", got)
+	}
+}
+
+func TestParityReasons(t *testing.T) {
+	if p := Pick("alpine", "", []Candidate{{Version: "1.0-r0"}}); p.Parity != "" || p.Reasons["parity"] != "no-running-version" {
+		t.Fatalf("no running version: %+v", p)
+	}
+	if p := Pick("alpine", "1.0-r0", nil); p.Parity != "" || p.Reasons["parity"] != "no-candidates" {
+		t.Fatalf("no candidates: %+v", p)
+	}
+}
