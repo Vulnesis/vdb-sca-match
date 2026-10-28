@@ -46,3 +46,12 @@ func TestUpstreamVersion(t *testing.T) {
 		}
 	}
 }
+
+func TestDistroSource(t *testing.T) {
+	if got := DistroSource("pkg:deb/debian/libc6@2.41-12?arch=amd64&distro=debian-13&upstream=glibc"); got != "glibc" {
+		t.Fatalf("got %q", got)
+	}
+	if DistroSource("pkg:deb/debian/tar@1.35") != "" {
+		t.Fatal("no qualifier, no source")
+	}
+}

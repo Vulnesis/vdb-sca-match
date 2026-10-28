@@ -113,17 +113,44 @@ func UpstreamVersion(distro, v string) string {
 // upstream version, so thin distribution data never hides a flaw.
 //
 // distro is DistroEcosystem's answer; empty falls back to MatchDependency.
-func MatchOSPackage(ctx context.Context, q Querier, dep Dependency, distro string) ([]Match, error) {
+// source is the source package (DistroSource): libc6 is built from glibc,
+// distribution advisories often name the source, and upstream advisories
+// always name the project, so the upstream pass uses it when known.
+func MatchOSPackage(ctx context.Context, q Querier, dep Dependency, distro, source string) ([]Match, error) {
 	if distro == "" {
 		return MatchDependency(ctx, q, dep)
 	}
-	distroDep := dep
-	distroDep.Ecosystem = distro
-	reported, err := MatchDependency(ctx, q, distroDep)
-	if err != nil {
-		return nil, err
+	names := []string{dep.Name}
+	if source != "" && !strings.EqualFold(source, dep.Name) {
+		names = append(names, source)
 	}
+
+	have := map[string]bool{}
+	var out []Match
+	for _, name := range names {
+		distroDep := dep
+		distroDep.Name = name
+		distroDep.Ecosystem = distro
+		reported, err := MatchDependency(ctx, q, distroDep)
+		if err != nil {
+			return nil, err
+		}
+		for _, m := range reported {
+			// A distribution row that says only "every version" carries no
+			// version information; it neither reports this build affected nor
+			// speaks for it (cve.org files such rows under distribution names).
+			if strings.Contains(m.Method, "wildcard") {
+				continue
+			}
+			if !have[m.CveID] {
+				have[m.CveID] = true
+				out = append(out, m)
+			}
+		}
+	}
+
 	upDep := dep
+	upDep.Name = names[len(names)-1]
 	upDep.Ecosystem = ""
 	upDep.NativeOnly = true
 	upDep.Version = UpstreamVersion(distro, dep.Version)
@@ -131,24 +158,19 @@ func MatchOSPackage(ctx context.Context, q Querier, dep Dependency, distro strin
 	if err != nil {
 		return nil, err
 	}
-
-	have := make(map[string]bool, len(reported))
-	for _, m := range reported {
-		have[m.CveID] = true
-	}
 	var candidates []string
 	for _, m := range upstream {
 		if !have[m.CveID] {
 			candidates = append(candidates, m.CveID)
 		}
 	}
-	mentioned, err := distroMentions(ctx, q, dep.Name, distro, candidates)
+	mentioned, err := distroMentions(ctx, q, names, distro, candidates)
 	if err != nil {
 		return nil, fmt.Errorf("distribution advisories for %s: %w", dep.Key, err)
 	}
-	out := reported
 	for _, m := range upstream {
 		if !have[m.CveID] && !mentioned[m.CveID] {
+			have[m.CveID] = true
 			m.Method = appendMethod(m.Method, "upstream:distro-silent")
 			out = append(out, m)
 		}
@@ -157,9 +179,39 @@ func MatchOSPackage(ctx context.Context, q Querier, dep Dependency, distro strin
 	return out, nil
 }
 
+// DistroSource is the source package a distribution purl names in its
+// upstream qualifier (pkg:deb/debian/libc6@...?upstream=glibc), or "".
+func DistroSource(purl string) string {
+	_, query, ok := strings.Cut(purl, "?")
+	if !ok {
+		return ""
+	}
+	q, err := url.ParseQuery(query)
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(q.Get("upstream"))
+}
+
 // distroMentions returns which of the CVEs the distribution has any advisory
-// row for, for this package name.
-func distroMentions(ctx context.Context, q Querier, name, distro string, cves []string) (map[string]bool, error) {
+// row for, under any of the package's names.
+func distroMentions(ctx context.Context, q Querier, names []string, distro string, cves []string) (map[string]bool, error) {
+	out := map[string]bool{}
+	for _, name := range names {
+		got, err := distroMentionsFor(ctx, q, name, distro, cves)
+		if err != nil {
+			return nil, err
+		}
+		for id := range got {
+			out[id] = true
+		}
+	}
+
+	return out, nil
+}
+
+func distroMentionsFor(ctx context.Context, q Querier, name, distro string, cves []string) (map[string]bool, error) {
 	out := map[string]bool{}
 	if len(cves) == 0 || name == "" {
 		return out, nil
@@ -169,7 +221,10 @@ func distroMentions(ctx context.Context, q Querier, name, distro string, cves []
 	args = append(args, cves)
 	rows, err := q.Query(ctx, fmt.Sprintf(`
 		SELECT DISTINCT a."cveId" FROM "CVEAffected" a
-		WHERE %s AND (%s) AND a."cveId" = ANY($%d::text[])`,
+		WHERE %s AND (%s) AND a."cveId" = ANY($%d::text[])
+		  AND EXISTS (SELECT 1 FROM "CVEAffectedVersion" v WHERE v."affectedId" = a.uuid
+		      AND (COALESCE(v."lessThan", '') <> '' OR COALESCE(v."lessThanOrEqual", '') <> ''
+		           OR COALESCE(v.version, '') NOT IN ('', '*', '0', 'n/a')))`,
 		nameMatchExpr("a", false), outer, len(args)), args...)
 	if err != nil {
 		return nil, err
