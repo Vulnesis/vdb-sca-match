@@ -71,9 +71,12 @@ every ecosystem the platform knows (`version.SchemeFor`):
   (reason `semver-fallback-day`). Both keep exposed releases, as `rolling` does.
 - `EncodeRolling` / `DecodeRolling`: the comma-delimited form of a rolling set.
 
-Sixty-seven schemes are catalogued in `version/schemes.json` (embedded, `version.Catalogue`; Ivy and Coursier are folded into Gradle and Maven)
-with their sources, stable-release rules and known gaps; `docs/version-schemes.md` is generated
-from it (`go run ./version/cmd/gen-schemes-doc > docs/version-schemes.md`, checked by a test).
+Sixty-seven schemes are catalogued in `version/schemes.json` (embedded, `version.Catalogue`),
+with their sources, stable-release rules and known gaps. Ivy and Coursier keep their own
+catalogue entries; the ecosystem dispatch table (`version/ecosystems.go`, consulted by
+`version.SchemeFor`) maps the Ivy and Coursier ecosystems to Gradle and Maven for package
+lookups. `docs/version-schemes.md` is generated from the catalogue
+(`go run ./version/cmd/gen-schemes-doc > docs/version-schemes.md`, checked by a test).
 Each scheme is held to golden vectors produced by its reference implementation wherever one
 could be run (`version/testdata/scheme_vectors.json`, `pick_vectors.json`); the few vectors an
 engine deliberately answers differently are listed with a reason in
@@ -87,6 +90,6 @@ run, and repository/organisation settings, and reports misconfigurations as find
 stable fingerprints, CWE/CWSS metadata and, where safe, line edits that fix them. It is pure:
 callers supply files and optional `Facts` (collected from the REST API or the GitHub App
 mirror) and render the `Report` as SARIF (`Report.SARIF`, driver `Vulnetix GitHub`, category
-`IAC`) or as Finding rows. The CLI (`vulnetix gha workflows|actions|settings|org|audit`)
+`IAC`) or as Finding rows. The CLI (`vulnetix gha workflows|actions|settings|org`)
 and the Software Factory webhook path run the same engine, so the same input produces the same
 finding in both. Rule catalogue: [docs/ghaudit-rules.md](./docs/ghaudit-rules.md).
