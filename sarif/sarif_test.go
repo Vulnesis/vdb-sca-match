@@ -248,6 +248,83 @@ func TestSeverityMapping(t *testing.T) {
 	}
 }
 
+// The exact constant values are a contract with vdb-api's severityCounter,
+// which buckets on these strings without further translation.
+func TestSeverityConstants(t *testing.T) {
+	if SeverityCritical != "critical" {
+		t.Errorf("SeverityCritical = %q, want %q", SeverityCritical, "critical")
+	}
+	if SeverityHigh != "high" {
+		t.Errorf("SeverityHigh = %q, want %q", SeverityHigh, "high")
+	}
+	if SeverityMedium != "medium" {
+		t.Errorf("SeverityMedium = %q, want %q", SeverityMedium, "medium")
+	}
+	if SeverityLow != "low" {
+		t.Errorf("SeverityLow = %q, want %q", SeverityLow, "low")
+	}
+	if SeverityInformational != "informational" {
+		t.Errorf("SeverityInformational = %q, want %q", SeverityInformational, "informational")
+	}
+}
+
+// NormalizeSeverity folds many tool spellings into the shared vocabulary.
+// Unknown inputs must return "" so callers can fall through to the next
+// severity source.
+func TestNormalizeSeverity(t *testing.T) {
+	cases := []struct {
+		input string
+		want  string
+	}{
+		// Critical spellings.
+		{"critical", SeverityCritical},
+		{"crit", SeverityCritical},
+		{"CRITICAL", SeverityCritical},
+		{"  critical  ", SeverityCritical},
+
+		// High spellings.
+		{"high", SeverityHigh},
+		{"important", SeverityHigh},
+		{"HIGH", SeverityHigh},
+		{"  high  ", SeverityHigh},
+
+		// Medium spellings.
+		{"medium", SeverityMedium},
+		{"moderate", SeverityMedium},
+		{"warning", SeverityMedium},
+		{"MEDIUM", SeverityMedium},
+		{"  medium  ", SeverityMedium},
+
+		// Low spellings.
+		{"low", SeverityLow},
+		{"minor", SeverityLow},
+		{"LOW", SeverityLow},
+		{"  low  ", SeverityLow},
+
+		// Informational spellings.
+		{"informational", SeverityInformational},
+		{"info", SeverityInformational},
+		{"informative", SeverityInformational},
+		{"none", SeverityInformational},
+		{"unknown", SeverityInformational},
+		{"negligible", SeverityInformational},
+		{"INFO", SeverityInformational},
+		{"  info  ", SeverityInformational},
+
+		// Unknown inputs.
+		{"", ""},
+		{"   ", ""},
+		{"banana", ""},
+		{"HIGHH", ""},
+		{"medium-ish", ""},
+	}
+	for _, tc := range cases {
+		if got := NormalizeSeverity(tc.input); got != tc.want {
+			t.Errorf("NormalizeSeverity(%q) = %q, want %q", tc.input, got, tc.want)
+		}
+	}
+}
+
 // An absent ruleIndex must not resolve to rule 0. This is why Result.RuleIndex
 // is a pointer.
 func TestRuleIndexAbsentIsNotZero(t *testing.T) {
