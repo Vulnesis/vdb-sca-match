@@ -27,15 +27,29 @@ func main() {
 	render(&buf)
 
 	if *check != "" {
-		have, err := os.ReadFile(*check)
-		if err != nil || !bytes.Equal(have, buf.Bytes()) {
-			fmt.Fprintf(os.Stderr, "%s is out of date: run go run ./version/cmd/gen-schemes-doc > %s\n", *check, *check)
+		if err := checkDoc(*check, buf.Bytes()); err != nil {
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 
 		return
 	}
 	_, _ = os.Stdout.Write(buf.Bytes())
+}
+
+// checkDoc compares path with the rendered bytes and returns an error when the
+// file cannot be read or differs, with the stderr wording that the command's
+// usage documents.
+func checkDoc(path string, want []byte) error {
+	have, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("%s is out of date: run go run ./version/cmd/gen-schemes-doc > %s", path, path)
+	}
+	if !bytes.Equal(have, want) {
+		return fmt.Errorf("%s is out of date: run go run ./version/cmd/gen-schemes-doc > %s", path, path)
+	}
+
+	return nil
 }
 
 var familyTitle = map[string]string{
