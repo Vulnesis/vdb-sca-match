@@ -491,18 +491,24 @@ func (c *collector) keysHooksCollaborators(rp string) {
 	var keys []struct {
 		ID        int64   `json:"id"`
 		Title     string  `json:"title"`
+		Key       string  `json:"key"`
 		ReadOnly  bool    `json:"read_only"`
+		Verified  bool    `json:"verified"`
+		AddedBy   string  `json:"added_by"`
 		CreatedAt string  `json:"created_at"`
 		LastUsed  *string `json:"last_used"`
 	}
 	if st, _ := c.get(rp+"/keys?per_page=100", &keys); st == 200 {
 		c.facts.DeployKeys = []DeployKeyFacts{}
 		for _, k := range keys {
-			idle := -1
+			dk := DeployKeyFacts{ID: k.ID, Title: k.Title, ReadOnly: k.ReadOnly, AgeDays: c.daysSince(k.CreatedAt), IdleDays: -1,
+				AddedBy: k.AddedBy, Verified: k.Verified, PublicKey: k.Key}
+			dk.CreatedAt, _ = time.Parse(time.RFC3339, k.CreatedAt)
 			if k.LastUsed != nil && *k.LastUsed != "" {
-				idle = c.daysSince(*k.LastUsed)
+				dk.IdleDays = c.daysSince(*k.LastUsed)
+				dk.LastUsedAt, _ = time.Parse(time.RFC3339, *k.LastUsed)
 			}
-			c.facts.DeployKeys = append(c.facts.DeployKeys, DeployKeyFacts{ID: k.ID, Title: k.Title, ReadOnly: k.ReadOnly, AgeDays: c.daysSince(k.CreatedAt), IdleDays: idle})
+			c.facts.DeployKeys = append(c.facts.DeployKeys, dk)
 		}
 		c.mark(FactDeployKeys)
 	}

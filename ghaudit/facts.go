@@ -1,5 +1,7 @@
 package ghaudit
 
+import "time"
+
 // Facts is everything the engine can know about a repository and its
 // organisation beyond the files themselves. Every field is optional: nil
 // means "not collected", which is different from false/empty. Rules that
@@ -190,6 +192,13 @@ type DeployKeyFacts struct {
 	AgeDays  int    `json:"ageDays,omitempty"`
 	// IdleDays is days since last use; -1 when GitHub has no record of use.
 	IdleDays int `json:"idleDays"`
+	// Identity fields for callers that mirror keys. PublicKey is the key
+	// itself (public material, not a secret); it is not cached with facts.
+	AddedBy    string    `json:"addedBy,omitempty"`
+	Verified   bool      `json:"verified,omitempty"`
+	CreatedAt  time.Time `json:"createdAt,omitempty"`
+	LastUsedAt time.Time `json:"lastUsedAt,omitempty"`
+	PublicKey  string    `json:"-"`
 }
 
 // WebhookFacts is one repository or organisation webhook.
