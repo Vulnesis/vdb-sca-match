@@ -209,3 +209,17 @@ func TestCatalogueDoc(t *testing.T) {
 		t.Fatalf("%s is stale; run go test ./ghaudit -run TestCatalogueDoc -update", p)
 	}
 }
+
+func TestFindingCWSSTracksAdjustedSeverity(t *testing.T) {
+	r := RuleByID("VNX-GH-003")
+	same := &Finding{Severity: r.Severity}
+	lower := &Finding{Severity: Low}
+	v1, s1 := same.CWSS(r)
+	v2, s2 := lower.CWSS(r)
+	if !strings.HasPrefix(v1, "CWSS:1.0") || !strings.HasPrefix(v2, "CWSS:1.0") {
+		t.Fatalf("vectors: %q %q", v1, v2)
+	}
+	if s2 >= s1 {
+		t.Fatalf("a finding defused to low (%.2f) should score below the rule's own vector (%.2f)", s2, s1)
+	}
+}

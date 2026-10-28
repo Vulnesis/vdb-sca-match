@@ -116,6 +116,10 @@ func (rep *Report) SARIF(opt SARIFOptions) *sarif.Log {
 		}
 		if len(f.Adjustments) > 0 {
 			res.Properties["vulnetix/adjustments"] = f.Adjustments
+			// Facts moved the severity, so the rule's vector no longer
+			// describes this result; carry the adjusted one.
+			vec, _ := f.CWSS(rep.rule(f.RuleID))
+			res.Properties["cwss"] = vec
 		}
 		if len(f.Evidence) > 0 {
 			res.Properties["vulnetix/evidence"] = f.Evidence
@@ -195,4 +199,13 @@ func uniq(in []string) []string {
 		}
 	}
 	return out
+}
+
+func (rep *Report) rule(id string) *Rule {
+	for _, r := range rep.Rules {
+		if r.ID == id {
+			return r
+		}
+	}
+	return nil
 }
