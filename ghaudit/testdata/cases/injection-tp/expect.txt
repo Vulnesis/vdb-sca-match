@@ -1,0 +1,6 @@
+VNX-GH-001 critical .github/workflows/triage.yml:22 .github/workflows/triage.yml#label/greet/run/github.event.pull_request.title
+VNX-GH-001 critical .github/workflows/triage.yml:31 .github/workflows/triage.yml#label/echo-body-through-env/run/env.body
+VNX-GH-001 critical .github/workflows/triage.yml:36 .github/workflows/triage.yml#label/script/with.script/github.event.comment.body
+VNX-GH-001 critical .github/workflows/triage.yml:43 .github/workflows/triage.yml#use/use-branch/run/needs.label.outputs.branch
+VNX-GH-008 high .github/workflows/triage.yml:8 .github/workflows/triage.yml#workflow/permissions
+VNX-GH-018 high .github/workflows/triage.yml:16 .github/workflows/triage.yml#label/comment-gate

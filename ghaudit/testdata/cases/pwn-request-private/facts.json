@@ -1,0 +1,4 @@
+{
+  "collected": {"repo": true},
+  "repo": {"fullName": "acme/app", "visibility": "private", "defaultBranch": "main", "allowForking": false}
+}

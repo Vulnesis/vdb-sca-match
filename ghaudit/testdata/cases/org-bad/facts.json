@@ -1,0 +1,10 @@
+{
+  "collected": {"org": true, "runner_groups": true},
+  "org": {"login": "acme", "twoFactorRequired": false, "defaultRepositoryPermission": "write",
+          "membersCanCreatePublicRepos": true, "allowedActions": "all", "defaultWorkflowPermissions": "write",
+          "canApprovePullRequestReviews": true,
+          "secrets": [{"name": "NPM_TOKEN", "visibility": "all"}, {"name": "OK", "visibility": "selected"}],
+          "webhooks": [{"id": 1, "url": "ci.example.com", "active": true, "hasSecret": false}]},
+  "runnerGroups": [{"name": "Default", "visibility": "all", "allowsPublicRepositories": true, "selfHostedRunners": 3},
+                   {"name": "isolated", "visibility": "selected", "allowsPublicRepositories": false, "selfHostedRunners": 2}]
+}

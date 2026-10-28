@@ -1,0 +1,14 @@
+{
+  "collected": {"repo": true, "actions_policy": true, "action_refs": true},
+  "repo": {"fullName": "acme/app", "visibility": "public", "defaultBranch": "main",
+           "defaultWorkflowPermissions": "read", "allowedActions": "selected",
+           "githubOwnedAllowed": true, "allowedActionPatterns": ["good/*", "fork/*", "gone/*", "old/*", "vuln/*"]},
+  "actions": {
+    "actions/checkout@v3": {"uses": "actions/checkout@v3", "sha": "f43a0e5ff2bd294095638e18286ca9a3d1956744", "refType": "tag"},
+    "good/action@1111111111111111111111111111111111111111": {"commentRef": "v2.0.0", "commentSha": "4444444444444444444444444444444444444444", "reachableFromRepo": true},
+    "fork/impostor@2222222222222222222222222222222222222222": {"reachableFromRepo": false},
+    "gone/owner@v1": {"ownerMissing": true},
+    "old/archived@3333333333333333333333333333333333333333": {"repoArchived": true, "reachableFromRepo": true},
+    "vuln/action@v1.2.0": {"sha": "5555555555555555555555555555555555555555", "refType": "tag", "advisories": [{"id": "GHSA-xxxx-yyyy-zzzz", "summary": "command injection via input", "severity": "critical", "fixedIn": "v1.2.1"}]}
+  }
+}

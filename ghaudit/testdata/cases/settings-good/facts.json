@@ -1,0 +1,18 @@
+{
+  "collected": {"repo": true, "actions_policy": true, "branches": true, "environments": true, "codeowners": true,
+                "deploy_keys": true, "webhooks": true, "collaborators": true, "security_and_analysis": true},
+  "repo": {"fullName": "acme/app", "visibility": "public", "defaultBranch": "main",
+           "defaultWorkflowPermissions": "read", "canApprovePullRequestReviews": false,
+           "allowedActions": "selected", "shaPinningRequired": true, "githubOwnedAllowed": true,
+           "forkPrApproval": "all_external_contributors",
+           "secretScanning": true, "pushProtection": true, "dependabotSecurityUpdates": true},
+  "branches": {"main": {"name": "main", "protected": true, "requiredApprovals": 2, "dismissStaleReviews": true,
+                        "requireCodeOwnerReviews": true, "enforceAdmins": true, "requiredStatusChecks": ["test"],
+                        "requireSignedCommits": true}},
+  "environments": {"production": {"name": "production", "requiredReviewers": 1, "secretNames": ["AWS_ROLE"]}},
+  "hasCodeOwners": true,
+  "codeOwners": [{"pattern": "/.github/", "owners": ["@acme/ci"], "line": 1}],
+  "deployKeys": [{"id": 8, "title": "mirror", "readOnly": true}],
+  "webhooks": [{"id": 3, "url": "hooks.example.com", "active": true, "hasSecret": true}],
+  "collaborators": [{"login": "pal", "permission": "write", "outside": true}]
+}

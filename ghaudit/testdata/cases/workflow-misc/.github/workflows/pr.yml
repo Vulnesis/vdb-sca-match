@@ -1,0 +1,23 @@
+name: pr
+on:
+  pull_request:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+
+jobs:
+  test:
+    runs-on: [self-hosted, linux]
+    if: |
+      ${{ github.actor == 'dependabot[bot]' }}
+    steps:
+      - uses: actoins/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - env:
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          echo "REF=$BRANCH" >> $GITHUB_ENV
+          git checkout $BRANCH

@@ -1,0 +1,2 @@
+VNX-GH-003 critical .github/workflows/preview.yml:12 .github/workflows/preview.yml#build/actions/checkout/untrusted-checkout
+VNX-GH-003 medium .github/workflows/preview.yml:24 .github/workflows/preview.yml#look/actions/checkout/untrusted-checkout

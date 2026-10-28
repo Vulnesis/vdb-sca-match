@@ -1,0 +1,17 @@
+{
+  "collected": {"repo": true, "actions_policy": true, "branches": true, "environments": true, "codeowners": true,
+                "deploy_keys": true, "webhooks": true, "collaborators": true, "security_and_analysis": true},
+  "repo": {"fullName": "acme/app", "visibility": "public", "defaultBranch": "main",
+           "defaultWorkflowPermissions": "write", "canApprovePullRequestReviews": true,
+           "allowedActions": "all", "shaPinningRequired": false,
+           "forkPrApproval": "first_time_contributors_new_to_github",
+           "secretScanning": false, "pushProtection": false, "dependabotSecurityUpdates": false,
+           "secretNames": ["DEPLOY_KEY"]},
+  "branches": {"main": {"name": "main", "protected": true, "requiredApprovals": 1, "allowForcePushes": true,
+                        "enforceAdmins": false, "bypassActors": ["RepositoryRole:write"]}},
+  "environments": {"production": {"name": "production", "secretNames": ["AWS_ROLE"]}},
+  "hasCodeOwners": false,
+  "deployKeys": [{"id": 7, "title": "ci-host", "readOnly": false, "ageDays": 900}, {"id": 8, "title": "mirror", "readOnly": true}],
+  "webhooks": [{"id": 3, "url": "hooks.example.com", "active": true, "hasSecret": false, "insecureSsl": true}],
+  "collaborators": [{"login": "Contractor", "permission": "admin", "outside": true}, {"login": "pal", "permission": "write", "outside": true}]
+}

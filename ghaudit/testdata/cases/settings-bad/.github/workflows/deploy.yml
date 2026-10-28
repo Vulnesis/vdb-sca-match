@@ -1,0 +1,11 @@
+name: deploy
+on:
+  pull_request_target:
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: ./deploy.sh
+        env:
+          KEY: ${{ secrets.DEPLOY_KEY }}

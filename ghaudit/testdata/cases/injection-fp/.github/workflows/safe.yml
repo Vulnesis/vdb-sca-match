@@ -1,0 +1,37 @@
+name: safe
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+      - name: Title via env (the fix)
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: echo "$TITLE"
+      - name: Numeric and hex contexts
+        run: |
+          echo "PR ${{ github.event.pull_request.number }} at ${{ github.event.pull_request.head.sha }}"
+          echo "repo ${{ github.repository }} base ${{ github.base_ref }}"
+      - name: Issue title is never populated on push/pull_request
+        run: echo "${{ github.event.issue.title }}"
+      - name: Comparison is a boolean
+        run: echo "${{ contains(github.event.pull_request.title, 'wip') }}"
+      - name: Input to a non-script action
+        uses: actions/labeler@8558fd74291d67161a8a78ce36a881fa63b766a9 # v5.0.0
+        with:
+          configuration-path: ${{ github.event.pull_request.title }}
+      # echo "${{ github.event.pull_request.body }}" in a comment line
+      - name: Condition, not a sink
+        if: github.event.pull_request.title != ''
+        run: make test

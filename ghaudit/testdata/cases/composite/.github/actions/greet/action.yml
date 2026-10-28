@@ -1,0 +1,9 @@
+name: greet
+inputs:
+  who:
+    description: who to greet
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: echo "hello ${{ inputs.who }}"

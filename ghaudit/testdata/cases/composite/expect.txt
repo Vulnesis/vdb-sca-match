@@ -1,0 +1,2 @@
+VNX-GH-001 critical .github/workflows/hello.yml:13 .github/workflows/hello.yml#hi/./.github/actions/greet/composite/who
+VNX-GH-001 high .github/actions/greet/action.yml:9 .github/actions/greet/action.yml#composite/steps[0]/run/inputs.who

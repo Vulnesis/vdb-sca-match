@@ -1,0 +1,43 @@
+name: triage
+on:
+  pull_request_target:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  BODY: ${{ github.event.issue.body }}
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.meta.outputs.branch }}
+    steps:
+      - name: Greet
+        run: echo "Thanks for ${{ github.event.pull_request.title }}"
+      - id: meta
+        env:
+          HEAD: ${{ github.head_ref }}
+        run: |
+          echo "branch=$HEAD" >> "$GITHUB_OUTPUT"
+      - name: Echo body through env
+        run: |
+          echo "body was:"
+          echo "${{ env.BODY }}"
+      - name: Script
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const c = "${{ github.event.comment.body }}";
+            console.log(c);
+  use:
+    needs: label
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use branch
+        run: git log ${{ needs.label.outputs.branch }}

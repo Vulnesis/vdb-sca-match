@@ -73,3 +73,14 @@ could be run (`version/testdata/scheme_vectors.json`, `pick_vectors.json`); the 
 engine deliberately answers differently are listed with a reason in
 `version/testdata/known_divergences.json`. Add a failing vector first.
 <!-- ci-touch: 2026-08-24T20:54:39Z -->
+
+## GitHub posture analysis (`ghaudit/`)
+
+`ghaudit` evaluates GitHub Actions workflows, composite actions, the actions and images they
+run, and repository/organisation settings, and reports misconfigurations as findings with
+stable fingerprints, CWE/CWSS metadata and, where safe, line edits that fix them. It is pure:
+callers supply files and optional `Facts` (collected from the REST API or the GitHub App
+mirror) and render the `Report` as SARIF (`Report.SARIF`, driver `Vulnetix GitHub`, category
+`COMPLIANCE`) or as Finding rows. The CLI (`vulnetix gha workflows|actions|settings|org|audit`)
+and the Software Factory webhook path run the same engine, so the same input produces the same
+finding in both. Rule catalogue: [docs/ghaudit-rules.md](./docs/ghaudit-rules.md).

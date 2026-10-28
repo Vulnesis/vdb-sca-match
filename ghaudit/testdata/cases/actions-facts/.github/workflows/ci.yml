@@ -1,0 +1,17 @@
+name: ci
+on: push
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: good/action@1111111111111111111111111111111111111111 # v2.0.0
+      - uses: fork/impostor@2222222222222222222222222222222222222222 # v1.0.0
+      - uses: gone/owner@v1
+      - uses: old/archived@3333333333333333333333333333333333333333 # v1
+      - uses: vuln/action@v1.2.0
+      - uses: acme/internal@v1
+      - uses: random/thing@v1
+      - run: echo "${{ github['event']['head_commit']['message'] }}"

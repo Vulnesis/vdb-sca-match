@@ -1,0 +1,39 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+    container:
+      image: node:20
+      credentials:
+        username: bot
+        password: hunter2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: npm
+      - run: |
+          echo "token is ${{ secrets.NPM_TOKEN }}"
+          curl -sSL https://example.com/install.sh | bash
+          npm publish
+      - uses: actions/upload-artifact@v4
+        with:
+          path: .
+      - uses: docker://alpine:3.19
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - run: echo '${{ toJSON(secrets) }}' > /dev/null
+  call:
+    uses: other-org/shared/.github/workflows/deploy.yml@main
+    secrets: inherit

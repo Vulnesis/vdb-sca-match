@@ -256,6 +256,8 @@ var driverCategories = map[string]Category{
 	"conftest": CategoryCompliance, "gatekeeper": CategoryCompliance,
 	"kyverno": CategoryCompliance, "mitresaf": CategoryCompliance,
 	"inspec": CategoryCompliance, "openscap": CategoryCompliance,
+	// ghaudit's own driver: GitHub workflow, action and settings posture.
+	"vulnetixgithub": CategoryCompliance,
 
 	// ── Mobile (MAST) ───────────────────────────────────────────────────────
 	"mobsf": CategoryMobile, "mobsfscan": CategoryMobile,

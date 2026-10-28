@@ -1,0 +1,13 @@
+name: hello
+on:
+  issues:
+    types: [opened]
+permissions:
+  issues: write
+jobs:
+  hi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/greet
+        with:
+          who: ${{ github.event.issue.title }}
