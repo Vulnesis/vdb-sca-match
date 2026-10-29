@@ -448,3 +448,28 @@ func TestParityReasons(t *testing.T) {
 		t.Fatalf("no candidates: %+v", p)
 	}
 }
+
+// The Go proxy dates few versions. The latest dated day before the newest can
+// then be years old with undated releases between: that is not one release day
+// earlier, and picking from it would be a large downgrade.
+func TestRollingPrevDaySaysNothingWhenDatesAreIncomplete(t *testing.T) {
+	c := cands(t,
+		"v0.0.3", "2015-01-01T00:00:00Z",
+		"v1.7.0", "",
+		"v1.8.0", "",
+		"v1.10.1", "",
+		"v1.10.2", "2026-10-01T00:00:00Z",
+	)
+	p := Pick("golang", "v1.7.0", c)
+	if p.RollingPrevDay != nil || p.Reasons["rollingPrevDay"] != "dates-incomplete" {
+		t.Fatalf("prev day = %v reasons = %v", p.RollingPrevDay, p.Reasons)
+	}
+	if p.RollingPrevSemver != "v1.10.1" {
+		t.Fatalf("prev semver = %q, which needs no dates", p.RollingPrevSemver)
+	}
+	// Fully dated, the previous day stands.
+	d := cands(t, "v1.9.0", "2026-09-01T00:00:00Z", "v1.10.0", "2026-09-20T00:00:00Z", "v1.10.2", "2026-10-01T00:00:00Z")
+	if got := Pick("golang", "v1.7.0", d).RollingPrevDayDate; got != "2026-09-20" {
+		t.Fatalf("dated prev day = %q", got)
+	}
+}

@@ -64,7 +64,8 @@ every ecosystem the platform knows (`version.SchemeFor`):
   marked `Exposed` is skipped by the first three and kept by `rolling`. Release dates
   decide only what the version string cannot order.
   Rolling has two windows one step back. `rollingPrevDay` is every version from the latest
-  release day before the rolling day. `rollingPrevSemver` is the highest stable version below
+  release day before the rolling day, left empty (`dates-incomplete`) when undated releases sit
+  between that day and the newest. `rollingPrevSemver` is the highest stable version below
   the highest stable version (v1.9.2 newest gives v1.9.1) and needs no dates; when versions
   cannot be ordered it is the member of `rollingPrevDay` closest to `running`
   (reason `semver-fallback-day`). Both keep exposed releases, as `rolling` does.

@@ -62,7 +62,8 @@ type Picks struct {
 	// RollingPrevDay to the running version, with reason semver-fallback-day.
 	RollingPrevSemver string
 	// Reasons explains an empty pick: only-prerelease, no-running-version,
-	// no-dates, no-candidates, no-prior-day, no-prior-release. It also says
+	// no-dates, no-candidates, no-prior-day, dates-incomplete (undated releases
+	// sit between the previous dated day and the newest), no-prior-release. It also says
 	// semver-fallback-day when RollingPrevSemver came from RollingPrevDay.
 	Reasons map[string]string
 }
@@ -95,9 +96,13 @@ func Pick(ecosystem, running string, candidates []Candidate) Picks {
 	}
 	out.RollingPrevDay, out.RollingPrevDayDate = pickRollingPrevDay(scheme, all)
 	if out.RollingPrevDayDate == "" {
-		out.Reasons["rollingPrevDay"] = "no-prior-day"
-		if out.RollingDate == "" {
+		switch {
+		case out.RollingDate == "":
 			out.Reasons["rollingPrevDay"] = "no-dates"
+		case rollingPrevDayIncomplete(scheme, all):
+			out.Reasons["rollingPrevDay"] = "dates-incomplete"
+		default:
+			out.Reasons["rollingPrevDay"] = "no-prior-day"
 		}
 	}
 	out.RollingPrevSemver = pickRollingPrevSemver(scheme, all)
@@ -552,7 +557,35 @@ func pickRollingPrevDay(scheme string, entries []entry) ([]string, string) {
 	if prev == "" {
 		return nil, ""
 	}
-	return sortedHighFirst(scheme, days[prev]), prev
+	set := sortedHighFirst(scheme, days[prev])
+	// With sparse dates (the Go proxy dates few versions) the latest dated day
+	// before the anchor can be years old while undated releases sit between it
+	// and the newest. That day is not one release day earlier, so say nothing.
+	if packageOrderable(scheme, entries) {
+		top := sortedHighFirst(scheme, days[anchorDay])[0]
+		for _, e := range entries {
+			if e.PublishedAtMs == nil && e.info.Orderable && e.info.Stable && higher(scheme, e.Version, set[0]) && higher(scheme, top, e.Version) {
+				return nil, ""
+			}
+		}
+	}
+	return set, prev
+}
+
+// rollingPrevDayIncomplete reports whether the previous release day was found
+// but dropped because undated releases sit between it and the newest.
+func rollingPrevDayIncomplete(scheme string, entries []entry) bool {
+	days, anchorDay := rollingDays(scheme, entries)
+	if anchorDay == "" {
+		return false
+	}
+	for day := range days {
+		if day < anchorDay {
+			set, _ := pickRollingPrevDay(scheme, entries)
+			return set == nil
+		}
+	}
+	return false
 }
 
 // pickRollingPrevSemver is rolling one release back by version order: the
