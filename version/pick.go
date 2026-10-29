@@ -51,8 +51,19 @@ type Picks struct {
 	Rolling []string
 	// RollingDate is that date, as YYYY-MM-DD in UTC.
 	RollingDate string
+	// RollingPrevDay is the rolling set one release day back: every version
+	// published on the latest release day before RollingDate.
+	RollingPrevDay []string
+	// RollingPrevDayDate is that day, as YYYY-MM-DD in UTC.
+	RollingPrevDayDate string
+	// RollingPrevSemver is one release back by version order: the highest
+	// stable version below the highest stable version (v1.9.2 newest gives
+	// v1.9.1). When the package cannot be ordered it is the closest member of
+	// RollingPrevDay to the running version, with reason semver-fallback-day.
+	RollingPrevSemver string
 	// Reasons explains an empty pick: only-prerelease, no-running-version,
-	// no-dates, no-candidates.
+	// no-dates, no-candidates, no-prior-day, no-prior-release. It also says
+	// semver-fallback-day when RollingPrevSemver came from RollingPrevDay.
 	Reasons map[string]string
 }
 
@@ -81,6 +92,22 @@ func Pick(ecosystem, running string, candidates []Candidate) Picks {
 	out.Rolling, out.RollingDate = pickRolling(scheme, all)
 	if out.RollingDate == "" {
 		out.Reasons["rolling"] = "no-dates"
+	}
+	out.RollingPrevDay, out.RollingPrevDayDate = pickRollingPrevDay(scheme, all)
+	if out.RollingPrevDayDate == "" {
+		out.Reasons["rollingPrevDay"] = "no-prior-day"
+		if out.RollingDate == "" {
+			out.Reasons["rollingPrevDay"] = "no-dates"
+		}
+	}
+	out.RollingPrevSemver = pickRollingPrevSemver(scheme, all)
+	if out.RollingPrevSemver == "" {
+		if len(out.RollingPrevDay) > 0 && !packageOrderable(scheme, all) {
+			out.RollingPrevSemver = PickRollingTarget(ecosystem, running, out.RollingPrevDay)
+			out.Reasons["rollingPrevSemver"] = "semver-fallback-day"
+		} else {
+			out.Reasons["rollingPrevSemver"] = "no-prior-release"
+		}
 	}
 	switch {
 	case running == "":
@@ -466,6 +493,16 @@ func highestOf(scheme string, versions []string) string {
 // after it does not move the day. When the package cannot be ordered, the day is
 // the most recent one.
 func pickRolling(scheme string, entries []entry) ([]string, string) {
+	days, anchorDay := rollingDays(scheme, entries)
+	if anchorDay == "" {
+		return nil, ""
+	}
+	return sortedHighFirst(scheme, days[anchorDay]), anchorDay
+}
+
+// rollingDays groups the dated versions by UTC release day and returns the
+// anchor day pickRolling uses.
+func rollingDays(scheme string, entries []entry) (map[string][]string, string) {
 	dayOf := func(e entry) string {
 		return time.UnixMilli(*e.PublishedAtMs).UTC().Format("2006-01-02")
 	}
@@ -486,15 +523,62 @@ func pickRolling(scheme string, entries []entry) ([]string, string) {
 			anchor = &entries[i]
 		}
 	}
-	if latestDay == "" {
-		return nil, ""
-	}
 	if anchor != nil {
 		latestDay = dayOf(*anchor)
 	}
-	set := days[latestDay]
-	sort.SliceStable(set, func(i, j int) bool { return higher(scheme, set[i], set[j]) })
-	return set, latestDay
+	return days, latestDay
+}
+
+func sortedHighFirst(scheme string, set []string) []string {
+	out := append([]string(nil), set...)
+	sort.SliceStable(out, func(i, j int) bool { return higher(scheme, out[i], out[j]) })
+	return out
+}
+
+// pickRollingPrevDay is rolling one release day back: every version published on
+// the latest release day strictly before the rolling anchor day. It gives a fresh
+// release a day of exposure before it is taken.
+func pickRollingPrevDay(scheme string, entries []entry) ([]string, string) {
+	days, anchorDay := rollingDays(scheme, entries)
+	if anchorDay == "" {
+		return nil, ""
+	}
+	prev := ""
+	for day := range days {
+		if day < anchorDay && day > prev {
+			prev = day
+		}
+	}
+	if prev == "" {
+		return nil, ""
+	}
+	return sortedHighFirst(scheme, days[prev]), prev
+}
+
+// pickRollingPrevSemver is rolling one release back by version order: the
+// highest stable version strictly below the highest stable version. Exposed
+// releases count, as they do for rolling. It is empty when the package cannot
+// be ordered; the caller falls back to the previous release day.
+func pickRollingPrevSemver(scheme string, entries []entry) string {
+	if !packageOrderable(scheme, entries) {
+		return ""
+	}
+	var pool []string
+	for _, e := range entries {
+		if e.info.Stable && e.info.Orderable {
+			pool = append(pool, e.Version)
+		}
+	}
+	if len(pool) < 2 {
+		return ""
+	}
+	sorted := sortedHighFirst(scheme, pool)
+	for _, v := range sorted[1:] {
+		if higher(scheme, sorted[0], v) {
+			return v
+		}
+	}
+	return ""
 }
 
 // rollingBeats reports whether a is above b in the scheme order; a tie goes to

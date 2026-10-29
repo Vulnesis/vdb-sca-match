@@ -146,6 +146,78 @@ func TestRolling(t *testing.T) {
 	}
 }
 
+func TestRollingPrevDay(t *testing.T) {
+	c := cands(t,
+		"1.0.0", "2026-05-01T10:00:00Z",
+		"1.0.1", "2026-05-03T09:00:00Z",
+		"1.0.2", "2026-05-03T18:00:00Z",
+		"1.1.0", "2026-05-05T00:00:00Z",
+		"0.9.9", "2026-05-06T00:00:00Z", // back-port after the anchor day: ignored
+	)
+	p := Pick("npm", "1.0.0", c)
+	if p.RollingDate != "2026-05-05" {
+		t.Fatalf("anchor = %q", p.RollingDate)
+	}
+	if p.RollingPrevDayDate != "2026-05-03" || !reflect.DeepEqual(p.RollingPrevDay, []string{"1.0.2", "1.0.1"}) {
+		t.Fatalf("prev day = %v on %q, want [1.0.2 1.0.1] on 2026-05-03", p.RollingPrevDay, p.RollingPrevDayDate)
+	}
+	if got := PickRollingTarget("npm", "1.0.0", p.RollingPrevDay); got != "1.0.1" {
+		t.Fatalf("prev day target = %q, want 1.0.1", got)
+	}
+
+	single := Pick("npm", "1.0.0", cands(t, "1.0.0", "2026-05-01T10:00:00Z", "1.0.1", "2026-05-01T12:00:00Z"))
+	if single.RollingPrevDay != nil || single.Reasons["rollingPrevDay"] != "no-prior-day" {
+		t.Fatalf("single day: %v %v", single.RollingPrevDay, single.Reasons)
+	}
+	undated := Pick("npm", "1.0.0", cands(t, "1.0.0", "", "1.1.0", ""))
+	if undated.Reasons["rollingPrevDay"] != "no-dates" {
+		t.Fatalf("undated reasons = %v", undated.Reasons)
+	}
+}
+
+func TestRollingPrevSemver(t *testing.T) {
+	c := cands(t,
+		"1.9.0", "2026-05-01T00:00:00Z",
+		"1.9.1", "2026-05-02T00:00:00Z",
+		"1.9.2", "2026-05-03T00:00:00Z",
+		"2.0.0-rc.1", "2026-05-04T00:00:00Z",
+		"1.8.7", "2026-05-05T00:00:00Z", // back-port, published last
+	)
+	p := Pick("npm", "1.8.0", c)
+	if p.RollingPrevSemver != "1.9.1" {
+		t.Fatalf("prev semver = %q, want 1.9.1", p.RollingPrevSemver)
+	}
+	// Dates are not needed: a Go module with no publish dates still gets one.
+	g := Pick("golang", "v0.17.0", cands(t, "v0.31.0", "", "v0.32.0", "", "v0.33.0", ""))
+	if g.RollingPrevSemver != "v0.32.0" || g.RollingDate != "" {
+		t.Fatalf("undated go: prev semver = %q, rolling day = %q", g.RollingPrevSemver, g.RollingDate)
+	}
+	// Exposed releases count, as they do for rolling.
+	e := cands(t, "3.0.0", "", "3.0.1", "")
+	e[0].Exposed = true
+	if got := Pick("npm", "3.0.0", e).RollingPrevSemver; got != "3.0.0" {
+		t.Fatalf("exposed prev semver = %q, want 3.0.0", got)
+	}
+	one := Pick("npm", "1.0.0", cands(t, "1.0.0", ""))
+	if one.RollingPrevSemver != "" || one.Reasons["rollingPrevSemver"] != "no-prior-release" {
+		t.Fatalf("one release: %q %v", one.RollingPrevSemver, one.Reasons)
+	}
+}
+
+func TestRollingPrevSemverFallsBackToThePrevDayWhenUnorderable(t *testing.T) {
+	c := cands(t,
+		"alpha", "2026-05-01T00:00:00Z",
+		"bravo", "2026-05-02T00:00:00Z",
+		"charlie", "2026-05-03T00:00:00Z")
+	p := Pick("npm", "", c)
+	if p.Orderable {
+		t.Fatal("expected an unorderable package")
+	}
+	if p.RollingPrevSemver != "bravo" || p.Reasons["rollingPrevSemver"] != "semver-fallback-day" {
+		t.Fatalf("prev semver = %q reasons = %v", p.RollingPrevSemver, p.Reasons)
+	}
+}
+
 func TestRollingTargetIsClosestToRunning(t *testing.T) {
 	set := []string{"2.4.1", "2.3.9", "2.4.0-rc.1"}
 	if got := PickRollingTarget("npm", "2.3.0", set); got != "2.3.9" {

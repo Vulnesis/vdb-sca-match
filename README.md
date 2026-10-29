@@ -63,6 +63,11 @@ every ecosystem the platform knows (`version.SchemeFor`):
   recent day when versions cannot be ordered; pre-releases and exposed releases included, since only malware is excluded). A `Candidate`
   marked `Exposed` is skipped by the first three and kept by `rolling`. Release dates
   decide only what the version string cannot order.
+  Rolling has two windows one step back. `rollingPrevDay` is every version from the latest
+  release day before the rolling day. `rollingPrevSemver` is the highest stable version below
+  the highest stable version (v1.9.2 newest gives v1.9.1) and needs no dates; when versions
+  cannot be ordered it is the member of `rollingPrevDay` closest to `running`
+  (reason `semver-fallback-day`). Both keep exposed releases, as `rolling` does.
 - `EncodeRolling` / `DecodeRolling`: the comma-delimited form of a rolling set.
 
 Sixty-seven schemes are catalogued in `version/schemes.json` (embedded, `version.Catalogue`; Ivy and Coursier are folded into Gradle and Maven)

@@ -62,6 +62,15 @@ func TestPickVectors(t *testing.T) {
 			if len(got.Rolling) == 0 {
 				t.Errorf("rolling is empty although every candidate is dated")
 			}
+			// The n-1 windows sit strictly behind rolling on real histories.
+			if got.RollingPrevDayDate != "" && got.RollingPrevDayDate >= got.RollingDate {
+				t.Errorf("prev day %s is not before the rolling day %s", got.RollingPrevDayDate, got.RollingDate)
+			}
+			if got.Orderable && got.RollingPrevSemver != "" {
+				if c, ok := CompareScheme(got.Scheme, got.RollingPrevSemver, p.Expect.Latest); ok && c >= 0 && got.Reasons["rollingPrevSemver"] == "" {
+					t.Errorf("prev semver %s is not below %s", got.RollingPrevSemver, p.Expect.Latest)
+				}
+			}
 		})
 	}
 }
