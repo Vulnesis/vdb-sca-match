@@ -15,18 +15,14 @@ import (
 // ok=false means "unparseable under this scheme" — caller must fall back to
 // exact string match (precision over recall).
 func Compare(ecosystem, versionType, a, b string) (cmp int, ok bool) {
-	scheme := pickScheme(versionType, ecosystem)
-	switch scheme {
-	case "semver":
-		return compareSemver(a, b)
-	case "pep440":
-		return comparePEP440(a, b)
-	case "maven":
-		return compareMaven(a, b)
-	default:
-		return compareGeneric(a, b)
-	}
+	return compareWithScheme(pickScheme(versionType, ecosystem), a, b)
 }
+
+// distroSchemes are the registered distribution schemes pickScheme hands a
+// distribution ecosystem to. The generic comparison splits 1.2.5-r12 into
+// 1, 2, 5, "r12" and orders "r12" before "r9" as text, so musl 1.2.5-r12 on
+// Alpine 3.21 read as below Alpine's fix at 1.2.5-r9.
+var distroSchemes = map[string]bool{"debian": true, "rpm": true, "alpine": true, "wolfi": true}
 
 // Within checks if version is inside the range [lowerBound, upperBound).
 // The upper bound is exclusive (lessThan) unless lessThanOrEqual is provided.
@@ -94,6 +90,9 @@ func pickScheme(versionType, ecosystem string) string {
 	case "maven", "java":
 		return "maven"
 	default:
+		if s := SchemeFor(eco); distroSchemes[s] {
+			return s
+		}
 		return "generic"
 	}
 }
@@ -106,9 +105,15 @@ func compareWithScheme(scheme, a, b string) (int, bool) {
 		return comparePEP440(a, b)
 	case "maven":
 		return compareMaven(a, b)
-	default:
-		return compareGeneric(a, b)
 	}
+	if distroSchemes[scheme] {
+		// A bound that is not a version of the distribution (an upstream
+		// "1.35" in a distribution row) keeps the old generic answer.
+		if c, ok := CompareScheme(scheme, a, b); ok {
+			return c, true
+		}
+	}
+	return compareGeneric(a, b)
 }
 
 // ── Semver (Masterminds/semver/v3) ──────────────────────────────────────────

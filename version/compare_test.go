@@ -328,3 +328,22 @@ func TestCompareGenericTransitive(t *testing.T) {
 		}
 	}
 }
+
+func TestWithinUsesTheDistributionScheme(t *testing.T) {
+	for _, tc := range []struct {
+		eco, v, lt string
+		want       bool
+	}{
+		{"alpine", "1.2.5-r12", "1.2.5-r9", false},
+		{"alpine", "1.2.5-r8", "1.2.5-r9", true},
+		{"debian", "1:2.36-9+deb12u10", "1:2.36-9+deb12u9", false},
+		{"debian", "2.36-9+deb12u4", "2.36-9+deb12u10", true},
+		{"debian", "1.34+dfsg-1.2+deb12u1", "1.34+dfsg-1.2+deb12u1", false},
+		{"redhat", "3.0.7-27.el9", "3.0.7-3.el9", false},
+	} {
+		got, _ := Within(tc.eco, "ECOSYSTEM", tc.v, "", tc.lt, "")
+		if got != tc.want {
+			t.Errorf("Within(%s, %s < %s) = %v, want %v", tc.eco, tc.v, tc.lt, got, tc.want)
+		}
+	}
+}
