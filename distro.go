@@ -185,14 +185,24 @@ func MatchOSPackage(ctx context.Context, q Querier, dep Dependency, distro, sour
 	return out, nil
 }
 
-// releaseClause keeps a row that names no release, or names release $n. OSV
-// tags a distribution row with its release (Debian:12, Alpine:v3.18,
+// releaseClause keeps a row that names release $n, or one that names no
+// release when release $n has no row of its own for the package and CVE.
+// OSV tags a distribution row with its release (Debian:12, Alpine:v3.18,
 // Ubuntu:22.04:LTS), and a fix on Debian 13 at 1.34+dfsg-1.3 says nothing
 // about Debian 12's 1.34+dfsg-1.2+deb12u1; read across releases it flagged a
-// version Debian 12 had fixed.
+// version Debian 12 had fixed. An untagged row is one branch's fix too:
+// cve.org's "alpine busybox < 1.36.1-r25" is Alpine 3.21's, while
+// ALPINE-CVE-2023-42366 fixes Alpine 3.18 at 1.36.1-r6. The release's own
+// rows are found under the CVE id or the distribution's (ALPINE-CVE-...).
+// $1 is the package name.
 func releaseClause(alias string, n int) string {
-	return fmt.Sprintf(`(POSITION(':' IN COALESCE(%[1]s."vendor", '')) = 0
-		OR LOWER(%[1]s."vendor") = $%[2]d OR LOWER(%[1]s."vendor") LIKE $%[2]d || ':%%')`, alias, n)
+	return fmt.Sprintf(`(LOWER(%[1]s."vendor") = $%[2]d OR LOWER(%[1]s."vendor") LIKE $%[2]d || ':%%'
+		OR (POSITION(':' IN COALESCE(%[1]s."vendor", '')) = 0
+		    AND NOT EXISTS (
+		      SELECT 1 FROM "CVEAffected" rr
+		      WHERE rr."cveId" IN (%[1]s."cveId", UPPER(split_part($%[2]d, ':', 1)) || '-' || %[1]s."cveId")
+		        AND (LOWER(rr."vendor") = $%[2]d OR LOWER(rr."vendor") LIKE $%[2]d || ':%%')
+		        AND LOWER(COALESCE(rr."packageName", rr.product)) = LOWER($1))))`, alias, n)
 }
 
 var debianCodenames = map[string]string{

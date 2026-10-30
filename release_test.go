@@ -22,9 +22,16 @@ func TestDistroRelease(t *testing.T) {
 	}
 }
 
-func TestReleaseClauseKeepsUntaggedRows(t *testing.T) {
+func TestReleaseClauseDefersUntaggedRowsToTheRelease(t *testing.T) {
 	c := releaseClause("a", 4)
-	if !strings.Contains(c, `POSITION(':' IN COALESCE(a."vendor", '')) = 0`) || !strings.Contains(c, `$4 || ':%'`) {
-		t.Fatalf("clause = %s", c)
+	for _, want := range []string{
+		`POSITION(':' IN COALESCE(a."vendor", '')) = 0`,
+		`$4 || ':%'`,
+		`UPPER(split_part($4, ':', 1)) || '-' || a."cveId"`,
+		`= LOWER($1)`,
+	} {
+		if !strings.Contains(c, want) {
+			t.Errorf("clause lacks %s: %s", want, c)
+		}
 	}
 }
