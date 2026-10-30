@@ -51,3 +51,15 @@ func TestRegistryEcosystem(t *testing.T) {
 		}
 	}
 }
+
+func TestGoModuleMatchExprIsAnIndexableRange(t *testing.T) {
+	e := goModuleMatchExpr("a")
+	for _, want := range []string{`= LOWER($1)`, `~>=~ (LOWER($1) || '/')`, `~<~ (LOWER($1) || '0')`} {
+		if !strings.Contains(e, want) {
+			t.Errorf("expr lacks %s: %s", want, e)
+		}
+	}
+	if strings.Contains(e, "LIKE") {
+		t.Errorf("a LIKE built from $1 cannot use the btree in a generic plan: %s", e)
+	}
+}

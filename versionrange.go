@@ -129,6 +129,18 @@ func nameMatchExpr(alias string, pypi bool) string {
 	return fmt.Sprintf(`LOWER(%s) = LOWER($1)`, col)
 }
 
+// goModuleMatchExpr matches a Go module and the packages under it. Advisories
+// name the affected package (cve.org files CVE-2026-56851 against
+// golang.org/x/text/secure/precis) while an inventory names the module
+// (golang.org/x/text), so an exact name never met. The prefix is a
+// text_pattern_ops range ('/' to '0' is every name under "module/"), which
+// CVEAffected_name_pattern_idx serves in a generic plan as well; a LIKE built
+// from $1 does not, and the trigram index read 2m43s for 50 rows.
+func goModuleMatchExpr(alias string) string {
+	col := fmt.Sprintf(`LOWER(COALESCE(%s."packageName", %s.product))`, alias, alias)
+	return fmt.Sprintf(`(%[1]s = LOWER($1) OR (%[1]s ~>=~ (LOWER($1) || '/') AND %[1]s ~<~ (LOWER($1) || '0')))`, col)
+}
+
 func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match, map[string]affectedFacts, error) {
 	if dep.Name == "" {
 		return nil, nil, nil
@@ -155,6 +167,10 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 	name := dep.Name
 	if pypi {
 		name = normalizePypiName(dep.Name)
+	}
+	nameA, nameAI := nameMatchExpr("a", pypi), nameMatchExpr("ai", pypi)
+	if CanonicalEcosystem(dep.Ecosystem) == "go" {
+		nameA, nameAI = goModuleMatchExpr("a"), goModuleMatchExpr("ai")
 	}
 	args := append([]any{name}, ecoArgs...)
 	// The inner subquery bounds the candidate set to versionRangeCVELimit
@@ -185,8 +201,8 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 		    LIMIT %d
 		  )
 		ORDER BY a."cveId", a.uuid`,
-		nameMatchExpr("a", pypi), outerEco, notWithdrawnSQL(`a."cveId"`),
-		nameMatchExpr("ai", pypi), innerEco, notWithdrawnSQL(`ai."cveId"`), versionRangeCVELimit),
+		nameA, outerEco, notWithdrawnSQL(`a."cveId"`),
+		nameAI, innerEco, notWithdrawnSQL(`ai."cveId"`), versionRangeCVELimit),
 		args...,
 	)
 	if err != nil {
