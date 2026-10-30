@@ -9,8 +9,11 @@ import (
 // BuildPurl builds a Package URL string for a dependency from its name,
 // version, and ecosystem. It is the inverse of ParsePurl and must stay
 // byte-identical with the CLI's cdx.BuildLocalPurl so that a manifest parsed
-// here keys the same vulnerability rows the CLI would request. Returns "" when
-// the ecosystem has no known purl type.
+// here keys the same vulnerability rows the CLI would request. An ecosystem with
+// no alias below is used as the purl type as is (deb, apk, oci, github-actions,
+// ...), so every package the parsers emit gets a purl; only an empty ecosystem
+// yields "". vdb-api skips a package whose purl is "", so narrowing this drops
+// those packages from matching.
 func BuildPurl(name, version, ecosystem string) string {
 	purlType := ecosystemToPurlType(ecosystem)
 	if purlType == "" {

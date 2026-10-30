@@ -109,6 +109,12 @@ func TestBuildPurl(t *testing.T) {
 
 		// an ecosystem with no alias is its own purl type (deb, apk, oci, ...)
 		{"unknown-pkg", "1.0.0", "notareco", "pkg:notareco/unknown-pkg@1.0.0"},
+		{"openssl", "3.0.13-1~deb12u1", "deb", "pkg:deb/openssl@3.0.13-1~deb12u1"},
+		{"musl", "1.2.4-r2", "apk", "pkg:apk/musl@1.2.4-r2"},
+		{"actions/checkout", "v4", "github-actions", "pkg:github-actions/actions%2Fcheckout@v4"},
+
+		// only an empty ecosystem yields no purl
+		{"unknown-pkg", "1.0.0", "", ""},
 	}
 	for _, tc := range cases {
 		if got := BuildPurl(tc.name, tc.version, tc.eco); got != tc.want {
