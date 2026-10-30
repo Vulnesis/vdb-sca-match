@@ -194,7 +194,8 @@ func compareMaven(a, b string) (int, bool) {
 
 // ── Generic fallback ────────────────────────────────────────────────────────
 // Hand-rolled normaliser: split on . / - / +, numeric segments compared as
-// ints, alpha lexically, numeric < alpha for pre-release ordering.
+// ints, alpha lexically, numeric < alpha for pre-release ordering, and a
+// number with a suffix ("11n") by its number first.
 
 func compareGeneric(a, b string) (int, bool) {
 	sa := splitVersion(a)
@@ -230,6 +231,34 @@ func compareSegment(a, b string) int {
 	aNum, aIsNum := parseNumeric(a)
 	bNum, bIsNum := parseNumeric(b)
 
+	// A segment such as "11n" (util-linux 2.11n, OpenSSL 1.0.2k) is a number
+	// with a suffix. Ranking it as text put every number below it, so 2.37.2
+	// sorted before 2.11n. Compare the numbers first, as dpkg and rpm do.
+	if !(aIsNum && bIsNum) {
+		la, ra := leadingDigits(a)
+		lb, rb := leadingDigits(b)
+		if la != "" && lb != "" {
+			if c := compareDigits(la, lb); c != 0 {
+				return c
+			}
+			switch {
+			case ra == rb:
+				return 0
+			case ra == "":
+				return -suffixOrder(rb)
+			case rb == "":
+				return suffixOrder(ra)
+			}
+			if oa, ob := suffixOrder(ra), suffixOrder(rb); oa != ob {
+				if oa < ob {
+					return -1
+				}
+				return 1
+			}
+			return compareSuffix(ra, rb)
+		}
+	}
+
 	if aIsNum && bIsNum {
 		if aNum < bNum {
 			return -1
@@ -253,6 +282,59 @@ func compareSegment(a, b string) int {
 		return 1
 	}
 	return strings.Compare(a, b)
+}
+
+func leadingDigits(s string) (digits, rest string) {
+	i := 0
+	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+		i++
+	}
+	return s[:i], s[i:]
+}
+
+// compareDigits orders two digit strings by value without overflowing.
+func compareDigits(a, b string) int {
+	a = strings.TrimLeft(a, "0")
+	b = strings.TrimLeft(b, "0")
+	if len(a) != len(b) {
+		if len(a) < len(b) {
+			return -1
+		}
+		return 1
+	}
+	return strings.Compare(a, b)
+}
+
+// suffixOrder says where a number with this suffix sorts against the bare
+// number: before it for a pre-release ("1rc1", "0b2"), after it for a letter
+// release ("2k" follows "2").
+func suffixOrder(suffix string) int {
+	s := strings.ToLower(suffix)
+	for _, p := range []string{"alpha", "beta", "pre", "rc", "dev", "preview", "snapshot"} {
+		if strings.HasPrefix(s, p) {
+			return -1
+		}
+	}
+	if len(s) > 1 && (s[0] == 'a' || s[0] == 'b' || s[0] == 'c') && s[1] >= '0' && s[1] <= '9' {
+		return -1
+	}
+	return 1
+}
+
+// compareSuffix orders two suffixes of the same kind: the letters as text,
+// then what follows them ("rc2" before "rc10").
+func compareSuffix(a, b string) int {
+	i, j := 0, 0
+	for i < len(a) && (a[i] < '0' || a[i] > '9') {
+		i++
+	}
+	for j < len(b) && (b[j] < '0' || b[j] > '9') {
+		j++
+	}
+	if c := strings.Compare(a[:i], b[:j]); c != 0 {
+		return c
+	}
+	return compareSegment(a[i:], b[j:])
 }
 
 func parseNumeric(s string) (int64, bool) {

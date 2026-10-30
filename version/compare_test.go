@@ -87,6 +87,14 @@ func TestCompareGeneric(t *testing.T) {
 		{"1.0.1", "1.0.0", 1},
 		{"2.0", "1.9", 1},
 		{"1.0-1", "1.0-2", -1},
+		// A number with a letter suffix is ordered by its number first.
+		{"2.37.2", "2.11n", 1},
+		{"2.11", "2.11n", -1},
+		{"1.0.2k", "1.0.2m", -1},
+		{"1.0.2", "1.0.2k", -1},
+		{"1.0.10", "1.0.2k", 1},
+		{"1.0rc1", "1.0", -1},
+		{"2.0b2", "2.0", -1},
 	}
 	for _, c := range cases {
 		got, ok := Compare("deb", "", c.a, c.b)
