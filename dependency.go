@@ -15,4 +15,10 @@ type Dependency struct {
 	// MatchOSPackage sets it for its upstream pass, so an OS package "tar" is
 	// not matched against the npm package of the same name.
 	NativeOnly bool
+
+	// Release, with a distribution Ecosystem, is the installed release as OSV
+	// names it ("debian:12", "ubuntu:22.04", "alpine:v3.18"; DistroRelease).
+	// A distribution row tagged with another release is skipped; a row that
+	// names no release still applies.
+	Release string
 }

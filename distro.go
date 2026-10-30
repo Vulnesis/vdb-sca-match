@@ -170,7 +170,7 @@ func MatchOSPackage(ctx context.Context, q Querier, dep Dependency, distro, sour
 			candidates = append(candidates, m.CveID)
 		}
 	}
-	mentioned, err := distroMentions(ctx, q, names, distro, candidates)
+	mentioned, err := distroMentions(ctx, q, names, distro, dep.Release, candidates)
 	if err != nil {
 		return nil, fmt.Errorf("distribution advisories for %s: %w", dep.Key, err)
 	}
@@ -183,6 +183,59 @@ func MatchOSPackage(ctx context.Context, q Querier, dep Dependency, distro, sour
 	}
 
 	return out, nil
+}
+
+// releaseClause keeps a row that names no release, or names release $n. OSV
+// tags a distribution row with its release (Debian:12, Alpine:v3.18,
+// Ubuntu:22.04:LTS), and a fix on Debian 13 at 1.34+dfsg-1.3 says nothing
+// about Debian 12's 1.34+dfsg-1.2+deb12u1; read across releases it flagged a
+// version Debian 12 had fixed.
+func releaseClause(alias string, n int) string {
+	return fmt.Sprintf(`(POSITION(':' IN COALESCE(%[1]s."vendor", '')) = 0
+		OR LOWER(%[1]s."vendor") = $%[2]d OR LOWER(%[1]s."vendor") LIKE $%[2]d || ':%%')`, alias, n)
+}
+
+var debianCodenames = map[string]string{
+	"buster": "10", "bullseye": "11", "bookworm": "12", "trixie": "13", "forky": "14",
+}
+
+// DistroRelease is the release a distribution purl names, as OSV writes it in
+// a row's vendor ("debian:12", "ubuntu:22.04", "alpine:v3.18"), or "" when
+// the purl names none or the distribution is not one OSV tags by release.
+func DistroRelease(purl string) string {
+	_, query, ok := strings.Cut(purl, "?")
+	if !ok {
+		return ""
+	}
+	q, err := url.ParseQuery(query)
+	if err != nil {
+		return ""
+	}
+	d := strings.ToLower(strings.TrimSpace(q.Get("distro")))
+	switch DistroEcosystem(purl) {
+	case "debian":
+		v := strings.TrimLeft(strings.TrimPrefix(d, "debian"), "-_ ")
+		if c, ok := debianCodenames[v]; ok {
+			v = c
+		}
+		v, _, _ = strings.Cut(v, ".")
+		if v == "" || strings.Trim(v, "0123456789") != "" {
+			return ""
+		}
+		return "debian:" + v
+	case "ubuntu":
+		v := strings.TrimLeft(strings.TrimPrefix(d, "ubuntu"), "-_ ")
+		if parts := strings.SplitN(v, ".", 3); len(parts) >= 2 && parts[0] != "" && parts[1] != "" {
+			return "ubuntu:" + parts[0] + "." + parts[1]
+		}
+	case "alpine":
+		v := strings.TrimLeft(strings.TrimPrefix(d, "alpine"), "-_ v")
+		if parts := strings.SplitN(v, ".", 3); len(parts) >= 2 && parts[0] != "" && parts[1] != "" {
+			return "alpine:v" + parts[0] + "." + parts[1]
+		}
+	}
+
+	return ""
 }
 
 // DistroSource is the source package a distribution purl names in its
@@ -202,10 +255,10 @@ func DistroSource(purl string) string {
 
 // distroMentions returns which of the CVEs the distribution has any advisory
 // row for, under any of the package's names.
-func distroMentions(ctx context.Context, q Querier, names []string, distro string, cves []string) (map[string]bool, error) {
+func distroMentions(ctx context.Context, q Querier, names []string, distro, release string, cves []string) (map[string]bool, error) {
 	out := map[string]bool{}
 	for _, name := range names {
-		got, err := distroMentionsFor(ctx, q, name, distro, cves)
+		got, err := distroMentionsFor(ctx, q, name, distro, release, cves)
 		if err != nil {
 			return nil, err
 		}
@@ -217,21 +270,41 @@ func distroMentions(ctx context.Context, q Querier, names []string, distro strin
 	return out, nil
 }
 
-func distroMentionsFor(ctx context.Context, q Querier, name, distro string, cves []string) (map[string]bool, error) {
+func distroMentionsFor(ctx context.Context, q Querier, name, distro, release string, cves []string) (map[string]bool, error) {
 	out := map[string]bool{}
 	if len(cves) == 0 || name == "" {
 		return out, nil
 	}
 	outer, _, ecoArgs := versionRangeEcoClauses(distro)
+	if rel := strings.TrimSpace(release); rel != "" {
+		outer = fmt.Sprintf(`(%s) AND %s`, outer, releaseClause("a", len(ecoArgs)+2))
+		ecoArgs = append(ecoArgs, strings.ToLower(rel))
+	}
 	args := append([]any{name}, ecoArgs...)
-	args = append(args, cves)
+	args = append(args, cves, strings.ToUpper(distro)+"-")
+	// A distribution's row can sit under an alias of the CVE: OSV files
+	// Debian's verdict on CVE-2023-39804 as DEBIAN-CVE-2023-39804. Looking for
+	// the bare id only read Debian as silent and reported a CVE its
+	// 1.34+dfsg-1.2+deb12u1 fix closed. One alias hop, plus the
+	// distribution's own id for any CVE that hop reaches
+	// (ANCHORE-2023-39804 aliases CVE-2023-39804, not the Debian record); a
+	// second general hop would pass through advisories such as DSA-5673-1
+	// that alias many CVEs and tie unrelated ones together.
 	rows, err := q.Query(ctx, fmt.Sprintf(`
-		SELECT DISTINCT a."cveId" FROM "CVEAffected" a
-		WHERE %s AND (%s) AND a."cveId" = ANY($%d::text[])
+		WITH hop AS (
+		  SELECT c AS cve, c AS id FROM unnest($%[3]d::text[]) c
+		  UNION SELECT al."primaryCveId", al."aliasCveId" FROM "CVEAlias" al WHERE al."primaryCveId" = ANY($%[3]d::text[])
+		  UNION SELECT al."aliasCveId", al."primaryCveId" FROM "CVEAlias" al WHERE al."aliasCveId" = ANY($%[3]d::text[])
+		), ids AS (
+		  SELECT cve, id FROM hop
+		  UNION SELECT cve, $%[4]d || id FROM hop WHERE id LIKE 'CVE-%%'
+		)
+		SELECT DISTINCT ids.cve FROM ids JOIN "CVEAffected" a ON a."cveId" = ids.id
+		WHERE %[1]s AND (%[2]s)
 		  AND EXISTS (SELECT 1 FROM "CVEAffectedVersion" v WHERE v."affectedId" = a.uuid
 		      AND (COALESCE(v."lessThan", '') <> '' OR COALESCE(v."lessThanOrEqual", '') <> ''
 		           OR COALESCE(v.version, '') NOT IN ('', '*', '0', 'n/a')))`,
-		nameMatchExpr("a", false), outer, len(args)), args...)
+		nameMatchExpr("a", false), outer, len(args)-1, len(args)), args...)
 	if err != nil {
 		return nil, err
 	}

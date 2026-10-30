@@ -145,6 +145,12 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 	if dep.NativeOnly && strings.TrimSpace(dep.Ecosystem) == "" {
 		outerEco, innerEco, ecoArgs = nativeOnlyClauses()
 	}
+	if rel := strings.TrimSpace(dep.Release); rel != "" && strings.TrimSpace(dep.Ecosystem) != "" {
+		n := len(ecoArgs) + 2
+		outerEco = fmt.Sprintf(`(%s) AND %s`, outerEco, releaseClause("a", n))
+		innerEco = fmt.Sprintf(`(%s) AND %s`, innerEco, releaseClause("ai", n))
+		ecoArgs = append(ecoArgs, strings.ToLower(rel))
+	}
 	pypi := CanonicalEcosystem(dep.Ecosystem) == "pypi"
 	name := dep.Name
 	if pypi {
