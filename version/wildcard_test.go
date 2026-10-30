@@ -67,7 +67,10 @@ func TestMatchSegmentWildcardNoPanic(t *testing.T) {
 				t.Errorf("MatchSegmentWildcard(%q, %q) isSegWild = %v, want %v",
 					installed, pattern, isSegWild, wantSeg)
 			}
-			_ = matched
+			if matched && !isSegWild {
+				t.Errorf("MatchSegmentWildcard(%q, %q) matched a pattern that is not a segment wildcard",
+					installed, pattern)
+			}
 		}
 	}
 }
