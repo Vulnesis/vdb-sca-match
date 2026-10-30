@@ -52,32 +52,30 @@ func TestShellishFieldsExamples(t *testing.T) {
 }
 
 func TestShellishFieldsIdempotent(t *testing.T) {
+	// After one pass every boundary is its own token, so re-joining with spaces
+	// and splitting again must give the identical sequence, boundaries included.
 	corpus := []string{
 		"npm i pkg && npm i other",
 		"a || b ; c | d",
 		"a&&b",
 		"'a b'",
 		"",
+		"a|b||c;d&&e",
+		"a;;b",
+		"a&&&b",
+		"a|||b",
+		`pip install "requests==2.31.0" 'flask'`,
+		`'' "" ' '`,
+		"apt-get update&&apt-get install -y curl;rm -rf /var/lib/apt/lists/*",
+		"  leading and trailing  ",
+		"\t tabbed\tinput \n",
 	}
 
 	for _, s := range corpus {
 		first := shellishFields(s)
 		second := shellishFields(strings.Join(first, " "))
-
-		// Boundaries may be re-split when joined, so compare only the
-		// non-boundary token sequence.
-		if got, want := nonBoundaryTokens(second), nonBoundaryTokens(first); !reflect.DeepEqual(got, want) {
-			t.Errorf("shellishFields not idempotent for %q: first=%#v second=%#v (non-boundary first=%#v second=%#v)", s, first, second, want, got)
+		if !reflect.DeepEqual(first, second) {
+			t.Errorf("shellishFields not idempotent for %q: first=%#v second=%#v", s, first, second)
 		}
 	}
-}
-
-func nonBoundaryTokens(toks []string) []string {
-	out := make([]string, 0, len(toks))
-	for _, tok := range toks {
-		if !isShellBoundary(tok) {
-			out = append(out, tok)
-		}
-	}
-	return out
 }
