@@ -35,3 +35,19 @@ func TestReleaseClauseDefersUntaggedRowsToTheRelease(t *testing.T) {
 		}
 	}
 }
+
+func TestRegistryEcosystem(t *testing.T) {
+	for purl, want := range map[string]string{
+		"pkg:npm/tar@6.2.1":                        "npm",
+		"pkg:golang/github.com/x/y@v1.0.0":         "go",
+		"pkg:pypi/requests@2.31.0":                 "pypi",
+		"pkg:deb/debian/tar@1.34?distro=debian-12": "",
+		"pkg:apk/alpine/busybox@1.36.1-r7":         "",
+		"pkg:generic/openssl@3.0.0":                "",
+		"not a purl":                               "",
+	} {
+		if got := RegistryEcosystem(purl); got != want {
+			t.Errorf("RegistryEcosystem(%q) = %q, want %q", purl, got, want)
+		}
+	}
+}

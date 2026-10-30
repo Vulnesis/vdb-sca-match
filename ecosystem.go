@@ -83,6 +83,28 @@ func EcosystemEvidence(eco string) (canonical string, registryURLs, vendors []st
 	return canonical, ev.urls, ev.vendors, true
 }
 
+// RegistryEcosystem is the package registry a purl names (npm, pypi, maven and
+// the rest of ecosystemEvidence's registries), or "" for a distribution
+// package, a generic purl or a type with no evidence. Matched by name alone,
+// npm's tar@6.2.1 met GNU tar's and Debian's tar records, and the alias rules
+// dropped twelve of npm's own CVEs.
+func RegistryEcosystem(purl string) string {
+	s, ok := strings.CutPrefix(strings.TrimSpace(purl), "pkg:")
+	if !ok {
+		return ""
+	}
+	typ, _, ok := strings.Cut(s, "/")
+	if !ok {
+		return ""
+	}
+	eco := CanonicalEcosystem(typ)
+	if _, known := ecosystemEvidence[eco]; !known || distributions[eco] {
+		return ""
+	}
+
+	return eco
+}
+
 // distributions are the ecosystemEvidence keys that are operating system
 // distributions rather than package registries.
 var distributions = map[string]bool{
