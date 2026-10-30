@@ -58,6 +58,9 @@ func matchCPE(ctx context.Context, q Querier, dep Dependency) ([]Match, error) {
 		})
 	}
 	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	// Also query CVEMetadata.cpesJSON
 	rows2, err := q.Query(ctx, `

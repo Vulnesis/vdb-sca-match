@@ -48,6 +48,9 @@ func resolveAliasGroups(ctx context.Context, q Querier, cveIds []string) (map[st
 			uf.union(primary, alias)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return uf.roots(), nil
 }
 

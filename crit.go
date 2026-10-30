@@ -30,5 +30,5 @@ func matchCrit(ctx context.Context, q Querier, cveIds []string) ([]string, error
 		}
 		out = append(out, id)
 	}
-	return out, nil
+	return out, rows.Err()
 }

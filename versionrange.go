@@ -258,6 +258,12 @@ func matchVersionRange(ctx context.Context, q Querier, dep Dependency) ([]Match,
 			facts[cveID] = f
 		}
 	}
+	// pgx reports a statement timeout or a cancelled context here, not from
+	// Query. Unchecked, a lookup that ran out of time read as a package with
+	// no vulnerabilities.
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
 
 	var matches []Match
 	for _, cveID := range cveOrder {

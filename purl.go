@@ -58,5 +58,5 @@ func matchPurl(ctx context.Context, q Querier, dep Dependency) ([]Match, error) 
 			isSpecific: specific,
 		})
 	}
-	return matches, nil
+	return matches, rows.Err()
 }

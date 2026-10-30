@@ -21,6 +21,7 @@ import (
 type fakeRows struct {
 	rows [][]any
 	idx  int
+	err  error
 }
 
 func (r *fakeRows) Next() bool {
@@ -67,7 +68,7 @@ func (r *fakeRows) Scan(dest ...any) error {
 }
 
 func (r *fakeRows) Close()                                       {}
-func (r *fakeRows) Err() error                                   { return nil }
+func (r *fakeRows) Err() error                                   { return r.err }
 func (r *fakeRows) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
 func (r *fakeRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
 func (r *fakeRows) Values() ([]any, error)                       { return nil, nil }
@@ -82,13 +83,16 @@ type fakeQuerier struct {
 	crit         [][]any
 	alias        [][]any
 	queries      []string
+	// versionRangeErr is what the version-range rows report from Err, as pgx
+	// does for a statement timeout.
+	versionRangeErr error
 }
 
 func (f *fakeQuerier) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
 	f.queries = append(f.queries, sql)
 	switch {
 	case strings.Contains(sql, "CVEAffectedVersion"):
-		return &fakeRows{rows: f.versionRange}, nil
+		return &fakeRows{rows: f.versionRange, err: f.versionRangeErr}, nil
 	case strings.Contains(sql, "PackageVersionCVE"):
 		return &fakeRows{rows: f.purl}, nil
 	case strings.Contains(sql, "CritRecord"):
@@ -895,5 +899,16 @@ func TestInclusiveEndAtTheFixedReleaseStillMatchesReleasesBelowIt(t *testing.T) 
 	q := &fakeQuerier{versionRange: rows}
 	if got := cveSet(MatchDependencyMust(t, q, Dependency{Name: "commons-collections", Version: "3.2.1", Ecosystem: "maven"})); len(got) == 0 {
 		t.Fatal("3.2.1 is inside < 3.2.2 and must match")
+	}
+}
+
+// TestVersionRangeTimeoutIsAnError: pgx reports a statement timeout from
+// rows.Err, after Next returns false. Read as an empty result, a lookup that
+// ran out of time said the package had no vulnerabilities.
+func TestVersionRangeTimeoutIsAnError(t *testing.T) {
+	q := &fakeQuerier{versionRangeErr: context.DeadlineExceeded}
+	_, err := MatchDependency(context.Background(), q, Dependency{Name: "busybox", Version: "1.37.0-r31", Key: "busybox@1.37.0-r31"})
+	if err == nil {
+		t.Fatal("a timed-out version-range read returned no error")
 	}
 }
