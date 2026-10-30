@@ -63,3 +63,18 @@ func TestGoModuleMatchExprIsAnIndexableRange(t *testing.T) {
 		t.Errorf("a LIKE built from $1 cannot use the btree in a generic plan: %s", e)
 	}
 }
+
+func TestNativeClauseReadsTheRegistrySetOnce(t *testing.T) {
+	c := nativeClause("a")
+	if !strings.Contains(c, `WHERE filed.id = a."cveId"`) {
+		t.Errorf("the candidate should meet the filed set by one equality: %s", c)
+	}
+	if strings.Contains(registryFiled, `a."cveId"`) || strings.Contains(c, `"primaryCveId" = a."cveId"`) || strings.Contains(c, `"aliasCveId" = a."cveId"`) {
+		t.Errorf("the filed set must not depend on the candidate row, or Postgres reruns it per row: %s", c)
+	}
+	for _, want := range []string{`al."aliasCveId" = f.id`, `al."primaryCveId" = f.id`, `= ANY($3::text[])`, `= ANY($4::text[])`} {
+		if !strings.Contains(c, want) {
+			t.Errorf("clause lacks %s: %s", want, c)
+		}
+	}
+}

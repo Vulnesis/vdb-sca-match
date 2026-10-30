@@ -149,17 +149,28 @@ func nativeOnlyClauses() (outer, inner string, args []any) {
 // a platform rather than * or -.
 const cpeTargetSW = `cpe:2\.3:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:*-][^:]*:`
 
+// registryFiled is every CVE id an advisory files against the package ($1)
+// under a registry ($3 URLs, $4 vendors), with the ids aliased to them. It
+// does not depend on the candidate row, so Postgres reads it once and hashes
+// it. Written as a correlated NOT EXISTS with the alias lookups OR'd in, it
+// ran the lookups once per candidate and registry row pair: openssl's
+// upstream pass ran past four minutes.
+const registryFiled = `
+		  SELECT r."cveId" AS id FROM "CVEAffected" r
+		  WHERE LOWER(COALESCE(r."packageName", r.product)) = LOWER($1)
+		    AND (RTRIM(LOWER(COALESCE(r."collectionURL", '')), '/') = ANY($3::text[])
+		         OR LOWER(split_part(COALESCE(r."vendor", ''), ':', 1)) = ANY($4::text[]))`
+
 func nativeClause(alias string) string {
 	return fmt.Sprintf(`(COALESCE(%[1]s."collectionURL", '') = ''
 		AND LOWER(split_part(COALESCE(%[1]s."vendor", ''), ':', 1)) <> ALL($2::text[])
 		AND NOT (%[1]s.source = 'osv' AND COALESCE(%[1]s."vendor", '') <> '' AND LOWER(%[1]s."vendor") NOT LIKE 'oss-fuzz%%')
 		AND COALESCE(%[1]s.cpes::text, '') !~ '%[2]s'
 		AND NOT EXISTS (
-		  SELECT 1 FROM "CVEAffected" r
-		  WHERE (r."cveId" = %[1]s."cveId"
-		         OR r."cveId" IN (SELECT "aliasCveId" FROM "CVEAlias" WHERE "primaryCveId" = %[1]s."cveId")
-		         OR r."cveId" IN (SELECT "primaryCveId" FROM "CVEAlias" WHERE "aliasCveId" = %[1]s."cveId"))
-		    AND LOWER(COALESCE(r."packageName", r.product)) = LOWER($1)
-		    AND (RTRIM(LOWER(COALESCE(r."collectionURL", '')), '/') = ANY($3::text[])
-		         OR LOWER(split_part(COALESCE(r."vendor", ''), ':', 1)) = ANY($4::text[]))))`, alias, cpeTargetSW)
+		  SELECT 1 FROM (
+		    SELECT f.id FROM (%[3]s) f
+		    UNION SELECT al."primaryCveId" FROM "CVEAlias" al JOIN (%[3]s) f ON al."aliasCveId" = f.id
+		    UNION SELECT al."aliasCveId" FROM "CVEAlias" al JOIN (%[3]s) f ON al."primaryCveId" = f.id
+		  ) filed
+		  WHERE filed.id = %[1]s."cveId"))`, alias, cpeTargetSW, registryFiled)
 }
