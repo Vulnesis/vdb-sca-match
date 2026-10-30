@@ -7,8 +7,9 @@ import (
 
 // TestSplitInstalledPackageNoPanic exercises every supported ecosystem with
 // arbitrary, malformed and boundary inputs. The function is a heuristic
-// splitter, so the only hard invariants are: it never panics and it returns
-// deterministic results for the same input.
+// splitter, so the hard invariants are: it never panics, it returns the same
+// result for the same input, and a token with no package in it (blank,
+// quotes only, a URL) yields an empty name and version.
 func TestSplitInstalledPackageNoPanic(t *testing.T) {
 	tokens := []string{
 		"",
@@ -44,21 +45,21 @@ func TestSplitInstalledPackageNoPanic(t *testing.T) {
 		"unknown",
 	}
 
-	seen := map[string][2]string{}
+	// Blank, quote-only and URL tokens carry no package, whatever the ecosystem.
+	empty := map[string]bool{
+		"": true, "   ": true, "'": true, `""`: true,
+		"http://example.com/pkg": true, "https://example.com/pkg@1.2.3": true,
+	}
 	for _, eco := range ecosystems {
 		for _, tok := range tokens {
-			key := eco + "|" + tok
 			name, version := splitInstalledPackage(tok, eco)
-			if name == "" && version == "" {
-				// Empty return is a valid deterministic result.
+			name2, version2 := splitInstalledPackage(tok, eco)
+			if name != name2 || version != version2 {
+				t.Errorf("splitInstalledPackage(%q, %q) non-deterministic: got (%q, %q) then (%q, %q)",
+					tok, eco, name, version, name2, version2)
 			}
-			if prev, ok := seen[key]; ok {
-				if prev[0] != name || prev[1] != version {
-					t.Errorf("splitInstalledPackage(%q, %q) non-deterministic: got (%q, %q) then (%q, %q)",
-						tok, eco, prev[0], prev[1], name, version)
-				}
-			} else {
-				seen[key] = [2]string{name, version}
+			if empty[tok] && (name != "" || version != "") {
+				t.Errorf("splitInstalledPackage(%q, %q) = (%q, %q), want empty", tok, eco, name, version)
 			}
 		}
 	}
