@@ -59,8 +59,13 @@ func TestCheckDoc(t *testing.T) {
 
 	t.Run("nonexistent path yields an error", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "missing.md")
-		if err := checkDoc(path, want.Bytes()); err == nil {
+		err := checkDoc(path, want.Bytes())
+		if err == nil {
 			t.Fatal("checkDoc returned nil for a nonexistent path")
+		}
+		wantErr := path + " is out of date: run go run ./version/cmd/gen-schemes-doc > " + path
+		if !strings.Contains(err.Error(), wantErr) {
+			t.Fatalf("error %q does not contain %q", err, wantErr)
 		}
 	})
 }

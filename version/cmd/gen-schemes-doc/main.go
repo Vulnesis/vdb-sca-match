@@ -42,10 +42,7 @@ func main() {
 // usage documents.
 func checkDoc(path string, want []byte) error {
 	have, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("%s is out of date: run go run ./version/cmd/gen-schemes-doc > %s", path, path)
-	}
-	if !bytes.Equal(have, want) {
+	if err != nil || !bytes.Equal(have, want) {
 		return fmt.Errorf("%s is out of date: run go run ./version/cmd/gen-schemes-doc > %s", path, path)
 	}
 
