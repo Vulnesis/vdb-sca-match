@@ -486,6 +486,32 @@ func TestParsePurl_NoPanicOnMalformedInput(t *testing.T) {
 	}
 }
 
+// Subpath and qualifiers trail the version in a PURL and must be dropped before
+// the version is split off: a qualifier leaking into the version would corrupt
+// every comparison downstream. Pin the values, not just the absence of a panic.
+func TestParsePurl_StripsSubpathAndQualifiers(t *testing.T) {
+	cases := []struct {
+		purl, ecosystem, fullName, version string
+	}{
+		{"", "", "", ""},
+		{"not-a-purl", "", "", ""},
+		{"pkg:npm/name@", "npm", "name", ""},
+		{"pkg:npm/name@1.0.0#subpath", "npm", "name", "1.0.0"},
+		{"pkg:npm/name@1.0.0?extension=tar.gz", "npm", "name", "1.0.0"},
+		{"pkg:npm/name@1.0.0?extension=tar.gz&platform=linux", "npm", "name", "1.0.0"},
+		{"pkg:npm/name@1.0.0#sub/path?extension=tar.gz", "npm", "name", "1.0.0"},
+		{"pkg:maven/org.apache/commons@3.14.0?type=jar#src", "maven", "org.apache/commons", "3.14.0"},
+		{"pkg:npm/%40scope%2Fpkg@1.0.0", "npm", "@scope/pkg", "1.0.0"},
+	}
+	for _, tc := range cases {
+		eco, fullName, version := ParsePurl(tc.purl)
+		if eco != tc.ecosystem || fullName != tc.fullName || version != tc.version {
+			t.Errorf("ParsePurl(%q) = (%q, %q, %q), want (%q, %q, %q)",
+				tc.purl, eco, fullName, version, tc.ecosystem, tc.fullName, tc.version)
+		}
+	}
+}
+
 // "introduced 0, never fixed" arrives as `0 .. *` from OSV and GitHub, while cve.org
 // records the same advisory as a bare exact `0`. The bare 0 is a placeholder for "from
 // the beginning", not a specific version, so it must not discard the open range as
