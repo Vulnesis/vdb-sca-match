@@ -207,6 +207,13 @@ func TestClassifyVolume(t *testing.T) {
 			sourceName: "busybox:1.36",
 		},
 		{
+			// A bare `emptyDir:` in YAML decodes to a nil value; the key's
+			// presence is what marks it.
+			name:   "emptyDir null",
+			vol:    map[string]any{"name": "scratch", "emptyDir": nil},
+			source: "emptyDir",
+		},
+		{
 			name:   "unknown",
 			vol:    map[string]any{"name": "mystery"},
 			source: "unknown",
@@ -215,9 +222,10 @@ func TestClassifyVolume(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := classifyVolume(tc.vol)
-			if got.Source != tc.source || got.SourceName != tc.sourceName {
-				t.Errorf("classifyVolume(%v) = Source %q, SourceName %q; want %q, %q",
-					tc.vol, got.Source, got.SourceName, tc.source, tc.sourceName)
+			wantName, _ := tc.vol["name"].(string)
+			if got.Name != wantName || got.Source != tc.source || got.SourceName != tc.sourceName {
+				t.Errorf("classifyVolume(%v) = Name %q, Source %q, SourceName %q; want %q, %q, %q",
+					tc.vol, got.Name, got.Source, got.SourceName, wantName, tc.source, tc.sourceName)
 			}
 		})
 	}
