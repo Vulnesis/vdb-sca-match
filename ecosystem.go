@@ -1,6 +1,7 @@
 package match
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -82,17 +83,61 @@ func EcosystemEvidence(eco string) (canonical string, registryURLs, vendors []st
 	return canonical, ev.urls, ev.vendors, true
 }
 
+// distributions are the ecosystemEvidence keys that are operating system
+// distributions rather than package registries.
+var distributions = map[string]bool{
+	"alpine": true, "debian": true, "ubuntu": true, "redhat": true, "rocky": true,
+	"almalinux": true, "amazon": true, "suse": true, "fedora": true, "wolfi": true,
+}
+
 // nativeOnlyClauses keeps advisories that belong to no package registry and
 // no distribution: an empty collectionURL and a vendor that is not one of the
-// ecosystems above. Placeholders $2 for the vendors, as versionRangeEcoClauses.
+// ecosystems above. Placeholders: $1 the package name, $2 every ecosystem
+// vendor, $3 the registry collectionURLs and $4 the registry vendors.
+//
+// A row alone is not enough. NVD files CVE-2024-21485 as vendor "plotly",
+// product "dash", with no registry, while GitHub and OSV file the same CVE
+// under PyPI; read alone, the NVD row matched Debian's dash shell. So a row is
+// also dropped when its CVE, or an alias of it, names the same package under a
+// package registry, and when its CPE names a target platform
+// (ANCHORE-2025-31049 is a WordPress theme called Dash). OSV stores each
+// record's ecosystem as the vendor (openSUSE:Tumbleweed, openEuler:24.03-LTS,
+// TuxCare:AlmaLinux:9.2, opam, Echo), and far more ecosystems than the table
+// above, so an OSV row with a vendor is never native; OSS-Fuzz, whose records
+// are upstream projects, is the exception. A distribution row
+// for the same name does not drop it: Ubuntu filing a glibc CVE is the same
+// glibc.
 func nativeOnlyClauses() (outer, inner string, args []any) {
-	vendors := make([]string, 0, len(ecosystemEvidence)*2)
-	for _, ev := range ecosystemEvidence {
+	var vendors, regURLs, regVendors []string
+	for eco, ev := range ecosystemEvidence {
 		vendors = append(vendors, ev.vendors...)
+		if !distributions[eco] {
+			regURLs = append(regURLs, ev.urls...)
+			regVendors = append(regVendors, ev.vendors...)
+		}
 	}
 	sort.Strings(vendors)
-	outer = `(COALESCE(a."collectionURL", '') = '' AND LOWER(split_part(COALESCE(a."vendor", ''), ':', 1)) <> ALL($2::text[]))`
-	inner = `(COALESCE(ai."collectionURL", '') = '' AND LOWER(split_part(COALESCE(ai."vendor", ''), ':', 1)) <> ALL($2::text[]))`
+	sort.Strings(regURLs)
+	sort.Strings(regVendors)
 
-	return outer, inner, []any{vendors}
+	return nativeClause("a"), nativeClause("ai"), []any{vendors, regURLs, regVendors}
+}
+
+// cpeTargetSW matches a CPE 2.3 string whose target_sw field (the tenth) names
+// a platform rather than * or -.
+const cpeTargetSW = `cpe:2\.3:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:*-][^:]*:`
+
+func nativeClause(alias string) string {
+	return fmt.Sprintf(`(COALESCE(%[1]s."collectionURL", '') = ''
+		AND LOWER(split_part(COALESCE(%[1]s."vendor", ''), ':', 1)) <> ALL($2::text[])
+		AND NOT (%[1]s.source = 'osv' AND COALESCE(%[1]s."vendor", '') <> '' AND LOWER(%[1]s."vendor") NOT LIKE 'oss-fuzz%%')
+		AND COALESCE(%[1]s.cpes::text, '') !~ '%[2]s'
+		AND NOT EXISTS (
+		  SELECT 1 FROM "CVEAffected" r
+		  WHERE (r."cveId" = %[1]s."cveId"
+		         OR r."cveId" IN (SELECT "aliasCveId" FROM "CVEAlias" WHERE "primaryCveId" = %[1]s."cveId")
+		         OR r."cveId" IN (SELECT "primaryCveId" FROM "CVEAlias" WHERE "aliasCveId" = %[1]s."cveId"))
+		    AND LOWER(COALESCE(r."packageName", r.product)) = LOWER($1)
+		    AND (RTRIM(LOWER(COALESCE(r."collectionURL", '')), '/') = ANY($3::text[])
+		         OR LOWER(split_part(COALESCE(r."vendor", ''), ':', 1)) = ANY($4::text[]))))`, alias, cpeTargetSW)
 }

@@ -1,6 +1,7 @@
 package match
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -95,8 +96,21 @@ func contains(s []string, v string) bool {
 
 func TestNativeOnlyExcludesEveryRegistryAndDistro(t *testing.T) {
 	outer, inner, args := nativeOnlyClauses()
-	if !strings.Contains(outer, `a."collectionURL"`) || !strings.Contains(inner, `ai."collectionURL"`) || len(args) != 1 {
+	if !strings.Contains(outer, `a."collectionURL"`) || !strings.Contains(inner, `ai."collectionURL"`) || len(args) != 3 {
 		t.Fatalf("clauses = %q %q %v", outer, inner, args)
+	}
+	// The same-CVE check counts registries only, never a distribution.
+	regURLs, regVendors := args[1].([]string), args[2].([]string)
+	if !slices.Contains(regURLs, "https://pypi.org") || !slices.Contains(regVendors, "pypi") {
+		t.Errorf("registries missing: %v %v", regURLs, regVendors)
+	}
+	for _, d := range []string{"debian", "ubuntu", "red hat", "alpine"} {
+		if slices.Contains(regVendors, d) {
+			t.Errorf("distribution %q counted as a registry", d)
+		}
+	}
+	if !strings.Contains(outer, `"CVEAlias"`) || !strings.Contains(outer, `cpes`) {
+		t.Errorf("outer clause lacks the same-CVE or CPE check: %s", outer)
 	}
 	vendors := args[0].([]string)
 	for _, want := range []string{"npm", "pypi", "debian", "red hat", "alpine", "wolfi"} {
