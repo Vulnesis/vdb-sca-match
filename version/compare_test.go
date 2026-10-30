@@ -292,3 +292,39 @@ func TestCompareGenericTotalOrder(t *testing.T) {
 		}
 	}
 }
+
+// TestCompareGenericTransitive completes the total-preorder claim above:
+// a<=b and b<=c must give a<=c, and a==b, b==c must give a==c. Overflowing
+// numeric segments fall into the lexical branch, which is where a broken
+// ordering would show up first.
+func TestCompareGenericTransitive(t *testing.T) {
+	corpus := genericVersionCorpus()
+	cmp := make(map[[2]string]int, len(corpus)*len(corpus))
+	for _, a := range corpus {
+		for _, b := range corpus {
+			c, _ := compareGeneric(a, b)
+			cmp[[2]string{a, b}] = c
+		}
+	}
+	for _, a := range corpus {
+		for _, b := range corpus {
+			ab := cmp[[2]string{a, b}]
+			if ab > 0 {
+				continue
+			}
+			for _, c := range corpus {
+				bc := cmp[[2]string{b, c}]
+				if bc > 0 {
+					continue
+				}
+				ac := cmp[[2]string{a, c}]
+				if ac > 0 {
+					t.Errorf("not transitive: %q<=%q and %q<=%q but compareGeneric(%q,%q)=%d", a, b, b, c, a, c, ac)
+				}
+				if ab == 0 && bc == 0 && ac != 0 {
+					t.Errorf("equality not transitive: %q==%q==%q but compareGeneric(%q,%q)=%d", a, b, c, a, c, ac)
+				}
+			}
+		}
+	}
+}
