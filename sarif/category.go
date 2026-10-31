@@ -606,7 +606,7 @@ func pathCategory(uri string) Category {
 
 	// Dependency manifests and lockfiles.
 	case p == "go.mod" || p == "go.sum" || p == "package.json" ||
-		p == "package-lock.json" || p == "yarn.lock" || p == "pnpm-lock.yaml" ||
+		p == "package-lock.json" || p == "yarn.lock" || p == "pnpm-lock.yaml" || p == "bun.lock" ||
 		p == "requirements.txt" || p == "poetry.lock" || p == "pipfile.lock" ||
 		p == "cargo.toml" || p == "cargo.lock" || p == "gemfile" ||
 		p == "gemfile.lock" || p == "pom.xml" || p == "composer.json" ||

@@ -148,6 +148,8 @@ func ParseManifest(data []byte, manifestType, filePath string) ([]ScopedPackage,
 		return parseYarnLockScoped(data, filePath)
 	case "pnpm-lock.yaml":
 		return parsePnpmLockScoped(data, filePath)
+	case "bun.lock":
+		return parseBunLockScoped(data, filePath)
 	case "requirements.txt":
 		return parseRequirementsTxtScoped(data, filePath)
 	case "Pipfile.lock":
@@ -366,242 +368,43 @@ func parsePackageJSONScoped(data []byte, filePath string) ([]ScopedPackage, erro
 	}
 
 	var pkgs []ScopedPackage
-	for name, ver := range pkg.Dependencies {
-		pkgs = append(pkgs, ScopedPackage{Name: name, Version: cleanLocalVersion(ver), VersionSpec: ver, Ecosystem: "npm", Scope: ScopeProduction, SourceFile: filePath, IsDirect: true})
-	}
-	for name, ver := range pkg.DevDependencies {
-		pkgs = append(pkgs, ScopedPackage{Name: name, Version: cleanLocalVersion(ver), VersionSpec: ver, Ecosystem: "npm", Scope: ScopeDevelopment, SourceFile: filePath, IsDirect: true})
-	}
-	for name, ver := range pkg.PeerDependencies {
-		pkgs = append(pkgs, ScopedPackage{Name: name, Version: cleanLocalVersion(ver), VersionSpec: ver, Ecosystem: "npm", Scope: ScopePeer, SourceFile: filePath, IsDirect: true})
-	}
-	for name, ver := range pkg.OptionalDependencies {
-		pkgs = append(pkgs, ScopedPackage{Name: name, Version: cleanLocalVersion(ver), VersionSpec: ver, Ecosystem: "npm", Scope: ScopeOptional, SourceFile: filePath, IsDirect: true})
-	}
-	return pkgs, nil
-}
-
-func parsePackageLockJSONScoped(data []byte, filePath string) ([]ScopedPackage, error) {
-	// Supports both v1/v2 (dependencies) and v3 (packages) formats.
-	var lock struct {
-		LockfileVersion int `json:"lockfileVersion"`
-		Packages        map[string]struct {
-			Version     string `json:"version"`
-			Dev         bool   `json:"dev"`
-			DevOptional bool   `json:"devOptional"`
-			Optional    bool   `json:"optional"`
-			Peer        bool   `json:"peer"`
-			Integrity   string `json:"integrity"`
-		} `json:"packages"`
-		Dependencies map[string]struct {
-			Version   string `json:"version"`
-			Dev       bool   `json:"dev"`
-			Optional  bool   `json:"optional"`
-			Integrity string `json:"integrity"`
-		} `json:"dependencies"`
-	}
-	if err := json.Unmarshal(data, &lock); err != nil {
-		return nil, fmt.Errorf("invalid package-lock.json: %w", err)
-	}
-
-	var pkgs []ScopedPackage
-	seen := make(map[string]bool)
-
-	// v3 format: packages field
-	for path, pkg := range lock.Packages {
-		if path == "" {
-			continue // root package entry
-		}
-		name := path
-		if strings.HasPrefix(path, "node_modules/") {
-			name = strings.TrimPrefix(path, "node_modules/")
-		}
-		if seen[name] {
-			continue
-		}
-		seen[name] = true
-
-		scope := ScopeProduction
-		if pkg.Dev || pkg.DevOptional {
-			scope = ScopeDevelopment
-		} else if pkg.Peer {
-			scope = ScopePeer
-		} else if pkg.Optional {
-			scope = ScopeOptional
-		}
-		sp := ScopedPackage{Name: name, Version: pkg.Version, Ecosystem: "npm", Scope: scope, SourceFile: filePath}
-		if c := normalizeChecksum(pkg.Integrity); c.Alg != "" {
-			sp.Checksums = []PackageChecksum{c}
-		}
-		pkgs = append(pkgs, sp)
-	}
-
-	// v1/v2 format: dependencies field
-	for name, pkg := range lock.Dependencies {
-		if seen[name] {
-			continue
-		}
-		seen[name] = true
-
-		scope := ScopeProduction
-		if pkg.Dev {
-			scope = ScopeDevelopment
-		} else if pkg.Optional {
-			scope = ScopeOptional
-		}
-		sp := ScopedPackage{Name: name, Version: pkg.Version, Ecosystem: "npm", Scope: scope, SourceFile: filePath}
-		if c := normalizeChecksum(pkg.Integrity); c.Alg != "" {
-			sp.Checksums = []PackageChecksum{c}
-		}
-		pkgs = append(pkgs, sp)
-	}
-	return pkgs, nil
-}
-
-func parseYarnLockScoped(data []byte, filePath string) ([]ScopedPackage, error) {
-	// yarn.lock does not embed scope information; all packages are listed as production.
-	// Scope would require correlation with package.json which is not done here.
-	// Handles both yarn classic v1 and yarn berry v2/v3/v4 formats.
-	var pkgs []ScopedPackage
-	seen := make(map[string]bool)
-	scanner := bufio.NewScanner(strings.NewReader(string(data)))
-	var currentName, currentIntegrity string
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
-
-		// Package header: non-indented line containing '@' (not a comment or metadata).
-		if len(line) > 0 && line[0] != ' ' && line[0] != '\t' &&
-			line[0] != '#' && strings.Contains(line, "@") {
-			// Strip outer quotes and trailing colon.
-			cleaned := strings.TrimRight(trimmed, ":")
-			cleaned = strings.Trim(cleaned, `"`)
-			// Yarn berry lists comma-separated specifiers on one header line;
-			// take the first one only.
-			if idx := strings.Index(cleaned, ", "); idx > 0 {
-				cleaned = cleaned[:idx]
+	for _, m := range []struct {
+		deps  map[string]string
+		scope string
+	}{
+		{pkg.Dependencies, ScopeProduction},
+		{pkg.DevDependencies, ScopeDevelopment},
+		{pkg.PeerDependencies, ScopePeer},
+		{pkg.OptionalDependencies, ScopeOptional},
+	} {
+		for name, ver := range m.deps {
+			if npmLocalSpec(ver) {
+				continue
 			}
-			// Strip yarn berry registry prefix inside specifier (e.g. "@scope/pkg@npm:^1.0")
-			// We want just the package name — everything before the last '@'.
-			if strings.HasPrefix(cleaned, "@") {
-				// Scoped: @scope/name@specifier
-				idx := strings.LastIndex(cleaned, "@")
-				if idx > 0 {
-					currentName = cleaned[:idx]
-				}
-			} else {
-				idx := strings.Index(cleaned, "@")
-				if idx > 0 {
-					currentName = cleaned[:idx]
-				}
-			}
-			currentIntegrity = ""
-			continue
-		}
-
-		if currentName == "" {
-			continue
-		}
-
-		// Integrity/checksum line.
-		// Classic v1: integrity sha512-...
-		// Berry v4: checksum: ...
-		switch {
-		case strings.HasPrefix(trimmed, "integrity "):
-			currentIntegrity = strings.Trim(strings.TrimPrefix(trimmed, "integrity "), `"`)
-		case strings.HasPrefix(trimmed, "checksum: "):
-			currentIntegrity = strings.Trim(strings.TrimPrefix(trimmed, "checksum: "), `"`)
-		}
-
-		// Resolved version line.
-		// Classic v1:  version "1.2.3"
-		// Berry v4:    version: 1.2.3
-		var version string
-		switch {
-		case strings.HasPrefix(trimmed, "version \"") || strings.HasPrefix(trimmed, "version '"):
-			version = strings.Trim(strings.TrimPrefix(trimmed, "version "), `"'`)
-		case strings.HasPrefix(trimmed, "version: "):
-			version = strings.TrimSpace(strings.TrimPrefix(trimmed, "version: "))
-			version = strings.Trim(version, `"'`)
-		}
-
-		if version != "" {
-			key := currentName + "@" + version
-			if !seen[key] {
-				seen[key] = true
-				sp := ScopedPackage{Name: currentName, Version: version, Ecosystem: "npm", Scope: ScopeProduction, SourceFile: filePath}
-				if c := normalizeChecksum(currentIntegrity); c.Alg != "" {
-					sp.Checksums = []PackageChecksum{c}
-				}
-				pkgs = append(pkgs, sp)
-			}
-			currentName = ""
+			pkgs = append(pkgs, ScopedPackage{Name: name, Version: cleanLocalVersion(ver), VersionSpec: ver, Ecosystem: "npm", Scope: m.scope, SourceFile: filePath, IsDirect: true})
 		}
 	}
 	return pkgs, nil
 }
 
-func parsePnpmLockScoped(data []byte, filePath string) ([]ScopedPackage, error) {
-	// The packages section of pnpm-lock.yaml doesn't differentiate dev/prod.
-	// Full scope would require parsing importers sections.
-	var pkgs []ScopedPackage
-	seen := make(map[string]bool)
-	scanner := bufio.NewScanner(strings.NewReader(string(data)))
-	inPackages := false
-	var currentName, currentVersion, currentIntegrity string
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
-
-		if trimmed == "packages:" {
-			inPackages = true
-			continue
-		}
-		if inPackages && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
-			if currentName != "" && currentVersion != "" {
-				key := currentName + "@" + currentVersion
-				if !seen[key] {
-					seen[key] = true
-					sp := ScopedPackage{Name: currentName, Version: currentVersion, Ecosystem: "npm", Scope: ScopeProduction, SourceFile: filePath}
-					if c := normalizeChecksum(currentIntegrity); c.Alg != "" {
-						sp.Checksums = []PackageChecksum{c}
-					}
-					pkgs = append(pkgs, sp)
-				}
-			}
-			currentName, currentVersion, currentIntegrity = "", "", ""
-			inPackages = false
-			continue
-		}
-
-		if inPackages {
-			if strings.HasPrefix(trimmed, "/") && strings.Contains(trimmed, "@") {
-				entry := strings.TrimPrefix(strings.TrimSuffix(trimmed, ":"), "/")
-				lastAt := strings.LastIndex(entry, "@")
-				if lastAt > 0 {
-					currentName = entry[:lastAt]
-					currentVersion = entry[lastAt+1:]
-				}
-			} else if strings.HasPrefix(trimmed, "integrity:") {
-				currentIntegrity = strings.Trim(strings.TrimPrefix(trimmed, "integrity:"), `"`)
-			}
+// npmLocalSpec reports whether a package.json dependency names source in the
+// repository rather than a registry release: another workspace member
+// ("workspace:*", which npm, yarn, pnpm and bun all accept), a path ("file:",
+// "link:", "portal:"). Such an entry has no version to compare with an advisory,
+// and "workspace:*" passes as pinned, so it was queried as a registry package
+// under the member's name (Vulnetix/cli#177).
+func npmLocalSpec(spec string) bool {
+	spec = strings.TrimSpace(spec)
+	for _, p := range []string{"workspace:", "file:", "link:", "portal:"} {
+		if strings.HasPrefix(spec, p) {
+			return true
 		}
 	}
-	if inPackages && currentName != "" && currentVersion != "" {
-		key := currentName + "@" + currentVersion
-		if !seen[key] {
-			seen[key] = true
-			sp := ScopedPackage{Name: currentName, Version: currentVersion, Ecosystem: "npm", Scope: ScopeProduction, SourceFile: filePath}
-			if c := normalizeChecksum(currentIntegrity); c.Alg != "" {
-				sp.Checksums = []PackageChecksum{c}
-			}
-			pkgs = append(pkgs, sp)
-		}
-	}
-	return pkgs, nil
+	return false
 }
+
+// parsePackageLockJSONScoped, parseYarnLockScoped and parsePnpmLockScoped live in
+// npmlock.go, yarnlock.go and pnpmlock.go; parseBunLockScoped in bunlock.go.
 
 // ---------------------------------------------------------------------------
 // Python
