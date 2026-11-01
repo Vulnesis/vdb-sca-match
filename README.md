@@ -93,3 +93,10 @@ mirror) and render the `Report` as SARIF (`Report.SARIF`, driver `Vulnetix GitHu
 `IAC`) or as Finding rows. The CLI (`vulnetix gha workflows|actions|settings|org|audit`)
 and the Software Factory webhook path run the same engine, so the same input produces the same
 finding in both. Rule catalogue: [docs/ghaudit-rules.md](./docs/ghaudit-rules.md).
+
+## Suppression engine (`suppression/`)
+
+Every service that writes a `Finding` row calls this engine, so a suppression rule covers the
+rows each new scan writes, a false positive or won't fix VEX statement becomes a rule, and
+each real suppression is recorded, audited and minted as a VEX. The classifier lives in the
+public `vdb-cyclonedx/vexrules` package. Details: [docs/suppression-engine.md](./docs/suppression-engine.md).
