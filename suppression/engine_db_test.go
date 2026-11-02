@@ -73,6 +73,10 @@ func setupDB(t *testing.T) *pgxpool.Pool {
 	mustExec(t, pool, string(data))
 	// The migration is idempotent: a second run must not fail or duplicate.
 	mustExec(t, pool, string(data))
+	// The Suppression half of saas 20261221000001_rule_suppression_cel_expr,
+	// which ruleCols reads. That migration also alters RiskPrioritizationRule,
+	// which this schema does not have, so it cannot be applied whole here.
+	mustExec(t, pool, `ALTER TABLE "Suppression" ADD COLUMN IF NOT EXISTS expr TEXT, ADD COLUMN IF NOT EXISTS justification TEXT`)
 	return pool
 }
 

@@ -52,6 +52,23 @@ type Engine struct {
 	Service string
 	// Now returns unix seconds. Tests replace it.
 	Now func() int64
+	// Conditions evaluates the when (CEL) of rules that carry one
+	// (Suppression.expr). Such a rule covers a finding only when its anchors
+	// match AND the evaluator says the expression holds. With no evaluator it
+	// covers nothing: applying it on its anchors alone would suppress more
+	// than its author declared, and an unsuppressed finding is visible and
+	// fixable where a wrongly suppressed one is not.
+	Conditions ConditionEvaluator
+}
+
+// ConditionEvaluator decides a rule's when expression for findings. The
+// finding facts an expression reads (scores, KEV, reachability, exposure) are
+// the service's own read model, which is why the engine asks rather than
+// computes them.
+type ConditionEvaluator interface {
+	// Holds returns the subset of findingUuids (Finding.uuid, all in orgID)
+	// for which expr evaluates true. It runs inside the engine's savepoint.
+	Holds(ctx context.Context, tx pgx.Tx, orgID, expr string, findingUuids []string) (map[string]bool, error)
 }
 
 func (e *Engine) now() int64 {
@@ -109,6 +126,10 @@ type Result struct {
 	// MintError is set when the applications were recorded but their VEX
 	// could not be written. Callers log it; nothing else is lost.
 	MintError error
+	// ConditionError is set when a rule's when expression could not be
+	// evaluated. That rule covered nothing in this call; every other rule
+	// applied as usual. Callers log it.
+	ConditionError error
 }
 
 // MintedVEX is one VEX document the engine wrote.

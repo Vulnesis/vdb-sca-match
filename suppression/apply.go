@@ -46,6 +46,8 @@ type ruleRow struct {
 	FindingUuid string
 	Reason      string
 	SourceKind  string
+	// Expr is the rule's when (CEL), empty for most rules.
+	Expr string
 }
 
 const findingCols = `f.uuid, f."findingId", f.category, COALESCE(f.aliases,''), COALESCE(f.purl,''),
@@ -85,7 +87,8 @@ func loadScopeFindings(ctx context.Context, tx pgx.Tx, s Scope) ([]findingRow, e
 const ruleCols = `s.uuid, s."suppressionType", COALESCE(s."ruleId",''), COALESCE(s.category,''), COALESCE(s."findingUuid",''),
 	COALESCE(s."targetValue",''), COALESCE(s."filePath",''), COALESCE(s."lineRange",''), COALESCE(s."vulnerabilityId",''),
 	COALESCE(s."productPurlBase",''), COALESCE(s."repositoryFullName",''), COALESCE(s."branchName",''),
-	COALESCE(s."expiresAt",0), s."isActive", COALESCE(s.reason,''), COALESCE(s."sourceKind",'')`
+	COALESCE(s."expiresAt",0), s."isActive", COALESCE(s.reason,''), COALESCE(s."sourceKind",''),
+	COALESCE(s.expr,'')`
 
 func scanRules(rows pgx.Rows) ([]ruleRow, error) {
 	defer rows.Close()
@@ -95,7 +98,7 @@ func scanRules(rows pgx.Rows) ([]ruleRow, error) {
 		if err := rows.Scan(&r.Rule.UUID, &r.Rule.Type, &r.Rule.RuleID, &r.Rule.Category, &r.FindingUuid,
 			&r.Rule.TargetValue, &r.Rule.FilePath, &r.Rule.LineRange, &r.Rule.VulnerabilityID,
 			&r.Rule.ProductPurlBase, &r.Rule.RepositoryFullName, &r.Rule.Branch,
-			&r.Rule.ExpiresAt, &r.Rule.IsActive, &r.Reason, &r.SourceKind); err != nil {
+			&r.Rule.ExpiresAt, &r.Rule.IsActive, &r.Reason, &r.SourceKind, &r.Expr); err != nil {
 			return nil, err
 		}
 		out = append(out, r)
@@ -186,23 +189,73 @@ func (e *Engine) Apply(ctx context.Context, db Beginner, s Scope) (Result, error
 	return res, nil
 }
 
+// rulePair is one rule whose anchors match one finding.
+type rulePair struct {
+	r ruleRow
+	f findingRow
+}
+
+// keepHolding drops the pairs whose rule has a when expression that does not
+// hold for the finding. The anchors decide first, in matches; the expression
+// is then evaluated over the findings they matched, in one evaluator call per
+// rule rather than one per pair. A rule the evaluator cannot decide (no
+// evaluator, or an error, which is returned) covers nothing.
+func (e *Engine) keepHolding(ctx context.Context, tx pgx.Tx, orgID string, pairs []rulePair) ([]rulePair, error) {
+	conditional := map[string][]string{}
+	var order []ruleRow
+	for _, p := range pairs {
+		if p.r.Expr == "" {
+			continue
+		}
+		if _, seen := conditional[p.r.Rule.UUID]; !seen {
+			order = append(order, p.r)
+		}
+		conditional[p.r.Rule.UUID] = append(conditional[p.r.Rule.UUID], p.f.UUID)
+	}
+	if len(order) == 0 {
+		return pairs, nil
+	}
+	var firstErr error
+	holds := map[string]map[string]bool{}
+	for _, r := range order {
+		if e.Conditions == nil {
+			continue
+		}
+		h, err := e.Conditions.Holds(ctx, tx, orgID, r.Expr, conditional[r.Rule.UUID])
+		if err != nil {
+			if firstErr == nil {
+				firstErr = fmt.Errorf("rule %s: %w", r.Rule.UUID, err)
+			}
+			continue
+		}
+		holds[r.Rule.UUID] = h
+	}
+	kept := pairs[:0]
+	for _, p := range pairs {
+		if p.r.Expr != "" && !holds[p.r.Rule.UUID][p.f.UUID] {
+			continue
+		}
+		kept = append(kept, p)
+	}
+	return kept, firstErr
+}
+
 // record writes applications, Triage, audit rows and the minted VEX for the
 // given findings and rules.
 func (e *Engine) record(ctx context.Context, tx pgx.Tx, s Scope, findings []findingRow, rules []ruleRow, now int64) (Result, error) {
 	var res Result
 	covered := map[string]bool{}
-	type pair struct {
-		r ruleRow
-		f findingRow
-	}
-	var pairs []pair
+	var pairs []rulePair
 	for _, f := range findings {
 		for _, r := range rules {
 			if matches(r, f) {
-				pairs = append(pairs, pair{r, f})
-				covered[f.UUID] = true
+				pairs = append(pairs, rulePair{r, f})
 			}
 		}
+	}
+	pairs, res.ConditionError = e.keepHolding(ctx, tx, s.OrgID, pairs)
+	for _, p := range pairs {
+		covered[p.f.UUID] = true
 	}
 	res.Suppressed = len(covered)
 	if len(pairs) == 0 {
