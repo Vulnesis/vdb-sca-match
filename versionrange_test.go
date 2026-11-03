@@ -43,6 +43,12 @@ func TestEvaluateProduct(t *testing.T) {
 		{"within introduced..lessThan", "2.5.0", "npm", []affRow{ar("affected", "semver", "2.0.0", "3.0.0", "")}, prodSpecific, "version-range:lessThan"},
 		{"zero lower bound is unbounded", "0.5.0", "npm", []affRow{ar("affected", "semver", "0", "1.0.0", "")}, prodSpecific, "version-range:lessThan"},
 
+		// ── unaffected from X on (a distribution ruling a CVE out for its package) ──
+		{"unaffected-from covers a later version", "157.0.1-1", "arch", []affRow{ar("unaffected", "arch", "85.0.2-1", "*", "")}, prodUnaffected, ""},
+		{"unaffected-from covers X itself", "85.0.2-1", "arch", []affRow{ar("unaffected", "arch", "85.0.2-1", "*", "")}, prodUnaffected, ""},
+		{"unaffected-from does not cover an older version", "84.0-1", "arch", []affRow{ar("unaffected", "arch", "85.0.2-1", "*", "")}, prodNone, ""},
+		{"unaffected-from uses the epoch", "1:1.0-1", "arch", []affRow{ar("unaffected", "arch", "2.0-1", "*", "")}, prodUnaffected, ""},
+
 		// ── segment wildcards ──
 		{"segment wildcard 8.x matches 8.3.1", "8.3.1", "npm", []affRow{ar("affected", "semver", "8.x", "", "")}, prodSpecific, "version-range:segwild"},
 		{"segment wildcard 8.x rejects 9.0.0", "9.0.0", "npm", []affRow{ar("affected", "semver", "8.x", "", "")}, prodNone, ""},

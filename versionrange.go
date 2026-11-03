@@ -375,6 +375,17 @@ func evaluateProduct(installed, eco string, rows []affRow) (prodVerdict, string,
 	haveWildcardAff := false
 
 	for _, r := range rows {
+		// "Unaffected from X on, never regressed" (a concrete start, lessThan "*"):
+		// the installed version is decisively unaffected when it is at or past X.
+		// A distribution that rules a CVE out for its package says exactly this
+		// (the Arch Security Tracker's "Not affected"); without it the row matched
+		// no installed version but the one it names and the CVE read as inconclusive.
+		if r.status == "unaffected" && rowIsOpenRange(r) {
+			if cmp, ok := ver.Compare(eco, r.versionType, installed, r.version); ok && cmp >= 0 {
+				haveRangeUnaff = true
+			}
+			continue
+		}
 		if rowIsWildcard(r) {
 			if r.status == "affected" {
 				haveWildcardAff = true
