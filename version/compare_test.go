@@ -377,3 +377,27 @@ func TestWithinUsesLibalpmForArch(t *testing.T) {
 		}
 	}
 }
+
+// An Amazon Linux build is ordered by rpm's vercmp with the epoch first, and
+// the .amzn2023.0.N dist tag is part of the release: 0.10 is after 0.9.
+func TestWithinUsesRpmForAmazon(t *testing.T) {
+	cases := []struct {
+		version, lessThan string
+		want              bool
+	}{
+		{"3.0.8-1.amzn2023.0.1", "3.0.8-1.amzn2023.0.5", true},
+		{"3.0.8-1.amzn2023.0.5", "3.0.8-1.amzn2023.0.5", false},
+		{"3.0.8-1.amzn2023.0.10", "3.0.8-1.amzn2023.0.9", false},
+		{"3.0.8-1.amzn2023.0.1", "3.2.2-1.amzn2023.0.1", true},
+		{"3.0.8-1.amzn2023.0.1", "1:3.0.8-1.amzn2023.0.1", true},
+		{"1:3.0.8-1.amzn2023.0.1", "3.2.2-1.amzn2023.0.1", false},
+		{"1:3.2.2-1.amzn2023.0.1", "1:3.2.2-1.amzn2023.0.2", true},
+		{"6.1.19-30.43.amzn2023", "6.1.25-37.47.amzn2023", true},
+	}
+	for _, c := range cases {
+		got, ok := Within("amazon", "rpm", c.version, "", c.lessThan, "")
+		if !ok || got != c.want {
+			t.Errorf("Within(amazon, %q < %q) = %v, %v; want %v", c.version, c.lessThan, got, ok, c.want)
+		}
+	}
+}

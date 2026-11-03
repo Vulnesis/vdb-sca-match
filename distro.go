@@ -147,8 +147,9 @@ func MatchOSPackage(ctx context.Context, q Querier, dep Dependency, distro, sour
 			}
 			// A distribution fixes each release branch separately: "< 3.3.3-r0"
 			// is the fix on the branch that ships OpenSSL 3.3 and says nothing
-			// about 3.1.8 on an older release.
-			if !sameBranch(distro, dep.Version, m.VulnerableRange) {
+			// about 3.1.8 on an older release. Not for a distribution whose
+			// rows are already one stream (singleStream).
+			if !singleStream(distro) && !sameBranch(distro, dep.Version, m.VulnerableRange) {
 				continue
 			}
 			if !have[m.CveID] {
@@ -246,9 +247,63 @@ func DistroRelease(purl string) string {
 		if parts := strings.SplitN(v, ".", 3); len(parts) >= 2 && parts[0] != "" && parts[1] != "" {
 			return "alpine:v" + parts[0] + "." + parts[1]
 		}
+	case "amazon":
+		// amazon-2023, amzn-2023, amzn2023, amazonlinux-2: the release line
+		// ("2023", "2") the Amazon Linux rows are tagged with.
+		v := d
+		for _, p := range []string{"amazonlinux", "amazon", "amzn"} {
+			if rest, ok := strings.CutPrefix(v, p); ok {
+				v = rest
+				break
+			}
+		}
+		v, _, _ = strings.Cut(strings.TrimLeft(v, "-_ "), ".")
+		if v != "" && strings.Trim(v, "0123456789") == "" {
+			return "amazon:" + v
+		}
 	}
 
 	return ""
+}
+
+// singleStream reports whether a distribution's advisory rows already say
+// which build they fix, so that an installed version on another upstream
+// branch than the fix is still judged by version. Arch is rolling: one stream,
+// and 3.2.1 is below the fix at 3.3.0. Amazon Linux rows are tagged with their
+// release (DistroRelease) and each release is one linear stream of builds that
+// moves between upstream branches (curl 8.0.1 to 8.5.0 to 8.11.1). sameBranch
+// is for the untagged rows of distributions that backport on a fixed branch.
+func singleStream(distro string) bool {
+	return distro == "arch" || distro == "amazon"
+}
+
+// EpochVersion is the version to match an rpm package of Amazon Linux by. The
+// sensor writes an rpm's version as version-release and carries a non-zero
+// epoch in the purl's epoch qualifier, while advisory rows hold the full
+// epoch:version-release: openssl-libs 3.0.8-1 with epoch 1 is 1:3.0.8-1, and
+// without the epoch it would read as epoch 0, below every fix. Anything
+// else, and a version that already names its epoch, comes back unchanged.
+func EpochVersion(purl, version string) string {
+	if DistroEcosystem(purl) != "amazon" || version == "" {
+		return version
+	}
+	if i := strings.IndexByte(version, ':'); i > 0 && strings.Trim(version[:i], "0123456789") == "" {
+		return version
+	}
+	_, query, ok := strings.Cut(purl, "?")
+	if !ok {
+		return version
+	}
+	q, err := url.ParseQuery(query)
+	if err != nil {
+		return version
+	}
+	e := strings.TrimSpace(q.Get("epoch"))
+	if e == "" || e == "0" || strings.Trim(e, "0123456789") != "" {
+		return version
+	}
+
+	return e + ":" + version
 }
 
 // DistroSource is the source package a distribution purl names in its

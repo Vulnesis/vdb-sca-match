@@ -81,3 +81,39 @@ func TestSameBranch(t *testing.T) {
 		}
 	}
 }
+
+func TestSingleStreamDistrosAreNotBranchChecked(t *testing.T) {
+	// Arch is rolling and Amazon Linux rows are tagged by release: an install on
+	// an older upstream branch than the fix is below the fix, not "another
+	// branch's fix". The same ranges on Alpine stay branch-scoped.
+	if !singleStream("arch") || !singleStream("amazon") {
+		t.Fatal("arch and amazon are single-stream")
+	}
+	for _, d := range []string{"alpine", "debian", "ubuntu", "redhat", "rocky", "suse", "wolfi", ""} {
+		if singleStream(d) {
+			t.Errorf("%q must keep the branch check", d)
+		}
+	}
+	if sameBranch("amazon", "8.0.1-1.amzn2023.0.1", "<8.5.0-1.amzn2023.0.1") {
+		t.Fatal("sameBranch itself still sees two branches; MatchOSPackage must not call it for amazon")
+	}
+}
+
+func TestEpochVersion(t *testing.T) {
+	cases := []struct{ purl, in, want string }{
+		{"pkg:rpm/amazon/openssl-libs@3.0.8-1.amzn2023.0.1?arch=aarch64&distro=amazon-2023&epoch=1&upstream=openssl", "3.0.8-1.amzn2023.0.1", "1:3.0.8-1.amzn2023.0.1"},
+		{"pkg:rpm/amazon/bash@5.2.15-3.amzn2023.0.1?arch=aarch64&distro=amazon-2023", "5.2.15-3.amzn2023.0.1", "5.2.15-3.amzn2023.0.1"},
+		{"pkg:rpm/amazon/x@1-1?epoch=0&distro=amazon-2023", "1-1", "1-1"},
+		{"pkg:rpm/amazon/x@1:1-1?epoch=1&distro=amazon-2023", "1:1-1", "1:1-1"},
+		{"pkg:rpm/amazon/x@1-1?epoch=junk&distro=amazon-2023", "1-1", "1-1"},
+		// Other rpm distributions keep their version: their rows are not written with an epoch.
+		{"pkg:rpm/redhat/openssl@3.0.7-24.el9?epoch=1&distro=rhel-9", "3.0.7-24.el9", "3.0.7-24.el9"},
+		{"pkg:rpm/amazon/x?epoch=1&distro=amazon-2023", "", ""},
+		{"not a purl", "1.0", "1.0"},
+	}
+	for _, c := range cases {
+		if got := EpochVersion(c.purl, c.in); got != c.want {
+			t.Errorf("EpochVersion(%q, %q) = %q, want %q", c.purl, c.in, got, c.want)
+		}
+	}
+}

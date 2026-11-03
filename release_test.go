@@ -7,15 +7,20 @@ import (
 
 func TestDistroRelease(t *testing.T) {
 	for purl, want := range map[string]string{
-		"pkg:deb/debian/tar@1.34+dfsg-1.2+deb12u1?arch=amd64&distro=debian-12": "debian:12",
-		"pkg:deb/debian/libc6@2.36-9?distro=debian-12.5":                       "debian:12",
-		"pkg:deb/debian/dash@0.5.12-2?distro=bookworm":                         "debian:12",
-		"pkg:deb/ubuntu/perl-base@5.34.0-3ubuntu1.9?distro=ubuntu-22.04":       "ubuntu:22.04",
-		"pkg:apk/alpine/busybox@1.36.1-r7?distro=alpine-3.18.4":                "alpine:v3.18",
-		"pkg:apk/alpine/busybox@1.36.1-r7?distro=3.18.4":                       "alpine:v3.18",
-		"pkg:rpm/redhat/openssl@3.0.7?distro=rhel-9":                           "",
-		"pkg:alpm/arch/vim@9.0.1224-1?arch=x86_64":                             "",
-		"pkg:deb/debian/tar@1.34":                                              "",
+		"pkg:deb/debian/tar@1.34+dfsg-1.2+deb12u1?arch=amd64&distro=debian-12":             "debian:12",
+		"pkg:deb/debian/libc6@2.36-9?distro=debian-12.5":                                   "debian:12",
+		"pkg:deb/debian/dash@0.5.12-2?distro=bookworm":                                     "debian:12",
+		"pkg:deb/ubuntu/perl-base@5.34.0-3ubuntu1.9?distro=ubuntu-22.04":                   "ubuntu:22.04",
+		"pkg:apk/alpine/busybox@1.36.1-r7?distro=alpine-3.18.4":                            "alpine:v3.18",
+		"pkg:apk/alpine/busybox@1.36.1-r7?distro=3.18.4":                                   "alpine:v3.18",
+		"pkg:rpm/redhat/openssl@3.0.7?distro=rhel-9":                                       "",
+		"pkg:rpm/amazon/openssl-libs@3.0.8-1.amzn2023.0.1?arch=aarch64&distro=amazon-2023": "amazon:2023",
+		"pkg:rpm/amazon/bash@4.2-1.amzn2?distro=amzn-2":                                    "amazon:2",
+		"pkg:rpm/amazon/bash@4.2-1?distro=amazonlinux-2.0":                                 "amazon:2",
+		"pkg:rpm/amazon/bash@5.2-1.amzn2023?distro=amzn2023":                               "amazon:2023",
+		"pkg:rpm/amazon/bash@5.2-1":                                                        "",
+		"pkg:alpm/arch/vim@9.0.1224-1?arch=x86_64":                                         "",
+		"pkg:deb/debian/tar@1.34":                                                          "",
 	} {
 		if got := DistroRelease(purl); got != want {
 			t.Errorf("DistroRelease(%q) = %q, want %q", purl, got, want)

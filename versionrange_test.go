@@ -49,6 +49,14 @@ func TestEvaluateProduct(t *testing.T) {
 		{"unaffected-from does not cover an older version", "84.0-1", "arch", []affRow{ar("unaffected", "arch", "85.0.2-1", "*", "")}, prodNone, ""},
 		{"unaffected-from uses the epoch", "1:1.0-1", "arch", []affRow{ar("unaffected", "arch", "2.0-1", "*", "")}, prodUnaffected, ""},
 
+		// ── Amazon Linux: rows hold the fixed epoch:version-release ──
+		{"amazon below the fixed build", "3.0.8-1.amzn2023.0.1", "amazon", []affRow{ar("affected", "rpm", "0", "3.0.8-1.amzn2023.0.5", "")}, prodSpecific, "version-range:lessThan"},
+		{"amazon at the fixed build", "3.0.8-1.amzn2023.0.5", "amazon", []affRow{ar("affected", "rpm", "0", "3.0.8-1.amzn2023.0.5", "")}, prodNone, ""},
+		{"amazon past the fixed build", "3.0.8-1.amzn2023.0.10", "amazon", []affRow{ar("affected", "rpm", "0", "3.0.8-1.amzn2023.0.9", "")}, prodNone, ""},
+		{"amazon fixed on a later upstream branch", "8.0.1-1.amzn2023.0.1", "amazon", []affRow{ar("affected", "rpm", "0", "8.5.0-1.amzn2023.0.1", "")}, prodSpecific, "version-range:lessThan"},
+		{"amazon epoch install below the epoch fix", "1:3.0.8-1.amzn2023.0.1", "amazon", []affRow{ar("affected", "rpm", "0", "1:3.0.8-1.amzn2023.0.4", "")}, prodSpecific, "version-range:lessThan"},
+		{"amazon epoch install at the epoch fix", "1:3.0.8-1.amzn2023.0.4", "amazon", []affRow{ar("affected", "rpm", "0", "1:3.0.8-1.amzn2023.0.4", "")}, prodNone, ""},
+
 		// ── segment wildcards ──
 		{"segment wildcard 8.x matches 8.3.1", "8.3.1", "npm", []affRow{ar("affected", "semver", "8.x", "", "")}, prodSpecific, "version-range:segwild"},
 		{"segment wildcard 8.x rejects 9.0.0", "9.0.0", "npm", []affRow{ar("affected", "semver", "8.x", "", "")}, prodNone, ""},
