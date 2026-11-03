@@ -22,7 +22,7 @@ func Compare(ecosystem, versionType, a, b string) (cmp int, ok bool) {
 // distribution ecosystem to. The generic comparison splits 1.2.5-r12 into
 // 1, 2, 5, "r12" and orders "r12" before "r9" as text, so musl 1.2.5-r12 on
 // Alpine 3.21 read as below Alpine's fix at 1.2.5-r9.
-var distroSchemes = map[string]bool{"debian": true, "rpm": true, "alpine": true, "wolfi": true}
+var distroSchemes = map[string]bool{"debian": true, "rpm": true, "alpine": true, "wolfi": true, "arch": true}
 
 // Within checks if version is inside the range [lowerBound, upperBound).
 // The upper bound is exclusive (lessThan) unless lessThanOrEqual is provided.

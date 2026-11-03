@@ -64,6 +64,9 @@ var ecosystemEvidence = map[string]struct {
 	"suse":      {urls: []string{"https://www.suse.com", "https://packagehub.suse.com"}, vendors: []string{"suse"}},
 	"fedora":    {urls: []string{"https://bodhi.fedoraproject.org"}, vendors: []string{"fedora"}},
 	"wolfi":     {urls: []string{"https://wolfi.dev", "https://images.chainguard.dev"}, vendors: []string{"wolfi", "chainguard"}},
+	// The Arch Security Tracker (AVG groups). AUR rows are a user repository, not
+	// the distribution, and stay under their own vendor.
+	"arch": {urls: []string{"https://security.archlinux.org"}, vendors: []string{"arch"}},
 }
 
 // EcosystemEvidence resolves a PURL `type` (or canonical ecosystem) to its
@@ -109,7 +112,7 @@ func RegistryEcosystem(purl string) string {
 // distributions rather than package registries.
 var distributions = map[string]bool{
 	"alpine": true, "debian": true, "ubuntu": true, "redhat": true, "rocky": true,
-	"almalinux": true, "amazon": true, "suse": true, "fedora": true, "wolfi": true,
+	"almalinux": true, "amazon": true, "suse": true, "fedora": true, "wolfi": true, "arch": true,
 }
 
 // nativeOnlyClauses keeps advisories that belong to no package registry and

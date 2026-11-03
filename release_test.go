@@ -14,6 +14,7 @@ func TestDistroRelease(t *testing.T) {
 		"pkg:apk/alpine/busybox@1.36.1-r7?distro=alpine-3.18.4":                "alpine:v3.18",
 		"pkg:apk/alpine/busybox@1.36.1-r7?distro=3.18.4":                       "alpine:v3.18",
 		"pkg:rpm/redhat/openssl@3.0.7?distro=rhel-9":                           "",
+		"pkg:alpm/arch/vim@9.0.1224-1?arch=x86_64":                             "",
 		"pkg:deb/debian/tar@1.34":                                              "",
 	} {
 		if got := DistroRelease(purl); got != want {

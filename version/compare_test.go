@@ -355,3 +355,25 @@ func TestWithinUsesTheDistributionScheme(t *testing.T) {
 		}
 	}
 }
+
+// An Arch package version is ordered by libalpm's vercmp, not by splitting on
+// dots and dashes: the epoch outranks the version, and pkgrel breaks a tie.
+func TestWithinUsesLibalpmForArch(t *testing.T) {
+	cases := []struct {
+		version, lessThan string
+		want              bool
+	}{
+		{"9.0.1224-1", "9.0.1225-1", true},
+		{"9.0.1225-1", "9.0.1225-1", false},
+		{"9.0.1225-1", "9.0.1225-2", true},
+		{"1.3.1-2", "1:1.0-1", true},
+		{"1:1.0-1", "1.3.1-2", false},
+		{"6.12.1.arch1-1", "6.12.2.arch1-1", true},
+	}
+	for _, c := range cases {
+		got, ok := Within("arch", "", c.version, "", c.lessThan, "")
+		if !ok || got != c.want {
+			t.Errorf("Within(arch, %q < %q) = %v, %v; want %v", c.version, c.lessThan, got, ok, c.want)
+		}
+	}
+}

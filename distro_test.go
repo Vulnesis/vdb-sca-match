@@ -11,6 +11,11 @@ func TestDistroEcosystem(t *testing.T) {
 		"pkg:rpm/redhat/openssl@3.0.7-27.el9?distro=rhel-9.4":             "redhat",
 		"pkg:rpm/rocky/bash@5.1.8-9.el9":                                  "rocky",
 		"pkg:apk/wolfi/glibc@2.40-r3":                                     "wolfi",
+		"pkg:alpm/arch/vim@9.0.1224-1?arch=x86_64":                        "arch",
+		"pkg:alpm/archlinux/openssl@3.4.0-1":                              "arch",
+		"pkg:alpm/cachyos/zlib@1:1.3.1-2?arch=x86_64_v3&distro=cachyos":   "arch",
+		"pkg:alpm/manjaro/curl@8.11.0-1":                                  "arch",
+		"pkg:alpm/aur/yay@12.4.2-1":                                       "",
 		"pkg:deb/kali/foo@1":                                              "",
 		"pkg:npm/lodash@4.17.21":                                          "",
 		"pkg:generic/amazon/ec2?arn=x":                                    "",
@@ -22,7 +27,7 @@ func TestDistroEcosystem(t *testing.T) {
 		}
 	}
 	// Every distro it names has advisory evidence to restrict on.
-	for _, eco := range []string{"alpine", "debian", "ubuntu", "redhat", "rocky", "almalinux", "amazon", "suse", "fedora", "wolfi"} {
+	for _, eco := range []string{"alpine", "debian", "ubuntu", "redhat", "rocky", "almalinux", "amazon", "suse", "fedora", "wolfi", "arch"} {
 		if _, urls, vendors, ok := EcosystemEvidence(eco); !ok || (len(urls) == 0 && len(vendors) == 0) {
 			t.Errorf("%s has no ecosystem evidence", eco)
 		}
@@ -37,6 +42,8 @@ func TestUpstreamVersion(t *testing.T) {
 		{"debian", "5.6.1+really5.4.5-1", "5.4.5"},
 		{"ubuntu", "3.0.2-0ubuntu1.15", "3.0.2"},
 		{"amazon", "1.1.7-1.amzn2", "1.1.7"},
+		{"arch", "1:2.3.4-2", "2.3.4"},
+		{"arch", "6.12.1.arch1-1", "6.12.1.arch1"},
 		{"debian", "3.152", "3.152"},
 		{"", "1.2.3-4", "1.2.3-4"},
 	}

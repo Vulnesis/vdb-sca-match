@@ -10,9 +10,9 @@ import (
 
 // DistroEcosystem names the distribution an OS package's purl comes from, as
 // an ecosystem MatchDependency restricts advisories to: "alpine", "debian",
-// "ubuntu", "redhat", "rocky", "almalinux", "amazon", "suse", "fedora" or
-// "wolfi". It returns "" for anything that is not a deb, rpm or apk package
-// with a namespace or distro qualifier it knows.
+// "ubuntu", "redhat", "rocky", "almalinux", "amazon", "suse", "fedora", "wolfi"
+// or "arch". It returns "" for anything that is not a deb, rpm, apk or alpm
+// package with a namespace or distro qualifier it knows.
 //
 // A distribution backports fixes without moving the upstream version, so
 // libc6 2.36-9+deb12u4 can be fixed for a CVE whose upstream range still
@@ -28,7 +28,7 @@ func DistroEcosystem(purl string) string {
 		return ""
 	}
 	typ = strings.ToLower(typ)
-	if typ != "deb" && typ != "rpm" && typ != "apk" {
+	if typ != "deb" && typ != "rpm" && typ != "apk" && typ != "alpm" {
 		return ""
 	}
 	namespace, _, _ := strings.Cut(rest, "/")
@@ -67,6 +67,9 @@ func distroName(namespace, distro string) string {
 			return "suse"
 		case strings.HasPrefix(v, "fedora"):
 			return "fedora"
+		case v == "arch", strings.HasPrefix(v, "archlinux"), strings.HasPrefix(v, "cachyos"),
+			strings.HasPrefix(v, "manjaro"), strings.HasPrefix(v, "endeavouros"):
+			return "arch"
 		}
 	}
 
@@ -86,7 +89,7 @@ func UpstreamVersion(distro, v string) string {
 	switch distro {
 	case "alpine", "wolfi":
 		v = apkRevision.ReplaceAllString(v, "")
-	case "debian", "ubuntu", "redhat", "rocky", "almalinux", "amazon", "suse", "fedora":
+	case "debian", "ubuntu", "redhat", "rocky", "almalinux", "amazon", "suse", "fedora", "arch":
 		if i := strings.LastIndexByte(v, '-'); i > 0 {
 			v = v[:i]
 		}
