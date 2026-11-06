@@ -54,7 +54,7 @@ func dropSupersededZeroRows(cd *cveData) {
 		kept := rows[:0:0]
 		for _, r := range rows {
 			if r.status == "affected" && rowIsZeroStart(r) {
-				if by := precise[upperKey(r)]; len(by) > 0 && !(len(by) == 1 && by[r.src]) {
+				if by := precise[upperKey(r)]; len(by) > 0 && (len(by) != 1 || !by[r.src]) {
 					continue
 				}
 			}

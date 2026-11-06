@@ -2397,9 +2397,7 @@ func parseCabalFreezeScoped(data []byte, _ string) ([]ScopedPackage, error) {
 		if strings.HasPrefix(line, "--") || line == "" {
 			continue
 		}
-		if strings.HasPrefix(line, "constraints:") {
-			line = strings.TrimPrefix(line, "constraints:")
-		}
+		line = strings.TrimPrefix(line, "constraints:")
 		for _, part := range strings.Split(line, ",") {
 			part = strings.TrimSpace(part)
 			if part == "" {

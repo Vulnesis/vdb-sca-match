@@ -566,7 +566,7 @@ func (dockerAlgo) classify(v string) (bool, bool, []string) {
 		toks := tokens(m[4])
 		for i, t := range toks {
 			reasons = append(reasons, dockerFlavour[t]...)
-			if dockerNumbered[t] && !(i+1 < len(toks) && isDigit(toks[i+1][0])) {
+			if dockerNumbered[t] && (i+1 >= len(toks) || !isDigit(toks[i+1][0])) {
 				// "3.16-rc-slim": a pre-release word with no number names no build.
 				orderable = false
 			}

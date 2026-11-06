@@ -234,7 +234,7 @@ func compareSegment(a, b string) int {
 	// A segment such as "11n" (util-linux 2.11n, OpenSSL 1.0.2k) is a number
 	// with a suffix. Ranking it as text put every number below it, so 2.37.2
 	// sorted before 2.11n. Compare the numbers first, as dpkg and rpm do.
-	if !(aIsNum && bIsNum) {
+	if !aIsNum || !bIsNum {
 		la, ra := leadingDigits(a)
 		lb, rb := leadingDigits(b)
 		if la != "" && lb != "" {

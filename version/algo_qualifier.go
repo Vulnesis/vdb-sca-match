@@ -411,9 +411,9 @@ func condaParse(v string) (condaVer, bool) {
 
 func condaCmpAtom(a, b condaAtom) int {
 	switch {
-	case a.isStr && a.s == "post" && !(b.isStr && b.s == "post"):
+	case a.isStr && a.s == "post" && (!b.isStr || b.s != "post"):
 		return 1 // post outranks everything, ints included
-	case b.isStr && b.s == "post" && !(a.isStr && a.s == "post"):
+	case b.isStr && b.s == "post" && (!a.isStr || a.s != "post"):
 		return -1
 	case a.isStr && !b.isStr:
 		return -1

@@ -207,7 +207,7 @@ func (c *Context) finalise(r *Rule, f *Finding) {
 		}
 	}
 	h := sha256.New()
-	fmt.Fprintf(h, "%s\x00%s\x00%s", strings.ToLower(c.In.Repository), r.ID, f.Subject)
+	_, _ = fmt.Fprintf(h, "%s\x00%s\x00%s", strings.ToLower(c.In.Repository), r.ID, f.Subject)
 	f.Fingerprint = hex.EncodeToString(h.Sum(nil))[:32]
 }
 

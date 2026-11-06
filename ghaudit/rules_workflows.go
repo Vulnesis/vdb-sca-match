@@ -253,7 +253,6 @@ func keyIndent(line string) (int, bool) {
 	trimmed := strings.TrimLeft(line, " ")
 	n := len(line) - len(trimmed)
 	if strings.HasPrefix(trimmed, "- ") {
-		n += 2
 		trimmed = strings.TrimLeft(trimmed[2:], " ")
 		n = len(line) - len(trimmed)
 	}
@@ -1056,7 +1055,7 @@ var ruleUnsoundIf = register(&Rule{
 				}
 				trimmed := strings.TrimSpace(v.Text)
 				single := len(exprs) == 1 && exprs[0].Raw == trimmed
-				if single && !(v.Block && strings.HasSuffix(v.Text, "\n")) {
+				if single && (!v.Block || !strings.HasSuffix(v.Text, "\n")) {
 					return
 				}
 				scope := j.ID

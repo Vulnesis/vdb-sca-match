@@ -140,8 +140,8 @@ func Pick(ecosystem, running string, candidates []Candidate) Picks {
 		out.Reasons["latest"] = "only-prerelease"
 		out.Reasons["safest"] = "only-prerelease"
 	}
-	switch {
-	case running == "":
+	switch running {
+	case "":
 		out.Reasons["stable"] = "no-running-version"
 	default:
 		out.Stable = pickClosest(scheme, running, stableVersions(entries, out.Orderable))
@@ -635,7 +635,7 @@ const RollingDelimiter = ","
 
 // rollingBad rejects what cannot be part of a concrete version: whitespace and
 // the characters range syntax uses.
-var rollingBad = regexp.MustCompile("[\\s,<>=*|]")
+var rollingBad = regexp.MustCompile(`[\s,<>=*|]`)
 
 // EncodeRolling joins a rolling set into its scalar form. It fails when a
 // version contains the delimiter or another range character, because decoding
