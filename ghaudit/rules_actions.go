@@ -54,7 +54,7 @@ func (c *Context) refFacts(u Uses) *ActionRefFacts {
 
 var branchLikeRefs = map[string]bool{"main": true, "master": true, "develop": true, "dev": true, "trunk": true, "head": true, "latest": true, "stable": true, "release": true, "nightly": true, "canary": true}
 
-var ruleUnpinned = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-101", Name: "Action or reusable workflow not pinned to a commit SHA", Task: TaskActions,
 	Severity: Medium, Confidence: ConfidenceHigh, CWE: []int{829, 494}, ATTACK: []string{"T1195.001"},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:L/EC:N/P:W",
@@ -132,7 +132,7 @@ func pinLine(line string, u Uses, sha string) string {
 	return line[:at] + pinned + rest + comment
 }
 
-var rulePinMismatch = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-102", Name: "SHA pin does not match its version comment", Task: TaskActions,
 	Severity: High, Confidence: ConfidenceHigh, CWE: []int{345, 451},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",
@@ -164,7 +164,7 @@ var rulePinMismatch = register(&Rule{
 	},
 })
 
-var ruleImpostor = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-103", Name: "Pinned commit is not in the action's repository", Task: TaskActions,
 	Severity: Critical, Confidence: ConfidenceHigh, CWE: []int{345, 494}, ATTACK: []string{"T1195.001"},
 	CWSS:        "CWSS:1.0/TI:C/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:C/DI:H/EX:H/EC:N/P:W",
@@ -194,7 +194,7 @@ var ruleImpostor = register(&Rule{
 	},
 })
 
-var ruleAbandoned = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-104", Name: "Action repository archived, missing or hijackable", Task: TaskActions,
 	Severity: High, Confidence: ConfidenceHigh, CWE: []int{1104, 494}, ATTACK: []string{"T1195.001"},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",
@@ -234,7 +234,7 @@ var ruleAbandoned = register(&Rule{
 	},
 })
 
-var ruleVulnerable = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-105", Name: "Action version has a published vulnerability", Task: TaskActions,
 	Severity: High, Confidence: ConfidenceHigh, CWE: []int{1395},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:H/EC:N/P:W",
@@ -268,7 +268,7 @@ var ruleVulnerable = register(&Rule{
 	},
 })
 
-var ruleUnpinnedImage = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-106", Name: "Container image not pinned to a digest", Task: TaskActions,
 	Severity: Low, Confidence: ConfidenceHigh, CWE: []int{829, 494},
 	CWSS:        "CWSS:1.0/TI:M/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:M/DI:M/EX:L/EC:N/P:W",
@@ -306,7 +306,7 @@ var ruleUnpinnedImage = register(&Rule{
 	},
 })
 
-var ruleDeprecated = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-107", Name: "Action major version runs on a retired runtime", Task: TaskActions,
 	Severity: Low, Confidence: ConfidenceHigh, CWE: []int{1104},
 	CWSS:        "CWSS:1.0/TI:L/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:L/DI:L/EX:L/EC:N/P:W",
@@ -334,7 +334,7 @@ var ruleDeprecated = register(&Rule{
 	},
 })
 
-var rulePolicy = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-108", Name: "Action not permitted by the allowed-actions policy", Task: TaskActions,
 	Severity: Medium, Confidence: ConfidenceHigh, CWE: []int{284},
 	CWSS:        "CWSS:1.0/TI:M/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:M/DI:L/EX:L/EC:N/P:W",
@@ -384,7 +384,7 @@ func allowedByPatterns(u Uses, pats []string) bool {
 	return false
 }
 
-var ruleTyposquat = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-109", Name: "Action owner resembles a popular publisher", Task: TaskActions,
 	Severity: High, Confidence: ConfidenceMedium, CWE: []int{1357}, ATTACK: []string{"T1195.001"},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",
@@ -410,7 +410,7 @@ var ruleTyposquat = register(&Rule{
 
 var pipeShellRe = regexp.MustCompile(`(?i)\b(curl|wget|iwr|invoke-webrequest)\b[^|\n]*\|\s*(sudo\s+)?(ba|z|da|k)?sh\b|\b(curl|wget)\b[^|\n]*\|\s*(sudo\s+)?(python3?|node|perl|ruby|iex)\b`)
 
-var rulePipeShell = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-111", Name: "Remote script piped into an interpreter", Task: TaskActions,
 	Severity: Medium, Confidence: ConfidenceHigh, CWE: []int{494, 829},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:L/EC:N/P:W",
