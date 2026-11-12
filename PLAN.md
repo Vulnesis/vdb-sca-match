@@ -15,14 +15,19 @@ pre-computed `PackageVersionCVE` rows).
   ../vdb-sca-match`, cloned at container-build time (the `ietf-crit-spec` pattern).
 
 ## go.mod
+Direct requirements (exact pins live in `go.mod`; this excerpt is kept to the direct ones):
 ```
 module github.com/Vulnetix/vdb-sca-match
 go 1.25.0
 require (
-    github.com/jackc/pgx/v5 v5.9.1
-    github.com/Masterminds/semver/v3 v3.x          // semver-family ordering
-    github.com/aquasecurity/go-pep440-version v0.x // PyPI / PEP 440
-    github.com/masahiro331/go-mvn-version v0.x      // Maven ordering
+    github.com/BurntSushi/toml v1.6.0                 // parse: uv.lock and pylock.toml
+    github.com/Masterminds/semver/v3 v3.3.1           // semver-family ordering
+    github.com/Vulnetix/vdb-cyclonedx v0.18.0         // suppression: shared vexrules matcher + VEX model
+    github.com/aquasecurity/go-pep440-version v0.0.1  // PyPI / PEP 440
+    github.com/google/uuid v1.6.0                     // suppression: application / VEX ids
+    github.com/jackc/pgx/v5 v5.9.2
+    github.com/masahiro331/go-mvn-version v0.0.0-20260119054159-d21fcd2e7de1 // Maven ordering
+    gopkg.in/yaml.v3 v3.0.1                           // parse (pnpm-lock, workloads), ghaudit (workflows)
 )
 ```
 
@@ -37,13 +42,35 @@ vdb-sca-match/
 ├── match.go          // Match struct + MatchDependency orchestrator
 ├── versionrange.go   // method "version-range:*" (CVEAffected + CVEAffectedVersion)
 ├── purl.go           // method "purl" (PackageVersionCVE registry-precise)
+├── purlparse.go      // purl parsing for the purl method
 ├── cpe.go            // method "cpe" (CVEAffected.cpes / CVEMetadata.cpesJSON ILIKE)
 ├── crit.go           // method "crit" (CritRecord over already-matched cveIds)
-├── match_test.go     // method-level tests against a stub Querier
-├── versionrange_test.go
-└── version/
-    ├── compare.go    // Compare + Within: ecosystem-dispatched ordering + parse-ok signal
-    └── compare_test.go
+├── distro.go         // OS-package matching (deb/rpm/apk): release, epoch, source package
+├── ecosystem.go      // CanonicalEcosystem, EcosystemEvidence (registry URLs + vendors)
+├── aliases.go        // alias-collated wildcard suppression across CVE/GHSA/OSV ids
+├── branches.go       // branch-range reconciliation (finer backport ranges win)
+├── withdrawn.go      // notWithdrawnSQL: drop withdrawn advisories
+├── introduced.go     // drop zero-introduced rows superseded by a real lower bound
+├── *_test.go         // match, versionrange, distro, ecosystem, withdrawn, pypi, release
+├── version/
+│   ├── compare.go          // Compare + Within: ecosystem-dispatched ordering + parse-ok signal
+│   ├── ecosystems.go       // NormalizeEcosystem, SchemeFor, Classify, Order
+│   ├── scheme.go           // Info (classification of one version)
+│   ├── schemes_registry.go // ClassifyScheme, CompareScheme, SchemeIDs
+│   ├── schemes.json        // the versioning-scheme catalogue (embedded)
+│   ├── catalogue.go        // Catalogue, SchemeByID over schemes.json
+│   ├── pick.go             // Safe Harbour: Pick / PickLatest / PickStable / PickRolling, Encode/DecodeRolling
+│   ├── wildcard.go         // full- and segment-wildcard handling
+│   ├── algo_*.go           // per-scheme algorithms (semver, ecosystems, distro, qualifier, recency)
+│   ├── cmd/gen-schemes-doc/ // renders schemes.json to docs/version-schemes.md
+│   ├── testdata/           // scheme and pick vectors
+│   └── *_test.go
+├── cwss/             // CWSS 1.0.1 scoring + derivation for rule findings with no CVE
+├── parse/            // manifest / lockfile / workload parsers → ScopedPackage
+├── sarif/            // shared SARIF 2.1.0 model: parse, validate, decompose to Findings
+├── suppression/      // apply suppression rules, record applications, write Triage, mint VEX
+├── ghaudit/          // GitHub posture engine (see below)
+└── docs/             // ghaudit-rules.md, suppression-engine.md, version-schemes.md (generated)
 ```
 
 ## Querier abstraction (`querier.go`)
@@ -102,6 +129,33 @@ Decision per row via `version.Within`, scheme from `cav.versionType`:
 - Prefer rows with `isValidVersion = true` when the column is present.
 - `Compare` returns `ok=false` (unparseable) → **conservative**: match only on exact string
   equality with `status='affected'`; otherwise skip + log. (Precision over recall.)
+
+### Current behaviour (`versionrange.go` and helpers)
+The query above is the original sketch. The implementation now:
+- **Ecosystem scoping** via `versionRangeEcoClauses` + `EcosystemEvidence` (`ecosystem.go`):
+  empty ecosystem → name-only; known ecosystem → `collectionURL LIKE ANY(registry urls)` or
+  vendor (up to its first `:`) `= ANY(vendors)`; unmapped non-empty ecosystem → legacy
+  `collectionURL LIKE '%eco%'`. `Dependency.NativeOnly` and `Dependency.Release` narrow further
+  (distro release clause). PyPI names are PEP 503-normalised; Go module names match the module
+  or any package path under it.
+- **Candidate cap** `versionRangeCVELimit = 2000` distinct CVEs, chosen most-recently-published
+  first in an inner subquery; the outer query re-selects every row of the surviving CVEs so a
+  product's version rows are never truncated.
+- **Rejected / withdrawn** advisories are dropped: `CVEMetadata.state NOT IN ('REJECTED',
+  'WITHDRAWN')` and `notWithdrawnSQL` (`withdrawn.go`).
+- **`isValidVersion = false`** rows are skipped before any fact is recorded (defensive; the main
+  importer always writes `true`).
+- **Per-CVE verdict** (`evaluateCVE` / `evaluateProduct`): CVE 5.1 precedence exact > range >
+  wildcard, per-product unaffected suppression, lower bounds, segment wildcards (`1.2.*`) and
+  `changes[]`. Zero-introduced rows superseded by a real lower bound are dropped
+  (`introduced.go`).
+- **Alias-collated wildcard suppression** (`aliases.go`): CVE/GHSA/OSV ids for one
+  vulnerability are grouped (union-find over aliases); in a group that has specific
+  affected-version evidence anywhere, wildcard/coarse-only matches are deleted and coarse method
+  tokens are stripped from the rest. A group with no specific evidence keeps its all-versions
+  `*` match.
+- **Branch-range reconciliation** (`branches.go`): when two aliases span the same envelope and
+  one has finer (backport) ranges, the finer one decides.
 
 ## Method 2 — purl (`purl.go`)
 Registry-precise, mirrors `lookupVulnsForPurl` primary path (`v2_cli_sca.go:370-378`):
@@ -163,6 +217,57 @@ Scheme dispatch — prefer `versionType` (`CVEAffectedVersion.versionType`: `sem
   numeric segments compared as ints, alpha lexically, numeric < alpha for pre-release ordering.
 
 Supersedes the dropped `compareSemver`/`semverParts` from the old CycloneDX parser.
+
+### Scheme catalogue and Safe Harbour API (`version/`)
+Beyond `Compare`/`Within`, the package now exposes a scheme catalogue and the Safe Harbour
+version-picking API. The catalogue is `version/schemes.json` (embedded); its documentation page
+`docs/version-schemes.md` is generated from it by `go run ./version/cmd/gen-schemes-doc`.
+```go
+// Scheme lookup and classification
+func SchemeFor(ecosystem string) string           // scheme id for an ecosystem, "generic" if unknown
+func NormalizeEcosystem(ecosystem string) string
+func Classify(ecosystem, v string) Info           // judge one version under its ecosystem's scheme
+func Order(ecosystem, a, b string) (int, bool)    // ok=false when either is not a version of the scheme
+func ClassifyScheme(scheme, v string) Info
+func CompareScheme(scheme, a, b string) (int, bool)
+func SchemeIDs() []string
+func Catalogue() []Scheme                         // every scheme, by family then id
+func SchemeByID(id string) (Scheme, bool)
+
+// Safe Harbour: pick fix targets from a package's (malware-free) releases
+func Pick(ecosystem, running string, candidates []Candidate) Picks
+func PickLatest(ecosystem string, candidates []Candidate) string
+func PickStable(ecosystem, running string, candidates []Candidate) string
+func PickRolling(ecosystem string, candidates []Candidate) ([]string, string)
+func PickRollingTarget(ecosystem, running string, rolling []string) string
+func PickParity(ecosystem, running string, candidates []Candidate) string
+func EncodeRolling(versions []string) (string, error)
+func DecodeRolling(s string) ([]string, error)
+
+// Wildcards (used by versionrange.go)
+func IsFullWildcard(s string) bool
+func IsSegmentWildcard(pattern string) bool
+func MatchSegmentWildcard(installed, pattern string) (matched, isSegWild bool)
+```
+
+## GitHub posture engine (`ghaudit/`)
+A pure posture engine (no network, no database) over GitHub Actions workflows, composite
+actions, the actions and images a workflow runs, and repository / organisation settings.
+Callers collect the input (the CLI from the REST API via `Collect` + a `Getter`; vdb-site from
+its webhook mirror), call `Evaluate`, and render the `Report`. Running the same engine on both
+sides keeps a CLI snapshot and an event-driven Software Factory finding identical.
+- **Tasks** (one CLI subcommand each): `workflows`, `actions`, `settings`, `org`
+  (`AllTasks`, `ParseTask`).
+- **Rules** register themselves via `register(&Rule{...})` in `rules_*.go`; `Rules()` and
+  `RuleByID` expose the catalogue. Each rule carries severity, confidence, CWE, ATT&CK and a
+  CWSS vector (scored through `cwss/`); a `Finding` may carry a `Fix` (edits the Software
+  Factory can apply as a PR).
+  `docs/ghaudit-rules.md` is rendered by `CatalogueMarkdown()`.
+- **Output**: `Report.SARIF(SARIFOptions)` emits SARIF with driver `Vulnetix GitHub`
+  (`ToolName`), which `sarif.Decompose` files under category `IAC`.
+- **Analysis helpers**: expression and context taint (`expr.go`, `taint.go`), `uses:`
+  parsing and pin checks (`uses.go`), workflow model (`workflow.go`), collected facts
+  (`facts.go`).
 
 ## Unit tests (`version/compare_test.go`) — green before any wiring
 - npm `4.17.20 < 4.17.21`; cargo `1.0.0-alpha < 1.0.0`.
