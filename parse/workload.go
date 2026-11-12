@@ -379,15 +379,9 @@ func searchPodSpecs(node any, depth int, found *[]map[string]any) {
 // mergePodSpec appends a pod spec's containers, volumes, nodeSelector and
 // template annotations onto the workload.
 func mergePodSpec(w *Workload, podSpec map[string]any) {
-	for _, c := range parseContainers(sliceAt(podSpec, "containers"), false) {
-		w.Containers = append(w.Containers, c)
-	}
-	for _, c := range parseContainers(sliceAt(podSpec, "initContainers"), true) {
-		w.Containers = append(w.Containers, c)
-	}
-	for _, c := range parseContainers(sliceAt(podSpec, "ephemeralContainers"), false) {
-		w.Containers = append(w.Containers, c)
-	}
+	w.Containers = append(w.Containers, parseContainers(sliceAt(podSpec, "containers"), false)...)
+	w.Containers = append(w.Containers, parseContainers(sliceAt(podSpec, "initContainers"), true)...)
+	w.Containers = append(w.Containers, parseContainers(sliceAt(podSpec, "ephemeralContainers"), false)...)
 	for _, raw := range sliceAt(podSpec, "volumes") {
 		vol, ok := raw.(map[string]any)
 		if !ok {

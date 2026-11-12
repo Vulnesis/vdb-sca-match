@@ -443,7 +443,7 @@ func luarocksParse(v string) (toks []int, rev int, ok bool) {
 	v = strings.ToLower(v)
 	// A rock version starts with a number, or is one of the branch markers
 	// scm/cvs/dev; a leading v is not accepted.
-	if !luarocksRaw.MatchString(v) || !(isDigit(v[0]) || luarocksBranch.MatchString(v)) {
+	if !luarocksRaw.MatchString(v) || (!isDigit(v[0]) && !luarocksBranch.MatchString(v)) {
 		return nil, 0, false
 	}
 	if m := luarocksRev.FindStringSubmatch(v); m != nil {

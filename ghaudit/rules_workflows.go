@@ -51,7 +51,7 @@ func scriptSinks(s *Step) []struct {
 	return out
 }
 
-var ruleInjection = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-001", Name: "Untrusted input expanded into an executed script", Task: TaskWorkflows,
 	Severity: Critical, Confidence: ConfidenceHigh, CWE: []int{94, 78}, CAPEC: []string{"CAPEC-242"}, ATTACK: []string{"T1059", "T1195.002"},
 	CWSS:        "CWSS:1.0/TI:C/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:C/DI:H/EX:H/EC:N/P:W",
@@ -253,7 +253,6 @@ func keyIndent(line string) (int, bool) {
 	trimmed := strings.TrimLeft(line, " ")
 	n := len(line) - len(trimmed)
 	if strings.HasPrefix(trimmed, "- ") {
-		n += 2
 		trimmed = strings.TrimLeft(trimmed[2:], " ")
 		n = len(line) - len(trimmed)
 	}
@@ -287,7 +286,7 @@ func envNameFor(body string) string {
 
 var envFileRe = regexp.MustCompile(`>>\s*["']?\$\{?(GITHUB_ENV|GITHUB_PATH)\}?["']?`)
 
-var ruleEnvFile = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-002", Name: "Untrusted input written to GITHUB_ENV or GITHUB_PATH", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceHigh, CWE: []int{77, 427}, ATTACK: []string{"T1574"},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",
@@ -397,7 +396,7 @@ func executes(s *Step) bool {
 	return false
 }
 
-var rulePwnRequest = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-003", Name: "Privileged workflow runs code from an untrusted pull request", Task: TaskWorkflows,
 	Severity: Critical, Confidence: ConfidenceHigh, CWE: []int{829, 94}, CAPEC: []string{"CAPEC-437"}, ATTACK: []string{"T1195.002"},
 	CWSS:        "CWSS:1.0/TI:C/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:C/DI:H/EX:H/EC:N/P:W",
@@ -455,7 +454,7 @@ var rulePwnRequest = register(&Rule{
 	},
 })
 
-var ruleArtipacked = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-004", Name: "Checkout credentials persisted into an uploaded workspace", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceHigh, CWE: []int{522, 200},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:M/EX:M/EC:N/P:W",
@@ -537,7 +536,7 @@ func uploadsWorkspace(p string) bool {
 	return false
 }
 
-var ruleArtifactPoisoning = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-005", Name: "Privileged workflow consumes artifacts from an untrusted run", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceMedium, CWE: []int{494, 345}, ATTACK: []string{"T1195.002"},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",
@@ -606,7 +605,7 @@ var cacheSetupActions = map[string]string{
 	"astral-sh/setup-uv": "enable-cache", "oven-sh/setup-bun": "",
 }
 
-var ruleCachePoisoning = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-006", Name: "Release workflow restores a cache writable by untrusted runs", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceMedium, CWE: []int{349, 494}, ATTACK: []string{"T1195.002"},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:C/DI:H/EX:M/EC:N/P:W",
@@ -676,7 +675,7 @@ var ruleCachePoisoning = register(&Rule{
 	},
 })
 
-var ruleMissingPermissions = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-007", Name: "Workflow token permissions not declared", Task: TaskWorkflows,
 	Severity: Medium, Confidence: ConfidenceMedium, CWE: []int{250, 272},
 	CWSS:        "CWSS:1.0/TI:M/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:M/DI:M/EX:L/EC:N/P:W",
@@ -731,7 +730,7 @@ func firstJobsLine(f *File) int {
 	return 1
 }
 
-var ruleExcessivePermissions = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-008", Name: "Excessive token permissions", Task: TaskWorkflows,
 	Severity: Medium, Confidence: ConfidenceHigh, CWE: []int{250, 732},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:M/EX:L/EC:N/P:W",
@@ -801,7 +800,7 @@ var ruleExcessivePermissions = register(&Rule{
 	},
 })
 
-var ruleOIDCNoEnv = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-009", Name: "OIDC token minted outside a protected environment", Task: TaskWorkflows,
 	Severity: Medium, Confidence: ConfidenceMedium, CWE: []int{285, 863},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:M/EX:M/EC:N/P:W",
@@ -842,7 +841,7 @@ var ruleOIDCNoEnv = register(&Rule{
 	},
 })
 
-var ruleSecretsInherit = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-010", Name: "All secrets passed to a reusable workflow", Task: TaskWorkflows,
 	Severity: Medium, Confidence: ConfidenceHigh, CWE: []int{200, 668},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:M/EX:L/EC:N/P:W",
@@ -884,7 +883,7 @@ var ruleSecretsInherit = register(&Rule{
 
 var bulkSecretRe = regexp.MustCompile(`(?i)toJSON\(\s*secrets\s*\)|\bsecrets\s*\[\s*[^'"\]\s]|\$\{\{\s*secrets\s*\}\}`)
 
-var ruleBulkSecrets = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-011", Name: "Secrets context exposed in bulk", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceHigh, CWE: []int{200, 532},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:M/EX:M/EC:N/P:W",
@@ -918,7 +917,7 @@ var ruleBulkSecrets = register(&Rule{
 	},
 })
 
-var ruleHardcodedCreds = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-012", Name: "Hard-coded container registry credentials", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceHigh, CWE: []int{798},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:H/EC:N/P:W",
@@ -954,7 +953,7 @@ var ruleHardcodedCreds = register(&Rule{
 	},
 })
 
-var ruleInsecureCommands = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-013", Name: "Deprecated workflow commands re-enabled", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceHigh, CWE: []int{77},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",
@@ -990,7 +989,7 @@ var ruleInsecureCommands = register(&Rule{
 
 var botActorRe = regexp.MustCompile(`(?i)github\.(actor|triggering_actor)\s*==\s*'[^']*\[bot\]'|'[^']*\[bot\]'\s*==\s*github\.(actor|triggering_actor)`)
 
-var ruleBotSpoof = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-014", Name: "Authorisation by spoofable actor name", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceMedium, CWE: []int{290, 863},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",
@@ -1035,7 +1034,7 @@ var ruleBotSpoof = register(&Rule{
 	},
 })
 
-var ruleUnsoundIf = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-015", Name: "Condition always evaluates to true", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceHigh, CWE: []int{570, 571, 697},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:M/EX:M/EC:N/P:W",
@@ -1056,7 +1055,7 @@ var ruleUnsoundIf = register(&Rule{
 				}
 				trimmed := strings.TrimSpace(v.Text)
 				single := len(exprs) == 1 && exprs[0].Raw == trimmed
-				if single && !(v.Block && strings.HasSuffix(v.Text, "\n")) {
+				if single && (!v.Block || !strings.HasSuffix(v.Text, "\n")) {
 					return
 				}
 				scope := j.ID
@@ -1081,7 +1080,7 @@ var ruleUnsoundIf = register(&Rule{
 	},
 })
 
-var ruleSelfHosted = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-016", Name: "Self-hosted runner reachable from pull requests", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceMedium, CWE: []int{829, 668}, ATTACK: []string{"T1078"},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:C/DI:H/EX:M/EC:N/P:W",
@@ -1151,7 +1150,7 @@ func reachesLog(line string) bool {
 	return !strings.ContainsAny(rest, "|>")
 }
 
-var ruleSecretEcho = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-017", Name: "Secret printed to the job log", Task: TaskWorkflows,
 	Severity: Medium, Confidence: ConfidenceMedium, CWE: []int{532},
 	CWSS:        "CWSS:1.0/TI:M/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:M/DI:M/EX:M/EC:N/P:W",
@@ -1186,7 +1185,7 @@ var ruleSecretEcho = register(&Rule{
 	},
 })
 
-var ruleCommentOps = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-018", Name: "Comment-triggered workflow without an author check", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceMedium, CWE: []int{862, 863},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:M/EX:M/EC:N/P:W",
@@ -1248,7 +1247,7 @@ func gated(v *Value) bool {
 	return strings.Contains(low, "author_association") || strings.Contains(low, "comment.user.login") || strings.Contains(low, "github.repository_owner")
 }
 
-var ruleObfuscation = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-019", Name: "Obfuscated action reference or expression", Task: TaskWorkflows,
 	Severity: Low, Confidence: ConfidenceMedium, CWE: []int{656},
 	CWSS:        "CWSS:1.0/TI:L/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:L/DI:L/EX:L/EC:N/P:W",
@@ -1293,7 +1292,7 @@ func firstRef(body string) string {
 	return ""
 }
 
-var ruleArgumentInjection = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-020", Name: "Pull request head ref used as a branch or tag name without quoting", Task: TaskWorkflows,
 	Severity: Medium, Confidence: ConfidenceMedium, CWE: []int{88},
 	CWSS:        "CWSS:1.0/TI:M/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:M/DI:M/EX:M/EC:N/P:W",
@@ -1347,7 +1346,7 @@ var (
 	encodeRe      = regexp.MustCompile(`(?i)\b(base64|xxd|openssl\s+enc|gzip)\b`)
 )
 
-var ruleExfil = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-021", Name: "Secrets sent to an external host", Task: TaskWorkflows,
 	Severity: Critical, Confidence: ConfidenceHigh, CWE: []int{200, 506}, ATTACK: []string{"T1552.001", "T1567"},
 	CWSS:        "CWSS:1.0/TI:C/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:C/DI:H/EX:H/EC:N/P:W",
@@ -1416,7 +1415,7 @@ var ruleExfil = register(&Rule{
 	},
 })
 
-var ruleCacheKey = register(&Rule{
+var _ = register(&Rule{
 	ID: "VNX-GH-022", Name: "Privileged job restores a cache keyed on contributor input", Task: TaskWorkflows,
 	Severity: High, Confidence: ConfidenceMedium, CWE: []int{349, 494},
 	CWSS:        "CWSS:1.0/TI:H/AP:A/AL:A/IC:N/FC:LT/RP:N/RL:A/AV:I/AS:N/IN:A/SC:A/BI:H/DI:H/EX:M/EC:N/P:W",

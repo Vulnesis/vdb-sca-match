@@ -298,7 +298,7 @@ func (s semverAlgo) classify(v string) (bool, bool, []string) {
 		reasons = append(reasons, ReasonPrerelease)
 		reasons = append(reasons, channelReasons(strings.Join(p.pre, "."))...)
 	}
-	if p.hasB && !(s.o.buildStable != nil && s.o.buildStable(p.build)) {
+	if p.hasB && (s.o.buildStable == nil || !s.o.buildStable(p.build)) {
 		if ch := channelReasons(p.build); len(ch) > 0 {
 			reasons = append(reasons, ch...)
 		}

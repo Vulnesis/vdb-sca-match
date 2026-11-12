@@ -188,7 +188,7 @@ func (f *File) Locate(from int, needle string) Pos {
 // IsWorkflowPath reports whether p is a GitHub Actions workflow file.
 func IsWorkflowPath(p string) bool {
 	p = strings.TrimPrefix(path.Clean("/"+p), "/")
-	if !(strings.HasSuffix(p, ".yml") || strings.HasSuffix(p, ".yaml")) {
+	if !strings.HasSuffix(p, ".yml") && !strings.HasSuffix(p, ".yaml") {
 		return false
 	}
 	return strings.HasPrefix(p, ".github/workflows/") && !strings.Contains(strings.TrimPrefix(p, ".github/workflows/"), "/")
@@ -264,8 +264,8 @@ func parseAction(f *File, root *yaml.Node) {
 		}
 	}
 	f.Using = using
-	switch {
-	case using == "composite":
+	switch using {
+	case "composite":
 		f.Kind = KindCompositeAction
 		job := &Job{ID: "composite", Pos: pos(runs)}
 		if steps := mapGet(runs, "steps"); steps != nil && steps.Kind == yaml.SequenceNode {
@@ -274,7 +274,7 @@ func parseAction(f *File, root *yaml.Node) {
 			}
 		}
 		f.Jobs = []*Job{job}
-	case using == "docker":
+	case "docker":
 		f.Kind = KindDockerAction
 		if img := mapGet(runs, "image"); img != nil {
 			f.ActionMain = img.Value
