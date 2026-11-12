@@ -477,3 +477,124 @@ func TestDockerfileSecurityRulesAreContainerFindings(t *testing.T) {
 		t.Errorf("got %s (%s), want OCI", got, why)
 	}
 }
+
+// The CLI logs Diagnostic, Report and Summary verbatim, and operators and log
+// scrapers read those shapes. These tests pin the exact rendered text so a
+// wording or layout change fails here rather than silently in someone's grep.
+
+func TestDiagnosticString(t *testing.T) {
+	cases := []struct {
+		name string
+		d    Diagnostic
+		want string
+	}{
+		{
+			name: "no path no hint",
+			d:    Diagnostic{Severity: DiagError, Message: "document is empty"},
+			want: "ERROR: document is empty",
+		},
+		{
+			name: "with path",
+			d:    Diagnostic{Severity: DiagWarning, Path: "/runs/0/tool", Message: "driver name missing"},
+			want: "WARNING /runs/0/tool: driver name missing",
+		},
+		{
+			name: "with hint",
+			d:    Diagnostic{Severity: DiagError, Message: "not JSON", Hint: "pass --output sarif"},
+			want: "ERROR: not JSON\n    hint: pass --output sarif",
+		},
+		{
+			name: "with path and hint",
+			d:    Diagnostic{Severity: DiagWarning, Path: "/version", Message: "unexpected version", Hint: "use 2.1.0"},
+			want: "WARNING /version: unexpected version\n    hint: use 2.1.0",
+		},
+		{
+			name: "empty severity",
+			d:    Diagnostic{Message: "bare"},
+			want: ": bare",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := c.d.String(); got != c.want {
+				t.Errorf("String() = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestReportString(t *testing.T) {
+	if got := (Report{}).String(); got != "" {
+		t.Errorf("empty report String() = %q, want \"\"", got)
+	}
+	rep := Report{Diagnostics: []Diagnostic{
+		{Severity: DiagError, Path: "/runs", Message: "missing runs", Hint: "add a runs array"},
+		{Severity: DiagWarning, Message: "no results"},
+	}}
+	want := "ERROR /runs: missing runs\n    hint: add a runs array\nWARNING: no results"
+	if got := rep.String(); got != want {
+		t.Errorf("String() = %q, want %q", got, want)
+	}
+}
+
+func TestSummaryString(t *testing.T) {
+	cases := []struct {
+		name string
+		s    Summary
+		want string
+	}{
+		{
+			name: "bare summary falls back to defaults",
+			s:    Summary{},
+			want: "UNKNOWN (default) tool=unknown results=0 rules=0",
+		},
+		{
+			name: "full summary",
+			s: Summary{
+				Tool:        ToolInfo{Name: "Trivy", Version: "0.58.1"},
+				Category:    CategorySCA,
+				CategoryWhy: "hint",
+				Rules:       7,
+				Results:     15,
+				Suppressed:  2,
+				Truncated:   true,
+				BySeverity: map[string]int{
+					SeverityCritical:      1,
+					SeverityHigh:          2,
+					SeverityMedium:        3,
+					SeverityLow:           4,
+					SeverityInformational: 5,
+				},
+			},
+			want: "SCA (hint) tool=Trivy 0.58.1 results=15 (crit 1 high 2 med 3 low 4 info 5) suppressed=2 rules=7 [truncated]",
+		},
+		{
+			name: "tool without version and partial severities",
+			s: Summary{
+				Tool:        ToolInfo{Name: "semgrep"},
+				Category:    CategorySAST,
+				CategoryWhy: "driver",
+				Rules:       1,
+				Results:     1,
+				BySeverity:  map[string]int{SeverityHigh: 1},
+			},
+			want: "SAST (driver) tool=semgrep results=1 (crit 0 high 1 med 0 low 0 info 0) rules=1",
+		},
+		{
+			name: "empty severity map is omitted",
+			s: Summary{
+				Tool:       ToolInfo{Version: "1.0"},
+				BySeverity: map[string]int{},
+				Truncated:  true,
+			},
+			want: "UNKNOWN (default) tool=unknown 1.0 results=0 rules=0 [truncated]",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := c.s.String(); got != c.want {
+				t.Errorf("String() = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
