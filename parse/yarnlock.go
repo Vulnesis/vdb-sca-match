@@ -18,6 +18,16 @@ type yarnBlock struct {
 	deps       []string // dependency names (Berry workspace blocks: the member's declared deps)
 }
 
+// berryChecksum returns the hex SHA-512 of a Berry "checksum:" field. Yarn 4
+// prefixes it with the lockfile's cache key ("10c0/<hex>"); Yarn 2 and 3 write
+// the bare hex. With the prefix left on, normalizeChecksum dropped it.
+func berryChecksum(val string) string {
+	if i := strings.IndexByte(val, '/'); i > 0 {
+		return val[i+1:]
+	}
+	return val
+}
+
 // yarnSpecName returns the package name of a header specifier, and the
 // requested range: "@s/p@npm:^1" → ("@s/p", "npm:^1").
 func yarnSpecName(spec string) (name, rng string) {
@@ -128,8 +138,10 @@ func parseYarnLockScoped(data []byte, filePath string) ([]ScopedPackage, error) 
 				cur.resolution = val
 			case "resolved":
 				cur.resolved = val
-			case "integrity", "checksum":
+			case "integrity":
 				cur.integrity = val
+			case "checksum":
+				cur.integrity = berryChecksum(val)
 			case "dependencies", "devDependencies", "optionalDependencies", "peerDependencies":
 				inDeps = true
 			}

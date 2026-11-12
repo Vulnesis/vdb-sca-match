@@ -55,6 +55,8 @@ func normalizeChecksum(raw string) PackageChecksum {
 		return PackageChecksum{"SHA-1", raw[5:]}
 	case strings.HasPrefix(raw, "h1:"):
 		return PackageChecksum{"H1", raw[3:]}
+	case len(raw) == 128 && isHex(raw):
+		return PackageChecksum{"SHA-512", raw}
 	case len(raw) == 64 && isHex(raw):
 		return PackageChecksum{"SHA-256", raw}
 	case len(raw) == 40 && isHex(raw):
