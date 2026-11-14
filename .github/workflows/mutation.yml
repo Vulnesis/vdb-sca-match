@@ -1,0 +1,51 @@
+name: Mutation
+
+# On-demand mutation testing. Not a PR gate: one package is minutes of work.
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to mutate (a go package path such as ./version)
+        required: true
+        default: ./version
+      exclude:
+        description: Optional regexp of files to leave out (gremlins --exclude-files)
+        required: false
+        default: ''
+      threshold:
+        description: Minimum test efficacy percent; 0 reports without failing
+        required: false
+        default: '0'
+
+permissions:
+  contents: read
+
+jobs:
+  mutate:
+    name: Mutation test ${{ inputs.package }}
+    runs-on: [self-hosted, Linux, X64, vulnetix-local]
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install gremlins
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+
+      - name: Unleash
+        env:
+          PKG: ${{ inputs.package }}
+          EXCLUDE: ${{ inputs.exclude }}
+          THRESHOLD: ${{ inputs.threshold }}
+        run: |
+          args=(unleash -S lt --threshold-efficacy "$THRESHOLD")
+          if [ -n "$EXCLUDE" ]; then args+=(-E "$EXCLUDE"); fi
+          "$(go env GOPATH)/bin/gremlins" "${args[@]}" "$PKG"

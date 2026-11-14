@@ -28,6 +28,19 @@ var segmentExamples = []struct {
 	{".8.x", "8.3.1", false, true},
 	{"08.x", "8.3.1", true, true},
 	{"8.x.", "8.3.1", true, true},
+	// Leading-zero equality must hold for every digit, including the ends
+	// of the 0-9 range: "00" == "0" and "09" == "9".
+	{"1.00.x", "1.0.5", true, true},
+	{"1.09.x", "1.9.0", true, true},
+	{"1.x", "01.4", true, true},
+	// Segments that only look numeric are compared as written.
+	{"1.0a.x", "1.0.5", false, true},
+	{"1.-0.x", "1.0.5", false, true},
+	{"1.10.x", "1.00.5", false, true},
+	{"1.10.x", "1.1.5", false, true},
+	// 2^64 must not wrap around to 0, and long equal numbers still match.
+	{"1.18446744073709551616.x", "1.0.5", false, true},
+	{"1.018446744073709551616.x", "1.18446744073709551616.5", true, true},
 }
 
 func TestIsSegmentWildcardExamples(t *testing.T) {

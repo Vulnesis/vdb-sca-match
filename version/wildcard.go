@@ -46,10 +46,8 @@ func MatchSegmentWildcard(installed, pattern string) (matched bool, isSegWild bo
 			continue
 		}
 		// tolerate leading-zero numeric equality ("08" == "8")
-		if a, aok := atoiSeg(ip[i]); aok {
-			if b, bok := atoiSeg(seg); bok && a == b {
-				continue
-			}
+		if numericSegEqual(ip[i], seg) {
+			continue
 		}
 		return false, true
 	}
@@ -63,16 +61,33 @@ func stripV(s string) string {
 	return s
 }
 
-func atoiSeg(s string) (int, bool) {
-	if s == "" {
-		return 0, false
+// numericSegEqual reports whether a and b are both all-digit segments naming
+// the same number, ignoring leading zeros ("08" == "8", "00" == "0"). It
+// compares digit strings rather than parsed integers, so segments too long for
+// an int cannot wrap around and compare equal to a small number.
+func numericSegEqual(a, b string) bool {
+	if !allDigits(a) || !allDigits(b) {
+		return false
 	}
-	n := 0
+	return trimLeadingZeros(a) == trimLeadingZeros(b)
+}
+
+func allDigits(s string) bool {
+	if s == "" {
+		return false
+	}
 	for _, r := range s {
 		if r < '0' || r > '9' {
-			return 0, false
+			return false
 		}
-		n = n*10 + int(r-'0')
 	}
-	return n, true
+	return true
+}
+
+func trimLeadingZeros(s string) string {
+	t := strings.TrimLeft(s, "0")
+	if t == "" {
+		return "0"
+	}
+	return t
 }

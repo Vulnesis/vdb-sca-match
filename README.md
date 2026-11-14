@@ -100,3 +100,12 @@ Every service that writes a `Finding` row calls this engine, so a suppression ru
 rows each new scan writes, a false positive or won't fix VEX statement becomes a rule, and
 each real suppression is recorded, audited and minted as a VEX. The classifier lives in the
 public `vdb-cyclonedx/vexrules` package. Details: [docs/suppression-engine.md](./docs/suppression-engine.md).
+
+## Mutation testing
+
+[gremlins](https://github.com/go-gremlins/gremlins) is configured in `.gremlins.yaml`. It is
+not a PR gate (`./version` alone is about 1,300 mutants and fifteen minutes); run it on the
+package you are changing, locally with `gremlins unleash ./version` (`-E` leaves files out) or
+from the **Mutation** workflow (`workflow_dispatch`, optional efficacy threshold). Baseline for
+`./version`: 80% test efficacy, 81% mutant coverage; `wildcard.go` is at 100%. A surviving
+mutant is a missing test, or a sign the code can be written so that the mutant cannot exist.

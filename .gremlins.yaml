@@ -1,0 +1,9 @@
+# Mutation testing with gremlins (github.com/go-gremlins/gremlins).
+# Run on demand: `gremlins unleash ./version` locally, or the "Mutation" workflow.
+# It is not part of the PR gate: a package such as ./version yields ~1,300
+# mutants and takes minutes even with tests that finish in milliseconds.
+unleash:
+  # The unit tests run in tens of milliseconds, so gremlins' default per-mutant
+  # timeout (derived from that) is shorter than the rebuild each mutant needs
+  # and every mutant reports TIMED OUT. 20x leaves room for the compile.
+  timeout-coefficient: 20
