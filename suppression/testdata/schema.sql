@@ -24,6 +24,13 @@ CREATE TABLE "Finding" (uuid TEXT PRIMARY KEY, "findingId" TEXT NOT NULL, "orgId
     "detectionTitle" TEXT NOT NULL, purl TEXT, aliases TEXT, "packageName" TEXT NOT NULL, "packageVersion" TEXT,
     "scannerRunUuid" TEXT);
 
+-- The Finding indexes the engine's lookups rely on, as saas
+-- 20261231000200_finding_suppression_lookup_indexes creates them.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX "Finding_orgId_idx" ON "Finding" ("orgId");
+CREATE INDEX "Finding_orgId_lowerFindingId_createdAt_idx" ON "Finding" ("orgId", (lower("findingId")), "createdAt" DESC);
+CREATE INDEX "Finding_lowerAliases_trgm_idx" ON "Finding" USING gin ((lower(aliases)) gin_trgm_ops) WHERE aliases IS NOT NULL;
+
 CREATE TABLE "Triage" (uuid TEXT PRIMARY KEY, "artifactUuid" TEXT, "findingUuid" TEXT NOT NULL, "createdAt" BIGINT NOT NULL,
     "triagedAt" BIGINT, "lastObserved" BIGINT NOT NULL, seen BOOLEAN NOT NULL, "analysisState" TEXT NOT NULL,
     "analysisJustification" TEXT, "analysisResponse" TEXT, "analysisDetail" TEXT,
