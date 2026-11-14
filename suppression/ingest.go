@@ -32,6 +32,15 @@ type IngestInput struct {
 	// ArtifactUuid is the stored file, when the caller kept one.
 	ArtifactUuid string
 	Actor        vexrules.Identity
+	// DeferFindingWork leaves everything that touches the org's existing
+	// findings to the caller: ending a superseded rule's applications,
+	// writing a statement's Triage evidence and applying the new rules.
+	// Ingest then writes only the document, its statements and the rule rows,
+	// which is bounded by the size of the document, and returns the rest in
+	// IngestResult.FollowUps for RunFollowUps. A request that must answer
+	// quickly sets it. The rules are in force for every later scan as soon as
+	// Ingest commits; only the backfill onto older rows waits.
+	DeferFindingWork bool
 }
 
 // IngestResult is what an ingest did.
@@ -51,6 +60,9 @@ type IngestResult struct {
 	Triaged int
 	// Applied counts findings the new rules now cover.
 	Applied int
+	// FollowUps is the finding work left for RunFollowUps, in the order it
+	// would otherwise have run. Empty unless IngestInput.DeferFindingWork.
+	FollowUps []FollowUp
 }
 
 // Ingest parses a VEX document, classifies every statement and acts on it:
@@ -173,17 +185,16 @@ func (e *Engine) Ingest(ctx context.Context, db Beginner, in IngestInput) (Inges
 						OpenVexUuid: res.OpenVexUuid})
 					// Withdraw before writing the new evidence, so the
 					// statement's own state is the finding's latest Triage.
-					if _, err := e.Remove(ctx, tx, in.OrgID, id, "superseded by a newer VEX statement", in.Actor); err != nil {
+					if err := e.step(ctx, tx, in, &res, FollowUp{Kind: FollowUpRemove, OrgID: in.OrgID, RuleUuid: id}); err != nil {
 						return res, err
 					}
 				}
 			}
 			if d.Kind == vexrules.KindTriageOnly {
-				n, err := writeEvidenceTriage(ctx, tx, in.OrgID, s, repo, firstNonEmpty(doc.ID, res.OpenVexUuid), now)
-				if err != nil {
+				if err := e.step(ctx, tx, in, &res, FollowUp{Kind: FollowUpEvidence, OrgID: in.OrgID, Statement: s,
+					Repo: repo, DocID: firstNonEmpty(doc.ID, res.OpenVexUuid)}); err != nil {
 					return res, err
 				}
-				res.Triaged += n
 			}
 			continue
 		}
@@ -210,7 +221,7 @@ func (e *Engine) Ingest(ctx context.Context, db Beginner, in IngestInput) (Inges
 				audit = append(audit, AuditEntry{OrgID: in.OrgID, SuppressionUuid: old, Action: "supersede",
 					Reason: "Superseded by " + firstNonEmpty(doc.ID, res.OpenVexUuid) + " statement " + s.Ref, ToValue: id,
 					OpenVexUuid: res.OpenVexUuid})
-				if _, err := e.Remove(ctx, tx, in.OrgID, old, "superseded by a newer VEX statement", in.Actor); err != nil {
+				if err := e.step(ctx, tx, in, &res, FollowUp{Kind: FollowUpRemove, OrgID: in.OrgID, RuleUuid: old}); err != nil {
 					return res, err
 				}
 			}
@@ -265,13 +276,24 @@ func (e *Engine) Ingest(ctx context.Context, db Beginner, in IngestInput) (Inges
 		return res, err
 	}
 	for _, id := range toApply {
-		r, err := e.ApplyRule(ctx, tx, in.OrgID, id, in.Actor)
-		if err != nil {
+		if err := e.step(ctx, tx, in, &res, FollowUp{Kind: FollowUpApply, OrgID: in.OrgID, RuleUuid: id}); err != nil {
 			return res, err
 		}
-		res.Applied += len(r.Applied)
 	}
 	return res, tx.Commit(ctx)
+}
+
+// step runs one piece of finding work inside the ingest's transaction, or
+// queues it when the caller asked to run it later.
+func (e *Engine) step(ctx context.Context, tx pgx.Tx, in IngestInput, res *IngestResult, f FollowUp) error {
+	if in.DeferFindingWork {
+		res.FollowUps = append(res.FollowUps, f)
+		return nil
+	}
+	out, err := e.runFollowUp(ctx, tx, f, in.Actor)
+	res.Triaged += out.Triaged
+	res.Applied += out.Applied
+	return err
 }
 
 func ifGrounded(ok bool, v string) string {
@@ -333,6 +355,13 @@ func triageStateFor(s vexrules.Statement) (state, justification, response string
 	return "", "", ""
 }
 
+// evidenceFindingsSQL selects the findings a triage-only statement names. It is
+// served by Finding_orgId_lowerFindingId_createdAt_idx; without that index it
+// reads every Finding row the org has.
+const evidenceFindingsSQL = `SELECT ` + findingCols + ` FROM "Finding" f
+		WHERE f."orgId" = $1 AND lower(f."findingId") = ANY($2)
+		ORDER BY f."createdAt" DESC LIMIT $3`
+
 // writeEvidenceTriage records a triage-only statement on the matching findings
 // whose latest Triage is still automated or untriaged. A person's triage is
 // never overwritten by a document.
@@ -345,9 +374,7 @@ func writeEvidenceTriage(ctx context.Context, tx pgx.Tx, orgID string, s vexrule
 	for _, a := range s.Aliases {
 		ids = append(ids, strings.ToLower(a))
 	}
-	rows, err := tx.Query(ctx, `SELECT `+findingCols+` FROM "Finding" f
-		WHERE f."orgId" = $1 AND lower(f."findingId") = ANY($2)
-		ORDER BY f."createdAt" DESC LIMIT $3`, orgID, ids, maxRuleChangeFindings)
+	rows, err := tx.Query(ctx, evidenceFindingsSQL, orgID, ids, maxRuleChangeFindings)
 	if err != nil {
 		return 0, err
 	}

@@ -39,37 +39,8 @@ func (e *Engine) ApplyRule(ctx context.Context, db Beginner, orgID, suppressionU
 	}
 	r := rules[0]
 
-	ids := []string{}
-	for _, id := range []string{r.Rule.RuleID, r.Rule.FindingID, r.Rule.VulnerabilityID} {
-		if id = strings.ToLower(vexrules.NormalizeVulnID(id)); id != "" {
-			ids = append(ids, id)
-		}
-	}
-	purlBase := vexrules.PurlBase(r.Rule.ProductPurlBase)
-	if purlBase == "" && r.Rule.TargetValue != "" {
-		purlBase = vexrules.PurlBase(r.Rule.TargetValue)
-	}
-	// Prefilter in SQL on whichever anchor the rule has. Aliases are a JSON
-	// array of strings, so an id is searched as a quoted element.
-	quoted := make([]string, 0, len(ids))
-	for _, id := range ids {
-		quoted = append(quoted, `%"`+id+`"%`)
-	}
-	fileSuffix := ""
-	if fp := strings.Trim(strings.ReplaceAll(r.Rule.FilePath, `\`, "/"), "/"); fp != "" {
-		fileSuffix = "%" + strings.TrimPrefix(fp, "./")
-	}
-	rows, err = tx.Query(ctx, `SELECT `+findingCols+` FROM "Finding" f
-		WHERE f."orgId" = $1
-		  AND ( f.uuid = $2
-		     OR lower(f."findingId") = ANY($3)
-		     OR lower(COALESCE(f.aliases,'')) LIKE ANY($4)
-		     OR ($5 <> '' AND lower(f.purl) LIKE lower($5) || '%')
-		     OR ($6 <> '' AND f."packageName" LIKE $6)
-		     OR ($7 <> '' AND lower(f.purl) = lower($7)) )
-		ORDER BY f."createdAt" DESC
-		LIMIT $8`,
-		orgID, r.FindingUuid, ids, quoted, purlBase, fileSuffix, r.Rule.TargetValue, maxRuleChangeFindings)
+	q, args := ruleFindingQuery(orgID, r, maxRuleChangeFindings)
+	rows, err = tx.Query(ctx, q, args...)
 	if err != nil {
 		return Result{}, err
 	}
@@ -91,6 +62,77 @@ func (e *Engine) ApplyRule(ctx context.Context, db Beginner, orgID, suppressionU
 		}
 	}
 	return res, tx.Commit(ctx)
+}
+
+// ruleFindingQuery is the SQL prefilter for the findings a rule can cover.
+//
+// vexrules.RuleMatches requires every anchor a rule has, so a finding it
+// covers must satisfy any one of them; the prefilter selects on the most
+// selective one only. It used to OR every anchor, which returned every finding
+// of the product whatever its vulnerability (filling the cap with rows the
+// matcher then threw away), and put an unindexable LIKE in the same predicate,
+// so the planner read every Finding row the org had. On a large org that took
+// longer than the request it ran in.
+//
+//   - an id (rule, finding or vulnerability id): the findings with that id,
+//     from Finding_orgId_lowerFindingId_createdAt_idx, and the findings that
+//     list it as an alias, from Finding_lowerAliases_trgm_idx
+//   - otherwise a target value: the findings with that purl
+//   - otherwise a file path: the findings in that file
+//
+// A rule bound to one finding always takes that finding as well. Each branch
+// is capped on its own, and the union is capped at limit, newest first.
+func ruleFindingQuery(orgID string, r ruleRow, limit int) (string, []any) {
+	args := []any{orgID, limit}
+	arg := func(v any) string {
+		args = append(args, v)
+		return fmt.Sprintf("$%d", len(args))
+	}
+	branch := func(where string) string {
+		return `(SELECT uuid FROM "Finding" WHERE "orgId" = $1 AND ` + where + ` ORDER BY "createdAt" DESC LIMIT $2)`
+	}
+	var branches []string
+	if r.FindingUuid != "" {
+		branches = append(branches, branch(`uuid = `+arg(r.FindingUuid)))
+	}
+
+	ids := []string{}
+	seen := map[string]bool{}
+	for _, id := range []string{r.Rule.RuleID, r.Rule.FindingID, r.Rule.VulnerabilityID} {
+		if id = strings.ToLower(vexrules.NormalizeVulnID(id)); id != "" && !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	fp := strings.TrimPrefix(strings.Trim(strings.ReplaceAll(r.Rule.FilePath, `\`, "/"), "/"), "./")
+	switch {
+	case len(ids) > 0:
+		branches = append(branches, branch(`lower("findingId") = ANY(`+arg(ids)+`)`))
+		// Aliases are a JSON array of strings, so an id is searched as a
+		// quoted element. The IS NOT NULL is the trigram index's predicate.
+		quoted := make([]string, 0, len(ids))
+		for _, id := range ids {
+			quoted = append(quoted, `%"`+likeEscape(id)+`"%`)
+		}
+		branches = append(branches, branch(`aliases IS NOT NULL AND lower(aliases) LIKE ANY(`+arg(quoted)+`)`))
+	case r.Rule.TargetValue != "":
+		branches = append(branches, branch(`lower(purl) = lower(`+arg(r.Rule.TargetValue)+`)`))
+	case fp != "":
+		branches = append(branches, branch(`"packageName" LIKE `+arg("%"+likeEscape(fp))))
+	}
+	if len(branches) == 0 {
+		// No anchor: RuleMatches covers nothing, so select nothing.
+		branches = append(branches, `(SELECT uuid FROM "Finding" WHERE false)`)
+	}
+	return `SELECT ` + findingCols + ` FROM "Finding" f
+		WHERE f."orgId" = $1 AND f.uuid IN (` + strings.Join(branches, " UNION ALL ") + `)
+		ORDER BY f."createdAt" DESC
+		LIMIT $2`, args
+}
+
+// likeEscape quotes LIKE's wildcards (and its escape character) in s.
+func likeEscape(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }
 
 // Remove ends every live application of a rule (deactivate, supersede,
