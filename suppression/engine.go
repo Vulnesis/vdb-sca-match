@@ -26,7 +26,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
+	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
 )
 
 // Beginner is a pgx pool or transaction. Begin on a transaction opens a

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
+	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
 )
 
 // Characterisation tests for the pure decision helpers. They need no
@@ -125,7 +125,7 @@ func TestActorOf(t *testing.T) {
 	t.Run("empty primary falls back to the system actor", func(t *testing.T) {
 		got := actorOf(vexrules.Identity{})
 		if got.Kind != string(vexrules.EvidenceSystem) || got.ID != "vulnetix" || got.Label != "" || got.Email != "" || got.Verified {
-			t.Errorf("actorOf(empty) = %+v, want system/vulnetix", got)
+			t.Errorf("actorOf(empty) = %+v, want system/vulnesis", got)
 		}
 		var back vexrules.Identity
 		if err := json.Unmarshal([]byte(got.JSON), &back); err != nil {

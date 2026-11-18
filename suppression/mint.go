@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	vdbcdx "github.com/Vulnetix/vdb-cyclonedx"
-	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
+	vdbcdx "github.com/Vulnesis/vdb-cyclonedx"
+	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
 )
 
 // grounding is the commit and repository a VEX document is about. TEA projects
@@ -102,7 +102,7 @@ func (e *Engine) mint(ctx context.Context, tx pgx.Tx, orgID string, apps []Appli
 		doc, err := vdbcdx.BuildCDXVEX(findings, vdbcdx.VEXOptions{
 			ToolName:    "vulnetix-suppression",
 			GeneratedAt: time.Unix(now, 0).UTC().Format(time.RFC3339),
-			AuthorName:  firstNonEmpty(actor.Label, actor.ID, "Vulnetix"),
+			AuthorName:  firstNonEmpty(actor.Label, actor.ID, "Vulnesis"),
 			Project:     project,
 		})
 		if err != nil {
@@ -150,7 +150,7 @@ func (e *Engine) mint(ctx context.Context, tx pgx.Tx, orgID string, apps []Appli
 				"actorKind", "actorId", "actorLabel", "actorEmail", "actorVerified", "provenanceJSON")
 			VALUES ($1, $2, 'https://cyclonedx.org/schema/bom-1.6.schema.json', $3, $4, 'tool', $5, $5, 1, 'vulnetix-suppression', $6, $5,
 				'cyclonedx', $7, $8, $9, $10, $11, $12, $5, $13, $14, $15, $16, $17, $18)`,
-			m.OpenVexUuid, orgID, docID, firstNonEmpty(actor.Label, actor.ID, "Vulnetix"), now, string(doc),
+			m.OpenVexUuid, orgID, docID, firstNonEmpty(actor.Label, actor.ID, "Vulnesis"), now, string(doc),
 			nz(m.ArtifactUuid), nz(m.ScannerRunUuid), nz(m.GitCommit), nz(m.Repository), m.Grounded, k.rule,
 			nz(actor.Kind), nz(actor.ID), nz(actor.Label), nz(actor.Email), actor.Verified, nz(actor.JSON)); err != nil {
 			return out, fmt.Errorf("insert OpenVex: %w", err)

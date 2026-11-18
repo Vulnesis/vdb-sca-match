@@ -1,4 +1,4 @@
-module github.com/Vulnetix/vdb-sca-match
+module github.com/Vulnesis/vdb-sca-match
 
 go 1.25.0
 
@@ -23,7 +23,7 @@ require (
 )
 
 require (
-	github.com/Vulnetix/vdb-cyclonedx v0.18.0
+	github.com/Vulnesis/vdb-cyclonedx v0.19.0
 	github.com/aquasecurity/go-version v0.0.1 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect

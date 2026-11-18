@@ -3,7 +3,7 @@ package sarif
 // Finding is the normalized, tool-agnostic view of a single SARIF result.
 //
 // The JSON tags on the first block are byte-identical to the wire shape the
-// Vulnetix CLI and vdb-api already exchange, so this type can be embedded in
+// Vulnesis CLI and vdb-api already exchange, so this type can be embedded in
 // the product-specific finding structs on both sides without changing the
 // contract. The second block is read-side information the write-only model
 // never captured.

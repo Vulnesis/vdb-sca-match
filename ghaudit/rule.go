@@ -1,4 +1,4 @@
-// Package ghaudit is the Vulnetix GitHub posture engine: it evaluates GitHub
+// Package ghaudit is the Vulnesis GitHub posture engine: it evaluates GitHub
 // Actions workflows, composite actions, action references, and repository and
 // organisation settings, and reports misconfigurations as findings.
 //
@@ -145,7 +145,7 @@ type Rule struct {
 
 // HelpURI is the rule's documentation page.
 func (r *Rule) HelpURI() string {
-	return "https://docs.cli.vulnetix.com/docs/github-rules/" + strings.ToLower(r.ID) + "/"
+	return "https://docs.cli.vulnes.is/docs/github-rules/" + strings.ToLower(r.ID) + "/"
 }
 
 // Location is where a finding is. Settings findings have no Path; they carry

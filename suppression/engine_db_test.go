@@ -19,7 +19,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
+	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
 )
 
 const migrationPath = "../../saas/prisma/migrations/20261217000000_suppression_provenance/migration.sql"
@@ -139,7 +139,7 @@ func TestDBMigrationBackfill(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := tx.Exec(context.Background(), `SELECT set_config('vulnetix.suppression_audit_purge', 'on', true)`); err != nil {
+	if _, err := tx.Exec(context.Background(), `SELECT set_config('vulnesis.suppression_audit_purge', 'on', true)`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := tx.Exec(context.Background(), `DELETE FROM "SuppressionAudit"`); err != nil {

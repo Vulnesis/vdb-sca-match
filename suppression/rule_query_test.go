@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
+	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
 )
 
 // The ApplyRule prefilter must select on one required anchor only. ORing the
@@ -17,7 +17,7 @@ func TestRuleFindingQueryVulnerabilityRule(t *testing.T) {
 	r := ruleRow{Rule: vexrules.Rule{
 		VulnerabilityID:    "cve-2021-44228",
 		ProductPurlBase:    "pkg:maven/org.apache.logging.log4j/log4j-core",
-		RepositoryFullName: "Vulnetix/cli",
+		RepositoryFullName: "Vulnesis/cli",
 	}}
 	q, args := ruleFindingQuery("org-1", r, 5000)
 

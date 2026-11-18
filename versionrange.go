@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	ver "github.com/Vulnetix/vdb-sca-match/version"
+	ver "github.com/Vulnesis/vdb-sca-match/version"
 )
 
 // affectedFacts summarises, per cveId, what affected-version evidence was seen

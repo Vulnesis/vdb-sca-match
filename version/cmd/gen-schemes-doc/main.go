@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Vulnetix/vdb-sca-match/version"
+	"github.com/Vulnesis/vdb-sca-match/version"
 )
 
 func main() {

@@ -1,6 +1,6 @@
 package ghaudit
 
-import "github.com/Vulnetix/vdb-sca-match/cwss"
+import "github.com/Vulnesis/vdb-sca-match/cwss"
 
 // CWSS returns the finding's CWSS vector and 0..10 score. When facts left the
 // severity where the rule declared it, that is the rule's own vector; when they

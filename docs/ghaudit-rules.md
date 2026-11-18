@@ -1,10 +1,10 @@
-# Vulnetix GitHub posture rules
+# Vulnesis GitHub posture rules
 
 Generated from `ghaudit` — do not edit by hand; run `go test ./ghaudit -run TestCatalogueDoc -update`.
 
 Rules marked *needs* only run when those facts were collected (via the GitHub API or the GitHub App); without them they are reported as not evaluated rather than passed. Rules marked *uses* run on files alone and use the facts, when present, to lower severity where a setting removes the risk and raise it where a setting makes it worse.
 
-## Workflows — `vulnetix gha workflows`
+## Workflows — `vulnesis gha workflows`
 
 | ID | Rule | Severity | CWE | Context |
 |---|---|---|---|---|
@@ -31,7 +31,7 @@ Rules marked *needs* only run when those facts were collected (via the GitHub AP
 | [VNX-GH-021](#vnx-gh-021) | Secrets sent to an external host | critical | CWE-200, CWE-506 |  |
 | [VNX-GH-022](#vnx-gh-022) | Privileged job restores a cache keyed on contributor input | high | CWE-349, CWE-494 |  |
 
-## Actions and images — `vulnetix gha actions`
+## Actions and images — `vulnesis gha actions`
 
 | ID | Rule | Severity | CWE | Context |
 |---|---|---|---|---|
@@ -46,7 +46,7 @@ Rules marked *needs* only run when those facts were collected (via the GitHub AP
 | [VNX-GH-109](#vnx-gh-109) | Action owner resembles a popular publisher | high | CWE-1357 |  |
 | [VNX-GH-111](#vnx-gh-111) | Remote script piped into an interpreter | medium | CWE-494, CWE-829 |  |
 
-## Repository settings — `vulnetix gha settings`
+## Repository settings — `vulnesis gha settings`
 
 | ID | Rule | Severity | CWE | Context |
 |---|---|---|---|---|
@@ -73,7 +73,7 @@ Rules marked *needs* only run when those facts were collected (via the GitHub AP
 | [VNX-GH-221](#vnx-gh-221) | Security policy files missing | low | CWE-1059 | needs repo, repo_files |
 | [VNX-GH-222](#vnx-gh-222) | Actions secret not rotated in a year | low | CWE-324 | needs secrets |
 
-## Organisation settings — `vulnetix gha org`
+## Organisation settings — `vulnesis gha org`
 
 | ID | Rule | Severity | CWE | Context |
 |---|---|---|---|---|

@@ -1,6 +1,6 @@
 package match
 
-import ver "github.com/Vulnetix/vdb-sca-match/version"
+import ver "github.com/Vulnesis/vdb-sca-match/version"
 
 // applyFinerBranchRanges drops a match whose range lumps several branches together when
 // another id of the same alias group describes the same span branch by branch and the

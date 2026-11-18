@@ -4,13 +4,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Vulnetix/vdb-sca-match/sarif"
+	"github.com/Vulnesis/vdb-sca-match/sarif"
 )
 
 // ToolName is the SARIF driver name, and the ScannerRun.toolName the
 // platform files these results under (category IAC, with the other
 // misconfigurations).
-const ToolName = "Vulnetix GitHub"
+const ToolName = "Vulnesis GitHub"
 
 // securitySeverity is GitHub code scanning's numeric scale, which the SARIF
 // decomposer reads before level.
@@ -133,11 +133,11 @@ func (rep *Report) SARIF(opt SARIFOptions) *sarif.Log {
 
 	run := sarif.Run{
 		Tool: sarif.Tool{Driver: sarif.ToolComponent{
-			Name: ToolName, FullName: "Vulnetix GitHub posture analysis", Organization: "Vulnetix",
-			Version: opt.ToolVersion, InformationURI: "https://www.vulnetix.com", Rules: rules,
+			Name: ToolName, FullName: "Vulnesis GitHub posture analysis", Organization: "Vulnesis",
+			Version: opt.ToolVersion, InformationURI: "https://www.vulnes.is", Rules: rules,
 		}},
 		Results:           results,
-		AutomationDetails: &sarif.RunAutomationDetails{ID: "vulnetix-github/"},
+		AutomationDetails: &sarif.RunAutomationDetails{ID: "vulnesis-github/"},
 	}
 	if opt.RepositoryURI != "" {
 		run.VersionControlProvenance = []sarif.VersionControlDetails{{RepositoryURI: opt.RepositoryURI, Branch: opt.Branch, RevisionID: opt.Revision}}

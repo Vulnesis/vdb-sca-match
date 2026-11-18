@@ -49,7 +49,7 @@ kind: Deployment
 metadata:
   name: llm-server
   annotations:
-    vulnetix.com/model.primary: meta-llama/Llama-3.1-8B-Instruct
+    vulnes.is/model.primary: meta-llama/Llama-3.1-8B-Instruct
 spec:
   template:
     spec:
@@ -92,7 +92,7 @@ func TestParseKubernetesWorkloadsDeployment(t *testing.T) {
 	if w.Kind != "Deployment" || w.Name != "llm-server" {
 		t.Fatalf("unexpected workload identity: %+v", w)
 	}
-	if w.Annotations["vulnetix.com/model.primary"] != "meta-llama/Llama-3.1-8B-Instruct" {
+	if w.Annotations["vulnes.is/model.primary"] != "meta-llama/Llama-3.1-8B-Instruct" {
 		t.Error("annotation missing")
 	}
 	if len(w.Containers) != 2 {

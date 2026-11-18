@@ -1,5 +1,5 @@
 // Package cwss implements CWSS 1.0.1 (Common Weakness Scoring System) scoring,
-// plus the derivation Vulnetix uses to score a rule-engine finding that has no
+// plus the derivation Vulnesis uses to score a rule-engine finding that has no
 // CVE and therefore no CVSS.
 //
 // Two things live here rather than in either service, because vdb-api scores at

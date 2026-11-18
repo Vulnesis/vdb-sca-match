@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Vulnetix/vdb-sca-match/sarif"
+	"github.com/Vulnesis/vdb-sca-match/sarif"
 )
 
 func TestParseUses(t *testing.T) {

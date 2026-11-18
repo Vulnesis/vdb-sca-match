@@ -394,7 +394,7 @@ func parsePackageJSONScoped(data []byte, filePath string) ([]ScopedPackage, erro
 // ("workspace:*", which npm, yarn, pnpm and bun all accept), a path ("file:",
 // "link:", "portal:"). Such an entry has no version to compare with an advisory,
 // and "workspace:*" passes as pinned, so it was queried as a registry package
-// under the member's name (Vulnetix/cli#177).
+// under the member's name (Vulnesis/cli#177).
 func npmLocalSpec(spec string) bool {
 	spec = strings.TrimSpace(spec)
 	for _, p := range []string{"workspace:", "file:", "link:", "portal:"} {

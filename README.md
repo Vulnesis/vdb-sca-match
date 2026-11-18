@@ -11,7 +11,7 @@ affects it — by four methods, recording which method matched:
 - **crit** — `CritRecord` tagging over already-matched CVEs.
 
 ```go
-import match "github.com/Vulnetix/vdb-sca-match"
+import match "github.com/Vulnesis/vdb-sca-match"
 
 matches, err := match.MatchDependency(ctx, pool, match.Dependency{
     Name: "lodash", Version: "4.17.20", Ecosystem: "npm",
@@ -23,7 +23,7 @@ matches, err := match.MatchDependency(ctx, pool, match.Dependency{
 `pool` is any `*pgxpool.Pool` (or `pgx.Tx`) — both satisfy the `Querier` interface.
 
 Shared across `vdb-sca-monitor`, `vdb-api-cyclonedx-uploads`, and `vdb-api` (`/v2/cli.sca`).
-Consumed as a sibling module via `replace github.com/Vulnetix/vdb-sca-match => ../vdb-sca-match`
+Consumed as a sibling module via `replace github.com/Vulnesis/vdb-sca-match => ../vdb-sca-match`
 (the `ietf-crit-spec` pattern), cloned at container-build time.
 
 See [PLAN.md](./PLAN.md) for the full design, SQL, and version-comparator spec.
@@ -89,8 +89,8 @@ engine deliberately answers differently are listed with a reason in
 run, and repository/organisation settings, and reports misconfigurations as findings with
 stable fingerprints, CWE/CWSS metadata and, where safe, line edits that fix them. It is pure:
 callers supply files and optional `Facts` (collected from the REST API or the GitHub App
-mirror) and render the `Report` as SARIF (`Report.SARIF`, driver `Vulnetix GitHub`, category
-`IAC`) or as Finding rows. The CLI (`vulnetix gha workflows|actions|settings|org|audit`)
+mirror) and render the `Report` as SARIF (`Report.SARIF`, driver `Vulnesis GitHub`, category
+`IAC`) or as Finding rows. The CLI (`vulnesis gha workflows|actions|settings|org|audit`)
 and the Software Factory webhook path run the same engine, so the same input produces the same
 finding in both. Rule catalogue: [docs/ghaudit-rules.md](./docs/ghaudit-rules.md).
 

@@ -1,7 +1,7 @@
 package parse
 
 // local_extra.go contains parsers for the extended set of package manager
-// manifest / lock file formats supported by Vulnetix.  Every function follows
+// manifest / lock file formats supported by Vulnesis.  Every function follows
 // the same signature as the parsers in local.go:
 //
 //	func parseXxxScoped(data []byte, filePath string) ([]ScopedPackage, error)

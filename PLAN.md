@@ -2,7 +2,7 @@
 
 The dependency→CVE matching engine. Given one resolved dependency, it returns every CVE that
 affects it — by four methods — recording **which method matched**. It owns the multi-ecosystem
-version comparator that does not exist anywhere in the Vulnetix codebase today (verified: no
+version comparator that does not exist anywhere in the Vulnesis codebase today (verified: no
 semver/version library in `vdb-api` or `vdb-api-cyclonedx-uploads` go.mod; `/v2/cli.sca` relies on
 pre-computed `PackageVersionCVE` rows).
 
@@ -11,18 +11,18 @@ pre-computed `PackageVersionCVE` rows).
   real "version lower-than-fixed / within affected range" decision.
 - The same engine is wired into `vdb-api-cyclonedx-uploads` (`LookupComponentCVEs`) and `vdb-api`
   `/v2/cli.sca` (`lookupVulnsForPurl`) so all three paths match identically.
-- Consumed as a **sibling Go module** via `replace github.com/Vulnetix/vdb-sca-match =>
+- Consumed as a **sibling Go module** via `replace github.com/Vulnesis/vdb-sca-match =>
   ../vdb-sca-match`, cloned at container-build time (the `ietf-crit-spec` pattern).
 
 ## go.mod
 Direct requirements (exact pins live in `go.mod`; this excerpt is kept to the direct ones):
 ```
-module github.com/Vulnetix/vdb-sca-match
+module github.com/Vulnesis/vdb-sca-match
 go 1.25.0
 require (
     github.com/BurntSushi/toml v1.6.0                 // parse: uv.lock and pylock.toml
     github.com/Masterminds/semver/v3 v3.3.1           // semver-family ordering
-    github.com/Vulnetix/vdb-cyclonedx v0.18.0         // suppression: shared vexrules matcher + VEX model
+    github.com/Vulnesis/vdb-cyclonedx v0.18.0         // suppression: shared vexrules matcher + VEX model
     github.com/aquasecurity/go-pep440-version v0.0.1  // PyPI / PEP 440
     github.com/google/uuid v1.6.0                     // suppression: application / VEX ids
     github.com/jackc/pgx/v5 v5.9.2
@@ -263,7 +263,7 @@ sides keeps a CLI snapshot and an event-driven Software Factory finding identica
   CWSS vector (scored through `cwss/`); a `Finding` may carry a `Fix` (edits the Software
   Factory can apply as a PR).
   `docs/ghaudit-rules.md` is rendered by `CatalogueMarkdown()`.
-- **Output**: `Report.SARIF(SARIFOptions)` emits SARIF with driver `Vulnetix GitHub`
+- **Output**: `Report.SARIF(SARIFOptions)` emits SARIF with driver `Vulnesis GitHub`
   (`ToolName`), which `sarif.Decompose` files under category `IAC`.
 - **Analysis helpers**: expression and context taint (`expr.go`, `taint.go`), `uses:`
   parsing and pin checks (`uses.go`), workflow model (`workflow.go`), collected facts
@@ -300,5 +300,5 @@ sides keeps a CLI snapshot and an event-driven Software Factory finding identica
 
 ## Companion plans
 - `vdb-cyclonedx/PLAN.md` — the CycloneDX parser module.
-- `~/.claude/plans/create-a-new-repo-distributed-wolf.md` and `Vulnetix/PLAN.md` — the
+- `~/.claude/plans/create-a-new-repo-distributed-wolf.md` and `Vulnesis/PLAN.md` — the
   `vdb-sca-monitor` service that consumes both modules.

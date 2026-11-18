@@ -13,7 +13,7 @@ import (
 // (bun.lock). Every package manager gets the same questions: does it read the
 // lock its current release writes, are workspace members (source in the
 // repository, never a registry release) kept out, and are the dependencies a
-// workspace declares marked direct. Vulnetix/cli#177: a bun monorepo was not
+// workspace declares marked direct. Vulnesis/cli#177: a bun monorepo was not
 // read at all, and the lock of every npm-family monorepo lists the members.
 
 type pkgIndex map[string]ScopedPackage

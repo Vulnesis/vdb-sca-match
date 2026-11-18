@@ -126,7 +126,7 @@
       "columnKind": "utf16CodeUnits",
       "originalUriBaseIds": {
         "ROOTPATH": {
-          "uri": "file:///workspace/.local/share/vulnetix-actions-runners/work/vdb-site/vdb-site/vdb-site/"
+          "uri": "file:///workspace/.local/share/vulnesis-actions-runners/work/vdb-site/vdb-site/vdb-site/"
         }
       }
     }

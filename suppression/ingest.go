@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
+	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
 )
 
 // maxDocumentJSON caps the copy of a document kept in OpenVex.documentJSON.

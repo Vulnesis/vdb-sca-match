@@ -16,7 +16,7 @@ const (
 	SeverityInformational = "informational"
 )
 
-// SeverityFromLevel maps a SARIF result level to the Vulnetix severity
+// SeverityFromLevel maps a SARIF result level to the Vulnesis severity
 // vocabulary. LevelFromSeverity is its inverse. They live together so the two
 // directions cannot drift apart.
 func SeverityFromLevel(level string) string {
@@ -34,7 +34,7 @@ func SeverityFromLevel(level string) string {
 	}
 }
 
-// LevelFromSeverity maps a Vulnetix severity back to a SARIF result level.
+// LevelFromSeverity maps a Vulnesis severity back to a SARIF result level.
 func LevelFromSeverity(severity string) string {
 	switch strings.ToLower(strings.TrimSpace(severity)) {
 	case SeverityCritical, SeverityHigh:

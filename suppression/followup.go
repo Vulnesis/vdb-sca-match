@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
+	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
 )
 
 // FollowUpKind is one kind of finding work an ingest can leave for later.

@@ -1,4 +1,4 @@
-// Package sarif is the shared SARIF 2.1.0 read/write model used by the Vulnetix
+// Package sarif is the shared SARIF 2.1.0 read/write model used by the Vulnesis
 // CLI and by vdb-api. It is deliberately free of any database, S3 or HTTP
 // concern: it parses, validates and decomposes SARIF documents into a normalized
 // Finding shape, and nothing else.

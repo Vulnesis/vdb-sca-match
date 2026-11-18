@@ -95,7 +95,7 @@ func (s cweSet) sorted() []int {
 
 // collectCWEs unions every CWE source available for one result:
 //
-//  1. rule.properties["cwe"] — the Vulnetix writer's form
+//  1. rule.properties["cwe"] — the Vulnesis writer's form
 //  2. rule.properties["tags"] — bare "CWE-79" and CodeQL's "external/cwe/cwe-079"
 //  3. result.taxa and rule.relationships targeting a CWE tool component
 //  4. run.taxonomies named CWE, resolved by the index carried on the reference

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Vulnetix/vdb-sca-match/parse"
+	"github.com/Vulnesis/vdb-sca-match/parse"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )

@@ -218,7 +218,7 @@ func buildFinding(run *Run, res *Result, tool ToolInfo, opt DecomposeOptions, su
 //
 // Order: the result's own security-severity, the rule's security-severity
 // (where gosec, semgrep, trivy and grype all put it), the result's "severity"
-// property (where the Vulnetix writer puts it), the rule's "severity" property,
+// property (where the Vulnesis writer puts it), the rule's "severity" property,
 // then the SARIF level.
 func severityOf(res *Result, rule *ReportingDescriptor) (score, severity string) {
 	if res != nil {
