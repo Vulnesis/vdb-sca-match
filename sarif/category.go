@@ -102,7 +102,7 @@ func ParseCategory(s string) Category {
 //
 // The table covers the whole published integration catalog, not the handful of
 // scanners our own workflows happen to run. A driver name absent from here
-// falls through InferCategory to "", and `vulnetix gha upload` skips an
+// falls through InferCategory to "", and `vulnesis gha upload` skips an
 // unclassifiable report rather than filing it wrong — so a missing row is a
 // tool that silently produces nothing, which is the failure mode this table
 // exists to prevent. Where a tool self-reports under more than one spelling
@@ -177,7 +177,8 @@ var driverCategories = map[string]Category{
 	"kubescape": CategoryIAC, "tflint": CategoryIAC, "terraformdocs": CategoryIAC,
 	// ghaudit's own driver: GitHub workflow, action and settings posture,
 	// filed with the other misconfigurations.
-	"vulnetixgithub": CategoryIAC,
+	// Both brands' names classify the same (parity with Vulnetix).
+	"vulnesisgithub": CategoryIAC, "vulnetixgithub": CategoryIAC,
 
 	// ── Secrets ─────────────────────────────────────────────────────────────
 	"gitleaks": CategorySecrets, "trufflehog": CategorySecrets,
