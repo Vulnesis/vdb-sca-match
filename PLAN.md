@@ -300,5 +300,5 @@ sides keeps a CLI snapshot and an event-driven Software Factory finding identica
 
 ## Companion plans
 - `vdb-cyclonedx/PLAN.md` — the CycloneDX parser module.
-- `~/.claude/plans/create-a-new-repo-distributed-wolf.md` and `Vulnetix/PLAN.md` — the
+- `~/.claude/plans/create-a-new-repo-distributed-wolf.md` and `Vulnesis/PLAN.md` — the
   `vdb-sca-monitor` service that consumes both modules.

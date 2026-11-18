@@ -2,8 +2,8 @@ github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
 github.com/Masterminds/semver/v3 v3.3.1 h1:QtNSWtVZ3nBfk8mAOu/B6v7FMJ+NHTIgUPi7rj+4nv4=
 github.com/Masterminds/semver/v3 v3.3.1/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
-github.com/Vulnesis/vdb-cyclonedx v0.20.0 h1:sKjNAbFUcahChv7oaWqwP3HzJE1xC2Ixxvqm9sDvvaw=
-github.com/Vulnesis/vdb-cyclonedx v0.20.0/go.mod h1:lIOs+DKWQOVfzFr9RqQaCa65bBl9VfI+D3eL+5kz0n4=
+github.com/Vulnesis/vdb-cyclonedx v0.20.1 h1:NJdos09sdF6IYz/Kmoc2ugD+HSKdN8Qf0rWRo+oDGWA=
+github.com/Vulnesis/vdb-cyclonedx v0.20.1/go.mod h1:lIOs+DKWQOVfzFr9RqQaCa65bBl9VfI+D3eL+5kz0n4=
 github.com/aquasecurity/go-pep440-version v0.0.1 h1:8VKKQtH2aV61+0hovZS3T//rUF+6GDn18paFTVS0h0M=
 github.com/aquasecurity/go-pep440-version v0.0.1/go.mod h1:3naPe+Bp6wi3n4l5iBFCZgS0JG8vY6FT0H4NGhFJ+i4=
 github.com/aquasecurity/go-version v0.0.1 h1:4cNl516agK0TCn5F7mmYN+xVs1E3S45LkgZk3cbaW2E=
