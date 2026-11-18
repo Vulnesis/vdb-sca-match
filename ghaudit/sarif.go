@@ -137,7 +137,7 @@ func (rep *Report) SARIF(opt SARIFOptions) *sarif.Log {
 			Version: opt.ToolVersion, InformationURI: "https://www.vulnes.is", Rules: rules,
 		}},
 		Results:           results,
-		AutomationDetails: &sarif.RunAutomationDetails{ID: "vulnesis-github/"},
+		AutomationDetails: &sarif.RunAutomationDetails{ID: "vulnetix-github/"},
 	}
 	if opt.RepositoryURI != "" {
 		run.VersionControlProvenance = []sarif.VersionControlDetails{{RepositoryURI: opt.RepositoryURI, Branch: opt.Branch, RevisionID: opt.Revision}}

@@ -14,10 +14,10 @@ func CatalogueMarkdown() string {
 	b.WriteString("Generated from `ghaudit` — do not edit by hand; run `go test ./ghaudit -run TestCatalogueDoc -update`.\n\n")
 	b.WriteString("Rules marked *needs* only run when those facts were collected (via the GitHub API or the GitHub App); without them they are reported as not evaluated rather than passed. Rules marked *uses* run on files alone and use the facts, when present, to lower severity where a setting removes the risk and raise it where a setting makes it worse.\n")
 	titles := map[Task]string{
-		TaskWorkflows: "Workflows — `vulnesis gha workflows`",
-		TaskActions:   "Actions and images — `vulnesis gha actions`",
-		TaskSettings:  "Repository settings — `vulnesis gha settings`",
-		TaskOrg:       "Organisation settings — `vulnesis gha org`",
+		TaskWorkflows: "Workflows — `vulnetix gha workflows`",
+		TaskActions:   "Actions and images — `vulnetix gha actions`",
+		TaskSettings:  "Repository settings — `vulnetix gha settings`",
+		TaskOrg:       "Organisation settings — `vulnetix gha org`",
 	}
 	for _, t := range AllTasks {
 		fmt.Fprintf(&b, "\n## %s\n\n| ID | Rule | Severity | CWE | Context |\n|---|---|---|---|---|\n", titles[t])

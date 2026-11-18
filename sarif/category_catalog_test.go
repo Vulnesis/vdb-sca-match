@@ -4,7 +4,7 @@ import "testing"
 
 // The published integration catalog is the contract: every tool listed on
 // /resolve/integrations is a tool a customer is told Vulnesis ingests. A driver
-// name this package cannot classify is skipped by `vulnesis gha upload` with
+// name this package cannot classify is skipped by `vulnetix gha upload` with
 // "could not classify", so the scan produces nothing and the card stays
 // "available" forever — the exact failure this table prevents.
 //
@@ -321,7 +321,7 @@ func TestAllCategoriesMatchesRouteTable(t *testing.T) {
 // The driver names below are exactly what these tools reported on a real
 // publish, not what their documentation calls them. Each normalises to a string
 // no table can enumerate, so on the driver name alone the run was
-// unclassifiable and `vulnesis gha upload` skipped it.
+// unclassifiable and `vulnetix gha upload` skipped it.
 func TestDriverNamesCarryingBuildsAndVersions(t *testing.T) {
 	cases := []struct {
 		driver string

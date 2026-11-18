@@ -125,7 +125,7 @@ func TestActorOf(t *testing.T) {
 	t.Run("empty primary falls back to the system actor", func(t *testing.T) {
 		got := actorOf(vexrules.Identity{})
 		if got.Kind != string(vexrules.EvidenceSystem) || got.ID != "vulnetix" || got.Label != "" || got.Email != "" || got.Verified {
-			t.Errorf("actorOf(empty) = %+v, want system/vulnesis", got)
+			t.Errorf("actorOf(empty) = %+v, want system/vulnetix", got)
 		}
 		var back vexrules.Identity
 		if err := json.Unmarshal([]byte(got.JSON), &back); err != nil {

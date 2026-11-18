@@ -23,7 +23,7 @@ permissions:
 jobs:
   mutate:
     name: Mutation test ${{ inputs.package }}
-    runs-on: [self-hosted, Linux, X64, vulnesis-local]
+    runs-on: [self-hosted, Linux, X64, vulnetix-local]
     timeout-minutes: 120
     permissions:
       contents: read

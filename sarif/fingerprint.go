@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-// vulnesisFingerprintKey is the key the Vulnesis SARIF writer uses, so a
+// vulnetixFingerprintKey is the key the Vulnesis SARIF writer uses, so a
 // round-trip through this package preserves the CLI's own fingerprints.
-const vulnesisFingerprintKey = "vulnetix/v1"
+const vulnetixFingerprintKey = "vulnetix/v1"
 
 // githubPartialFingerprintKey is the key GitHub code scanning and several
 // third-party tools populate.
@@ -30,7 +30,7 @@ func fingerprintOf(res *Result, toolName, uri string) string {
 	if res == nil {
 		return ""
 	}
-	if v := strings.TrimSpace(res.Fingerprints[vulnesisFingerprintKey]); v != "" {
+	if v := strings.TrimSpace(res.Fingerprints[vulnetixFingerprintKey]); v != "" {
 		return v
 	}
 	if v := firstBySortedKey(res.Fingerprints); v != "" {
