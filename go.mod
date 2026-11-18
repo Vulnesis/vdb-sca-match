@@ -34,6 +34,3 @@ require (
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 )
-
-// v0.10.0 was tagged on the pre-surface-rebrand tree by mistake; use v0.11.0.
-retract v0.10.0
