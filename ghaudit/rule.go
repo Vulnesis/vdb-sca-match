@@ -145,7 +145,7 @@ type Rule struct {
 
 // HelpURI is the rule's documentation page.
 func (r *Rule) HelpURI() string {
-	return "https://docs.cli.vulnes.is/docs/github-rules/" + strings.ToLower(r.ID) + "/"
+	return "https://docs-cli.vulnes.is/docs/github-rules/" + strings.ToLower(r.ID) + "/"
 }
 
 // Location is where a finding is. Settings findings have no Path; they carry
