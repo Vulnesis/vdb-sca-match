@@ -19,7 +19,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
+	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
 )
 
 const migrationPath = "../../saas/prisma/migrations/20261217000000_suppression_provenance/migration.sql"

@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
+	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
 )
 
 // Runs with the other DB tests (SUPPRESSION_TEST_DATABASE_URL).

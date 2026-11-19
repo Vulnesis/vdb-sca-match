@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
+	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
 )
 
 // maxRuleChangeFindings caps how many findings one rule change evaluates. A

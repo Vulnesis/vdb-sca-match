@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
+	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
 )
 
 // The ApplyRule prefilter must select on one required anchor only. ORing the

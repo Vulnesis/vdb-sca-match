@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
+	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
 )
 
 type fakeConditions struct {

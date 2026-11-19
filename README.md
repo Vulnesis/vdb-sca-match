@@ -90,7 +90,7 @@ run, and repository/organisation settings, and reports misconfigurations as find
 stable fingerprints, CWE/CWSS metadata and, where safe, line edits that fix them. It is pure:
 callers supply files and optional `Facts` (collected from the REST API or the GitHub App
 mirror) and render the `Report` as SARIF (`Report.SARIF`, driver `Vulnesis GitHub`, category
-`IAC`) or as Finding rows. The CLI (`vulnesis gha workflows|actions|settings|org|audit`)
+`IAC`) or as Finding rows. The CLI (`vulnetix gha workflows|actions|settings|org|audit`)
 and the Software Factory webhook path run the same engine, so the same input produces the same
 finding in both. Rule catalogue: [docs/ghaudit-rules.md](./docs/ghaudit-rules.md).
 

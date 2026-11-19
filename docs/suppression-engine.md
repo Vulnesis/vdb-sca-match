@@ -5,7 +5,7 @@ Last Updated: 2026-11-02
 One engine decides which suppression rules cover which findings, for every service that
 writes a `Finding` row: vdb-api (`/v2/cli.*`), vdb-site (console, uploads, integrations),
 vdb-api-cyclonedx-uploads and vdb-sca-monitor. The statement classifier, markers, rule
-matcher and identity ladder are the public `github.com/Vulnesis/vdb-cyclonedx/vexrules`
+matcher and identity ladder are the public `github.com/Vulnetix/vdb-cyclonedx/vexrules`
 package; this package is the SQL against the saas schema.
 
 ## Entry points
@@ -65,7 +65,7 @@ A minted VEX is grounded when its run has `ScannerRun.repoName` and
 run for the same repository is used. A grounded mint is an `Artifact` of type `vex` with the
 run's `scannerRunUuid`, which the TEA projection picks up. An ungrounded VEX is stored with
 `OpenVex.grounded = false` and never reaches TEA; publish it by hand with
-`vulnesis tea publish`.
+`vulnetix tea publish`.
 
 ## Tests
 

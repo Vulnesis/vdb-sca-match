@@ -22,7 +22,7 @@ go 1.25.0
 require (
     github.com/BurntSushi/toml v1.6.0                 // parse: uv.lock and pylock.toml
     github.com/Masterminds/semver/v3 v3.3.1           // semver-family ordering
-    github.com/Vulnesis/vdb-cyclonedx v0.18.0         // suppression: shared vexrules matcher + VEX model
+    github.com/Vulnetix/vdb-cyclonedx v0.18.0         // suppression: shared vexrules matcher + VEX model
     github.com/aquasecurity/go-pep440-version v0.0.1  // PyPI / PEP 440
     github.com/google/uuid v1.6.0                     // suppression: application / VEX ids
     github.com/jackc/pgx/v5 v5.9.2

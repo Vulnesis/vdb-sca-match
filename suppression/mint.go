@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	vdbcdx "github.com/Vulnesis/vdb-cyclonedx"
-	"github.com/Vulnesis/vdb-cyclonedx/vexrules"
+	vdbcdx "github.com/Vulnetix/vdb-cyclonedx"
+	"github.com/Vulnetix/vdb-cyclonedx/vexrules"
 )
 
 // grounding is the commit and repository a VEX document is about. TEA projects
