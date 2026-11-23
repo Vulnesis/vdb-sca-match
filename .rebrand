@@ -1,2 +1,0 @@
-keep "vulnesisgithub": CategoryIAC, "vulnetixgithub": CategoryIAC,
-keep "Vulnesis GitHub", "Vulnetix GitHub"
